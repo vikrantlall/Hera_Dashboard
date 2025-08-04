@@ -6,8 +6,7 @@
     <title>{% block title %}HERA - Proposal Planning Dashboard{% endblock %}</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    <link href="{{ url_for('static', filename='css/base.css') }}" rel="stylesheet">
     {% block styles %}{% endblock %}
 </head>
 <body>
@@ -27,32 +26,32 @@
                     <i class="fas fa-tachometer-alt"></i>
                     <span>Dashboard</span>
                 </a>
-                
+
                 <a href="{{ url_for('budget') }}" class="nav-item {% if request.endpoint == 'budget' %}active{% endif %}">
                     <i class="fas fa-dollar-sign"></i>
                     <span>Budget</span>
                 </a>
-                
+
                 <a href="{{ url_for('ring') }}" class="nav-item {% if request.endpoint == 'ring' %}active{% endif %}">
                     <i class="fas fa-gem"></i>
                     <span>Ring</span>
                 </a>
-                
+
                 <a href="{{ url_for('family') }}" class="nav-item {% if request.endpoint == 'family' %}active{% endif %}">
                     <i class="fas fa-users"></i>
                     <span>Family</span>
                 </a>
-                
+
                 <a href="{{ url_for('travel') }}" class="nav-item {% if request.endpoint == 'travel' %}active{% endif %}">
                     <i class="fas fa-plane"></i>
                     <span>Travel</span>
                 </a>
-                
+
                 <a href="{{ url_for('itinerary') }}" class="nav-item {% if request.endpoint == 'itinerary' %}active{% endif %}">
                     <i class="fas fa-calendar-alt"></i>
                     <span>Itinerary</span>
                 </a>
-                
+
                 <a href="{{ url_for('packing') }}" class="nav-item {% if request.endpoint == 'packing' %}active{% endif %}">
                     <i class="fas fa-suitcase"></i>
                     <span>Packing</span>
@@ -71,45 +70,87 @@
             </div>
         </div>
 
+        <!-- Top Banner -->
+        <div class="top-banner">
+            <div class="banner-left">
+                <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            </div>
+            <div class="banner-right">
+                <div class="countdown-mini">
+                    <i class="fas fa-heart"></i>
+                    {{ days_remaining if days_remaining is defined else '0' }} days to go
+                </div>
+            </div>
+        </div>
+
         <!-- Main Content Area -->
         <div class="main-content">
-            <header class="main-header">
-                <div class="header-content">
-                    <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
-                    <div class="header-actions">
-                        <div class="countdown-header">
-                            <i class="fas fa-heart text-accent"></i>
-                            <span id="countdown-display">Loading...</span>
-                        </div>
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="alert {{ category }}">{{ message }}</div>
+                        {% endfor %}
                     </div>
-                </div>
-            </header>
+                {% endif %}
+            {% endwith %}
 
-            <main class="content">
-                {% with messages = get_flashed_messages() %}
-                    {% if messages %}
-                        <div class="flash-messages">
-                            {% for message in messages %}
-                                <div class="flash-message flash-error">
-                                    <i class="fas fa-exclamation-circle"></i>
-                                    {{ message }}
-                                    <button class="flash-close" onclick="this.parentElement.remove()">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
-
-                {% block content %}{% endblock %}
-            </main>
+            <!-- Page Content -->
+            {% block content %}{% endblock %}
         </div>
     </div>
 
-    <!-- Base JavaScript -->
-    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/countdown.js') }}"></script>
+    <!-- JavaScript -->
+    <script>
+        // Auto-hide flash messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateX(100%)';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 300);
+                });
+            }, 5000);
+        });
+
+        // AJAX helper function
+        function makeRequest(url, method = 'GET', data = null) {
+            return fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: data ? JSON.stringify(data) : null
+            }).then(response => response.json());
+        }
+
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const flashContainer = document.querySelector('.flash-messages') ||
+                (() => {
+                    const container = document.createElement('div');
+                    container.className = 'flash-messages';
+                    document.body.appendChild(container);
+                    return container;
+                })();
+
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            flashContainer.appendChild(alert);
+
+            setTimeout(() => {
+                alert.style.opacity = '0';
+                alert.style.transform = 'translateX(100%)';
+                setTimeout(() => alert.remove(), 300);
+            }, 3000);
+        }
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>

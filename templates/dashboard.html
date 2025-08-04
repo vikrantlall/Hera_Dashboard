@@ -1,250 +1,298 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - HERA{% endblock %}
 {% block page_title %}Dashboard{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<link href="{{ url_for('static', filename='css/dashboard.css') }}" rel="stylesheet">
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-grid">
-    <!-- Hero Countdown Section -->
-    <div class="countdown-hero card">
-        <div class="countdown-content">
-            <div class="countdown-header">
-                <h2 class="countdown-title">
-                    <i class="fas fa-heart text-accent"></i>
-                    The Big Day
-                </h2>
-                <p class="countdown-subtitle">September 24, 2025 • Emerald Lake, Banff</p>
-            </div>
-            
-            <div class="countdown-display">
-                <div id="countdown-main" class="countdown-main">
-                    <div class="countdown-number">{{ days_remaining }}</div>
-                    <div class="countdown-label">Days Remaining</div>
+<!-- Hero Countdown Section -->
+<div class="countdown-hero widget">
+    <div class="countdown-content">
+        <h1 class="countdown-title">
+            <i class="fas fa-heart"></i>
+            The Big Day Approaches
+        </h1>
+        <p class="countdown-subtitle">September 24, 2025 • Emerald Lake, Banff</p>
+
+        <div class="countdown-number">{{ days_remaining }}</div>
+        <div class="countdown-label">Days Remaining</div>
+    </div>
+</div>
+
+<!-- Statistics Grid -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="progress-ring">
+            <svg>
+                <defs>
+                    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" style="stop-color:var(--accent-gold);stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:var(--secondary-gold);stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                <circle class="progress-ring-bg" cx="40" cy="40" r="36"></circle>
+                <circle class="progress-ring-fill" cx="40" cy="40" r="36"
+                        stroke-dasharray="226"
+                        stroke-dashoffset="{{ 226 - (226 * budget_progress / 100) }}"></circle>
+            </svg>
+            <div class="progress-text">{{ "%.0f"|format(budget_progress) }}%</div>
+        </div>
+        <div class="stat-number">${{ "%.0f"|format(total_saved) }}</div>
+        <div class="stat-label">Budget Saved</div>
+        <div class="stat-sublabel">of ${{ "%.0f"|format(total_budget) }} total</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="progress-ring">
+            <svg>
+                <circle class="progress-ring-bg" cx="40" cy="40" r="36"></circle>
+                <circle class="progress-ring-fill" cx="40" cy="40" r="36"
+                        stroke-dasharray="226"
+                        stroke-dashoffset="{{ 226 - (226 * family_progress / 100) }}"></circle>
+            </svg>
+            <div class="progress-text">{{ "%.0f"|format(family_progress) }}%</div>
+        </div>
+        <div class="stat-number">{{ approved_family }}</div>
+        <div class="stat-label">Family Approvals</div>
+        <div class="stat-sublabel">of {{ total_family }} family members</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="progress-ring">
+            <svg>
+                <circle class="progress-ring-bg" cx="40" cy="40" r="36"></circle>
+                <circle class="progress-ring-fill" cx="40" cy="40" r="36"
+                        stroke-dasharray="226"
+                        stroke-dashoffset="{{ 226 - (226 * packing_progress / 100) }}"></circle>
+            </svg>
+            <div class="progress-text">{{ "%.0f"|format(packing_progress) }}%</div>
+        </div>
+        <div class="stat-number">{{ packed_count }}</div>
+        <div class="stat-label">Items Packed</div>
+        <div class="stat-sublabel">of {{ total_packing }} total items</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-number">
+            <i class="fas fa-gem" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+        </div>
+        <div class="stat-label">Ring Status</div>
+        <div class="stat-sublabel">{{ ring_status }}</div>
+    </div>
+</div>
+
+<!-- Main Content Grid -->
+<div class="content-grid">
+    <!-- Budget Overview -->
+    <div class="widget">
+        <div class="widget-header">
+            <h2 class="widget-title">Budget Overview</h2>
+            <p class="widget-subtitle">Track your proposal expenses</p>
+        </div>
+        <div class="widget-content">
+            {% for item in budget_items %}
+            <div class="budget-item">
+                <div class="budget-info">
+                    <div class="budget-name">{{ item.category }}</div>
+                    <div class="budget-amount">${{ "%.2f"|format(item.amount) }}</div>
                 </div>
-                
-                <div class="countdown-details">
-                    <div class="countdown-item">
-                        <span id="hours-remaining">0</span>
-                        <span class="countdown-unit">Hours</span>
+                <div class="budget-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill {{ 'pending' if item.status == 'Outstanding' else '' }}"
+                             style="width: {{ item.progress_percentage }}%"></div>
                     </div>
-                    <div class="countdown-item">
-                        <span id="minutes-remaining">0</span>
-                        <span class="countdown-unit">Minutes</span>
-                    </div>
+                    <div class="progress-percentage">{{ "%.0f"|format(item.progress_percentage) }}%</div>
+                </div>
+                <div class="budget-status">
+                    <span class="status-badge {{ 'paid' if item.status == 'Paid' else 'outstanding' }}">
+                        {{ item.status }}
+                    </span>
                 </div>
             </div>
-            
-            <div class="countdown-message">
-                <div id="milestone-message" class="milestone-text">
-                    Planning phase in full swing - making dreams reality!
-                </div>
-            </div>
+            {% endfor %}
         </div>
     </div>
 
-    <!-- Status Cards Grid -->
-    <div class="status-grid">
-        <!-- Budget Progress Card -->
-        <div class="status-card card">
-            <div class="status-header">
-                <div class="status-icon budget-icon">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-                <div class="status-info">
-                    <h3 class="status-title">Budget Progress</h3>
-                    <p class="status-value">${{ "%.2f"|format(paid_budget) }} / ${{ "%.2f"|format(total_budget) }}</p>
-                </div>
-            </div>
-            
-            <div class="progress-bar">
-                <div class="progress-fill" style="width: {{ budget_progress }}%"></div>
-            </div>
-            
-            <div class="status-footer">
-                <span class="status-percentage">{{ "%.1f"|format(budget_progress) }}% Complete</span>
-                <span class="status-remaining">${{ "%.2f"|format(total_budget - paid_budget) }} Remaining</span>
-            </div>
+    <!-- Pending Tasks -->
+    <div class="widget">
+        <div class="widget-header">
+            <h2 class="widget-title">Pending Tasks</h2>
+            <p class="widget-subtitle">Items requiring attention</p>
         </div>
-
-        <!-- Family Approval Card -->
-        <div class="status-card card">
-            <div class="status-header">
-                <div class="status-icon family-icon">
-                    <i class="fas fa-users"></i>
+        <div class="widget-content">
+            {% if pending_tasks %}
+                {% for task in pending_tasks %}
+                <div class="task-item">
+                    <div class="task-icon {{ task.type }} {{ 'urgent' if task.urgent else '' }}">
+                        {% if task.type == 'budget' %}
+                            <i class="fas fa-dollar-sign"></i>
+                        {% elif task.type == 'family' %}
+                            <i class="fas fa-users"></i>
+                        {% elif task.type == 'packing' %}
+                            <i class="fas fa-suitcase"></i>
+                        {% endif %}
+                    </div>
+                    <div class="task-content">
+                        <div class="task-title">{{ task.title }}</div>
+                        <div class="task-description">{{ task.description }}</div>
+                    </div>
                 </div>
-                <div class="status-info">
-                    <h3 class="status-title">Family Approval</h3>
-                    <p class="status-value">{{ approved_family }} / {{ total_family }} Approved</p>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; margin-bottom: 1rem; color: var(--success);"></i>
+                    <p>All tasks completed! You're ready for the big day.</p>
                 </div>
-            </div>
-            
-            <div class="progress-bar">
-                <div class="progress-fill family-progress" style="width: {{ family_progress }}%"></div>
-            </div>
-            
-            <div class="status-footer">
-                <span class="status-percentage">{{ "%.1f"|format(family_progress) }}% Family Buy-in</span>
-                <span class="status-remaining">{{ total_family - approved_family }} Pending</span>
-            </div>
-        </div>
-
-        <!-- Packing Progress Card -->
-        <div class="status-card card">
-            <div class="status-header">
-                <div class="status-icon packing-icon">
-                    <i class="fas fa-suitcase"></i>
-                </div>
-                <div class="status-info">
-                    <h3 class="status-title">Packing Progress</h3>
-                    <p class="status-value">{{ packed_items }} / {{ total_packing }} Packed</p>
-                </div>
-            </div>
-            
-            <div class="progress-bar">
-                <div class="progress-fill packing-progress" style="width: {{ packing_progress }}%"></div>
-            </div>
-            
-            <div class="status-footer">
-                <span class="status-percentage">{{ "%.1f"|format(packing_progress) }}% Ready</span>
-                <span class="status-remaining">{{ total_packing - packed_items }} Items Left</span>
-            </div>
-        </div>
-
-        <!-- Ring Status Card -->
-        <div class="status-card card ring-special">
-            <div class="status-header">
-                <div class="status-icon ring-icon">
-                    <i class="fas fa-gem"></i>
-                </div>
-                <div class="status-info">
-                    <h3 class="status-title">The Ring</h3>
-                    <p class="status-value">2.98ct Lab Diamond</p>
-                </div>
-            </div>
-            
-            <div class="ring-status">
-                <div class="ring-status-badge delivered">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Delivered & Ready</span>
-                </div>
-            </div>
-            
-            <div class="status-footer">
-                <span class="status-details">18k Yellow Gold • GWFJ</span>
-                <span class="status-insured">
-                    <i class="fas fa-shield-alt"></i>
-                    Insured
-                </span>
-            </div>
+            {% endif %}
         </div>
     </div>
+</div>
 
-    <!-- Quick Actions Panel -->
-    <div class="quick-actions card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-bolt"></i>
-                Quick Actions
-            </h3>
-        </div>
-        
-        <div class="actions-grid">
+<!-- Quick Actions -->
+<div class="widget">
+    <div class="widget-header">
+        <h2 class="widget-title">Quick Actions</h2>
+        <p class="widget-subtitle">Navigate to key sections</p>
+    </div>
+    <div class="widget-content">
+        <div class="action-grid">
             <a href="{{ url_for('budget') }}" class="action-item">
                 <div class="action-icon">
                     <i class="fas fa-dollar-sign"></i>
                 </div>
                 <div class="action-content">
-                    <span class="action-title">Review Budget</span>
-                    <span class="action-subtitle">Track expenses</span>
+                    <div class="action-title">Manage Budget</div>
+                    <div class="action-subtitle">Track expenses & payments</div>
                 </div>
             </a>
-            
-            <a href="{{ url_for('itinerary') }}" class="action-item">
+
+            <a href="{{ url_for('ring') }}" class="action-item">
                 <div class="action-icon">
-                    <i class="fas fa-calendar-alt"></i>
+                    <i class="fas fa-gem"></i>
                 </div>
                 <div class="action-content">
-                    <span class="action-title">View Itinerary</span>
-                    <span class="action-subtitle">5-day plan</span>
+                    <div class="action-title">View Ring Details</div>
+                    <div class="action-subtitle">GWFJ custom creation</div>
                 </div>
             </a>
-            
-            <a href="{{ url_for('travel') }}" class="action-item">
-                <div class="action-icon">
-                    <i class="fas fa-plane"></i>
-                </div>
-                <div class="action-content">
-                    <span class="action-title">Travel Details</span>
-                    <span class="action-subtitle">Flights & hotel</span>
-                </div>
-            </a>
-            
+
             <a href="{{ url_for('family') }}" class="action-item">
                 <div class="action-icon">
                     <i class="fas fa-users"></i>
                 </div>
                 <div class="action-content">
-                    <span class="action-title">Family Status</span>
-                    <span class="action-subtitle">Permissions</span>
+                    <div class="action-title">Family Status</div>
+                    <div class="action-subtitle">Permission tracking</div>
+                </div>
+            </a>
+
+            <a href="{{ url_for('itinerary') }}" class="action-item">
+                <div class="action-icon">
+                    <i class="fas fa-calendar-alt"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Trip Itinerary</div>
+                    <div class="action-subtitle">47 planned activities</div>
+                </div>
+            </a>
+
+            <a href="{{ url_for('travel') }}" class="action-item">
+                <div class="action-icon">
+                    <i class="fas fa-plane"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Travel Details</div>
+                    <div class="action-subtitle">Flights & accommodation</div>
+                </div>
+            </a>
+
+            <a href="{{ url_for('packing') }}" class="action-item">
+                <div class="action-icon">
+                    <i class="fas fa-suitcase"></i>
+                </div>
+                <div class="action-content">
+                    <div class="action-title">Packing List</div>
+                    <div class="action-subtitle">Essential items checklist</div>
                 </div>
             </a>
         </div>
     </div>
+</div>
 
-    <!-- Recent Activity Timeline -->
-    <div class="timeline-card card">
-        <div class="card-header">
-            <h3 class="card-title">
-                <i class="fas fa-clock"></i>
-                Recent Updates
-            </h3>
-        </div>
-        
-        <div class="timeline">
-            <div class="timeline-item completed">
-                <div class="timeline-marker"></div>
-                <div class="timeline-content">
-                    <div class="timeline-title">Ring Delivered</div>
-                    <div class="timeline-subtitle">2.98ct lab diamond safely received</div>
-                    <div class="timeline-time">Completed</div>
+<!-- Data Management -->
+<div class="widget">
+    <div class="widget-header">
+        <h2 class="widget-title">Data Management</h2>
+        <p class="widget-subtitle">Update and export your planning data</p>
+    </div>
+    <div class="widget-content">
+        <div class="action-grid">
+            <button onclick="refreshData()" class="action-item" style="border: none; cursor: pointer;">
+                <div class="action-icon">
+                    <i class="fas fa-sync-alt"></i>
                 </div>
-            </div>
-            
-            <div class="timeline-item completed">
-                <div class="timeline-marker"></div>
-                <div class="timeline-content">
-                    <div class="timeline-title">Flights Booked</div>
-                    <div class="timeline-subtitle">IAD → YYC confirmed for Sept 24-29</div>
-                    <div class="timeline-time">Completed</div>
+                <div class="action-content">
+                    <div class="action-title">Refresh Data</div>
+                    <div class="action-subtitle">Reload from Excel file</div>
                 </div>
-            </div>
-            
-            <div class="timeline-item in-progress">
-                <div class="timeline-marker"></div>
-                <div class="timeline-content">
-                    <div class="timeline-title">Hotel Reservation</div>
-                    <div class="timeline-subtitle">Canalta Lodge - King Room w/ Balcony</div>
-                    <div class="timeline-time">Confirmed</div>
+            </button>
+
+            <a href="{{ url_for('export_csv_route') }}" class="action-item">
+                <div class="action-icon">
+                    <i class="fas fa-download"></i>
                 </div>
-            </div>
-            
-            <div class="timeline-item pending">
-                <div class="timeline-marker"></div>
-                <div class="timeline-content">
-                    <div class="timeline-title">Final Preparations</div>
-                    <div class="timeline-subtitle">Packing and last-minute details</div>
-                    <div class="timeline-time">Upcoming</div>
+                <div class="action-content">
+                    <div class="action-title">Export Data</div>
+                    <div class="action-subtitle">Download current state</div>
                 </div>
-            </div>
+            </a>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<script>
+    function refreshData() {
+        const button = event.target.closest('.action-item');
+        const icon = button.querySelector('i');
+
+        // Add loading state
+        icon.className = 'fas fa-spinner fa-spin';
+        button.style.pointerEvents = 'none';
+
+        makeRequest('{{ url_for("refresh_data") }}', 'POST')
+            .then(response => {
+                if (response.success) {
+                    showNotification('Data refreshed successfully!', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showNotification(response.error || 'Failed to refresh data', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Network error occurred', 'error');
+                console.error('Error:', error);
+            })
+            .finally(() => {
+                icon.className = 'fas fa-sync-alt';
+                button.style.pointerEvents = 'auto';
+            });
+    }
+
+    // Initialize progress ring animations
+    document.addEventListener('DOMContentLoaded', function() {
+        const rings = document.querySelectorAll('.progress-ring-fill');
+        rings.forEach(ring => {
+            const progress = parseFloat(ring.style.strokeDashoffset || 0);
+            ring.style.strokeDashoffset = '226';
+
+            setTimeout(() => {
+                ring.style.strokeDashoffset = ring.getAttribute('stroke-dashoffset');
+            }, 500);
+        });
+    });
+</script>
 {% endblock %}
