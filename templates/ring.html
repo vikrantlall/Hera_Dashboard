@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}The Ring - HERA{% endblock %}
+{% block page_title %}The Ring{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ring.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="ring-container">
+    <!-- Ring Hero Section -->
+    <div class="ring-hero">
+        <div class="hero-content">
+            <div class="ring-title-section">
+                <h1 class="ring-title">
+                    <i class="fas fa-gem"></i>
+                    The Perfect Ring
+                </h1>
+                <div class="ring-status-badge {{ 'delivered' if ring and ring.status == 'Delivered' else 'pending' }}">
+                    <i class="fas fa-{{ 'check-circle' if ring and ring.status == 'Delivered' else 'clock' }}"></i>
+                    <span class="editable-text" data-field="status">{{ ring.status if ring else 'Pending' }}</span>
+                </div>
+            </div>
+            
+            <div class="ring-subtitle">
+                2.98ct Lab Grown Diamond • 18k Yellow Gold • Custom Made
+            </div>
+        </div>
+    </div>
+
+    <!-- Ring Photo Gallery -->
+    <div class="ring-gallery-section">
+        <div class="gallery-header">
+            <h2 class="section-title">
+                <i class="fas fa-images"></i>
+                Ring Gallery
+            </h2>
+            <div class="gallery-actions">
+                <button class="btn btn-primary upload-photo-btn" id="upload-photo-btn">
+                    <i class="fas fa-camera"></i>
+                    Add Photo
+                </button>
+                <input type="file" id="photo-upload" accept="image/*" style="display: none;" multiple>
+            </div>
+        </div>
+
+        <div class="photo-gallery" id="photo-gallery">
+            <div class="photo-placeholder">
+                <div class="placeholder-content">
+                    <i class="fas fa-camera"></i>
+                    <h3>No Photos Yet</h3>
+                    <p>Upload photos of your ring to create a beautiful gallery</p>
+                    <button class="btn btn-primary" onclick="document.getElementById('photo-upload').click()">
+                        <i class="fas fa-plus"></i>
+                        Add First Photo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ring Specifications -->
+    <div class="ring-specs-section">
+        <div class="specs-grid">
+            <!-- Jeweler Card -->
+            <div class="spec-card">
+                <div class="spec-header">
+                    <div class="spec-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h3 class="spec-title">Jeweler</h3>
+                </div>
+                <div class="spec-content">
+                    <div class="spec-value">
+                        <span class="editable-text" data-field="jeweler">{{ ring.jeweler if ring else 'GWFJ' }}</span>
+                    </div>
+                    <div class="spec-description">Trusted partner for custom work</div>
+                </div>
+            </div>
+
+            <!-- Stone Card -->
+            <div class="spec-card">
+                <div class="spec-header">
+                    <div class="spec-icon">
+                        <i class="fas fa-gem"></i>
+                    </div>
+                    <h3 class="spec-title">Stone</h3>
+                </div>
+                <div class="spec-content">
+                    <div class="spec-value">
+                        <span class="editable-text" data-field="stone">{{ ring.stone if ring else '2.98ct Lab Grown Diamond' }}</span>
+                    </div>
+                    <div class="spec-description">Brilliant cut, excellent clarity</div>
+                </div>
+            </div>
+
+            <!-- Metal Card -->
+            <div class="spec-card">
+                <div class="spec-header">
+                    <div class="spec-icon">
+                        <i class="fas fa-ring"></i>
+                    </div>
+                    <h3 class="spec-title">Metal</h3>
+                </div>
+                <div class="spec-content">
+                    <div class="spec-value">
+                        <span class="editable-text" data-field="metal">{{ ring.metal if ring else '18k Yellow Gold' }}</span>
+                    </div>
+                    <div class="spec-description">Premium quality setting</div>
+                </div>
+            </div>
+
+            <!-- Insurance Card -->
+            <div class="spec-card">
+                <div class="spec-header">
+                    <div class="spec-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3 class="spec-title">Insurance</h3>
+                </div>
+                <div class="spec-content">
+                    <div class="spec-value">
+                        <span class="editable-text" data-field="insurance">{{ ring.insurance if ring else 'Jewelers Mutual' }}</span>
+                    </div>
+                    <div class="spec-description">Fully protected investment</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ring Inspiration -->
+    <div class="inspiration-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-heart"></i>
+                Style Inspiration
+            </h2>
+        </div>
+        
+        <div class="inspiration-card">
+            <div class="inspiration-content">
+                <div class="inspiration-text">
+                    <h3>Sofia Zakia Collection</h3>
+                    <div class="inspiration-description">
+                        <span class="editable-text" data-field="style_inspiration">{{ ring.style_inspiration if ring else 'Sofia Zakia inspiration' }}</span>
+                    </div>
+                </div>
+                <div class="inspiration-link">
+                    <a href="#" class="btn btn-secondary" target="_blank">
+                        <i class="fas fa-external-link-alt"></i>
+                        View Inspiration
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ring Timeline -->
+    <div class="timeline-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-clock"></i>
+                Ring Journey
+            </h2>
+        </div>
+        
+        <div class="ring-timeline">
+            <div class="timeline-item completed">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                    <div class="timeline-title">Design Consultation</div>
+                    <div class="timeline-subtitle">Met with jeweler to discuss custom design</div>
+                    <div class="timeline-date">Completed</div>
+                </div>
+            </div>
+            
+            <div class="timeline-item completed">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                    <div class="timeline-title">Stone Selection</div>
+                    <div class="timeline-subtitle">Chose 2.98ct lab grown diamond</div>
+                    <div class="timeline-date">Completed</div>
+                </div>
+            </div>
+            
+            <div class="timeline-item completed">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                    <div class="timeline-title">Setting Design</div>
+                    <div class="timeline-subtitle">Finalized 18k yellow gold setting</div>
+                    <div class="timeline-date">Completed</div>
+                </div>
+            </div>
+            
+            <div class="timeline-item completed">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                    <div class="timeline-title">Ring Creation</div>
+                    <div class="timeline-subtitle">Custom fabrication process</div>
+                    <div class="timeline-date">Completed</div>
+                </div>
+            </div>
+            
+            <div class="timeline-item {{ 'completed' if ring and ring.status == 'Delivered' else 'in-progress' }}">
+                <div class="timeline-marker"></div>
+                <div class="timeline-content">
+                    <div class="timeline-title">Delivery</div>
+                    <div class="timeline-subtitle">Ring safely delivered</div>
+                    <div class="timeline-date">{{ 'Completed' if ring and ring.status == 'Delivered' else 'In Progress' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ring Notes -->
+    <div class="notes-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-sticky-note"></i>
+                Notes & Details
+            </h2>
+        </div>
+        
+        <div class="notes-card">
+            <div class="notes-content">
+                <div class="notes-text">
+                    <div class="editable-textarea" data-field="notes" data-placeholder="Add notes about the ring, special details, or memories...">{{ ring.notes if ring else '' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Photo Lightbox Modal -->
+<div class="glass-overlay" id="photo-lightbox">
+    <div class="lightbox-modal">
+        <div class="lightbox-header">
+            <button class="lightbox-close" data-modal="photo-lightbox">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="lightbox-content">
+            <div class="lightbox-image-container">
+                <img id="lightbox-image" src="" alt="Ring Photo">
+            </div>
+            
+            <div class="lightbox-controls">
+                <button class="lightbox-btn" id="prev-photo">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="lightbox-btn" id="next-photo">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div class="lightbox-actions">
+            <button class="btn btn-secondary" id="delete-photo">
+                <i class="fas fa-trash"></i>
+                Delete Photo
+            </button>
+            <button class="btn btn-primary" id="set-primary">
+                <i class="fas fa-star"></i>
+                Set as Primary
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Progress Modal -->
+<div class="glass-overlay" id="upload-progress">
+    <div class="glass-modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Uploading Photos</h3>
+        </div>
+        
+        <div class="modal-content">
+            <div class="upload-progress-bar">
+                <div class="progress-fill" id="upload-progress-fill"></div>
+            </div>
+            <div class="upload-status" id="upload-status">Preparing upload...</div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/ring.js') }}"></script>
+{% endblock %}

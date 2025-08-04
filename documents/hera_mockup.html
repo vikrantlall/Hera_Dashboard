@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HERA - Proposal Planning Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Color Scheme & Variables */
+        :root {
+            --primary-dark: #1f2937;
+            --primary-light: #374151;
+            --accent-gold: #d4af37;
+            --secondary-gold: #b8941f;
+            --bg-primary: #f9fafb;
+            --bg-secondary: #f3f4f6;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-light: #9ca3af;
+            --border: #e5e7eb;
+            --white: #ffffff;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --info: #3b82f6;
+        }
+
+        /* Reset & Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 14px;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        /* Layout Structure */
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+        }
+
+        /* Top Banner */
+        .top-banner {
+            position: fixed;
+            top: 0;
+            left: 260px;
+            right: 0;
+            height: 70px;
+            background: var(--primary-dark);
+            border-bottom: 1px solid var(--primary-light);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            z-index: 1000;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .banner-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .page-title {
+            color: white;
+            font-size: 18px;
+            font-weight: 300;
+            letter-spacing: -0.025em;
+        }
+
+        .banner-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .countdown-mini {
+            background: linear-gradient(135deg, var(--accent-gold), var(--secondary-gold));
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 13px;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .countdown-mini:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.4);
+        }
+
+        .user-profile {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-gold), var(--secondary-gold));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
+        }
+
+        .user-profile:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(212, 175, 55, 0.3);
+        }
+
+        /* Fixed Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: var(--primary-dark);
+            display: flex;
+            flex-direction: column;
+            z-index: 1001;
+        }
+
+        .sidebar-brand {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--primary-light);
+        }
+
+        .brand-logo {
+            font-size: 32px;
+            font-weight: 600;
+            color: var(--accent-gold);
+            letter-spacing: -0.025em;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .brand-subtitle {
+            color: var(--text-light);
+            font-size: 12px;
+            margin-top: 4px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .nav-menu {
+            flex: 1;
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #d1d5db;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-item:hover {
+            background: var(--primary-light);
+            color: white;
+        }
+
+        .nav-item.active {
+            background: var(--primary-light);
+            color: var(--accent-gold);
+            border-left-color: var(--accent-gold);
+        }
+
+        .nav-item i {
+            width: 20px;
+            margin-right: 12px;
+            font-size: 16px;
+        }
+
+        .nav-label {
+            font-weight: 500;
+        }
+
+        .nav-badge {
+            margin-left: auto;
+            background: var(--accent-gold);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: 260px;
+            margin-top: 70px;
+            padding: 32px;
+            width: calc(100% - 260px);
+            min-height: calc(100vh - 70px);
+        }
+
+        /* Widget Cards */
+        .widget {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(25px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(31, 41, 55, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 32px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .widget::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .widget:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 32px 80px rgba(31, 41, 55, 0.15);
+            border-color: rgba(212, 175, 55, 0.2);
+        }
+
+        .widget:hover::before {
+            opacity: 1;
+        }
+
+        .widget-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .widget-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .widget-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(25px);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(31, 41, 55, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 32px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--accent-gold), var(--secondary-gold));
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 32px 80px rgba(31, 41, 55, 0.15);
+            border-color: rgba(212, 175, 55, 0.3);
+        }
+
+        .stat-card:hover::before {
+            transform: translateX(0);
+        }
+
+        .stat-number {
+            font-size: 40px;
+            font-weight: 200;
+            background: linear-gradient(135deg, var(--accent-gold), var(--secondary-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            letter-spacing: -0.025em;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+
+        .stat-sublabel {
+            color: var(--text-light);
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 32px;
+        }
+
+        /* Budget Progress */
+        .budget-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .budget-item:last-child {
+            border-bottom: none;
+        }
+
+        .budget-info {
+            flex: 1;
+        }
+
+        .budget-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .budget-amount {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .budget-progress {
+            flex: 1;
+            margin: 0 16px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #16a34a);
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.pending {
+            background: linear-gradient(90deg, var(--error), #dc2626);
+        }
+
+        .budget-status {
+            text-align: right;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+
+        .status-badge.complete {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-badge.pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        /* Task List */
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .task-item:last-child {
+            border-bottom: none;
+        }
+
+        .task-checkbox {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 2px solid var(--border);
+            margin-right: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .task-checkbox.completed {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .task-content {
+            flex: 1;
+        }
+
+        .task-name {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .task-name.completed {
+            text-decoration: line-through;
+            color: var(--text-secondary);
+        }
+
+        .task-deadline {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* Family Grid */
+        .family-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .family-member {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .member-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent-gold);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .member-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .member-notes {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        /* Ring Showcase */
+        .ring-showcase {
+            text-align: center;
+            padding: 48px;
+            background: linear-gradient(135deg, var(--bg-secondary), var(--white));
+            border-radius: 24px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ring-showcase::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(212, 175, 55, 0.05) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .ring-image-placeholder {
+            width: 240px;
+            height: 240px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-gold), var(--secondary-gold));
+            margin: 0 auto 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 64px;
+            box-shadow: 0 20px 60px rgba(212, 175, 55, 0.3);
+            position: relative;
+            z-index: 1;
+            transition: all 0.4s ease;
+        }
+
+        .ring-image-placeholder:hover {
+            transform: scale(1.05) rotate(5deg);
+            box-shadow: 0 30px 80px rgba(212, 175, 55, 0.4);
+        }
+
+        .ring-title {
+            font-size: 24px;
+            font-weight: 300;
+            margin-bottom: 8px;
+        }
+
+        .ring-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .ring-specs {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            text-align: left;
+        }
+
+        .spec-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .spec-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .spec-value {
+            color: var(--text-primary);
+        }
+
+        /* Countdown Display */
+        .countdown-display {
+            text-align: center;
+            padding: 48px;
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            color: white;
+            border-radius: 24px;
+            margin-bottom: 32px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(31, 41, 55, 0.2);
+        }
+
+        .countdown-display::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .countdown-title {
+            font-size: 20px;
+            font-weight: 300;
+            margin-bottom: 32px;
+            opacity: 0.95;
+            letter-spacing: -0.025em;
+        }
+
+        .countdown-numbers {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 24px;
+        }
+
+        .countdown-unit {
+            text-align: center;
+            position: relative;
+        }
+
+        .countdown-value {
+            font-size: 48px;
+            font-weight: 200;
+            background: linear-gradient(135deg, var(--accent-gold), var(--secondary-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+            line-height: 1;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .countdown-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            opacity: 0.8;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .trip-dates {
+            font-size: 16px;
+            opacity: 0.85;
+            font-weight: 300;
+            letter-spacing: -0.025em;
+        }
+
+        /* Page Transitions */
+        .page-content {
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .page-content.hidden {
+            display: none;
+        }
+
+        /* Responsive adjustments for desktop-first */
+        @media (max-width: 1440px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        .text-error { color: var(--error); }
+        .font-light { font-weight: 300; }
+        .font-medium { font-weight: 500; }
+        .font-semibold { font-weight: 600; }
+        .mb-0 { margin-bottom: 0; }
+        .mb-8 { margin-bottom: 8px; }
+        .mb-16 { margin-bottom: 16px; }
+        .mb-24 { margin-bottom: 24px; }
+    </style>
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        <!-- Fixed Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-logo">HERA</div>
+                <div class="brand-subtitle">Proposal Planning</div>
+            </div>
+            
+            <div class="nav-menu">
+                <a href="#" class="nav-item active" data-page="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="nav-label">Dashboard</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="budget">
+                    <i class="fas fa-dollar-sign"></i>
+                    <span class="nav-label">Budget</span>
+                    <span class="nav-badge">$4,180</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="ring">
+                    <i class="fas fa-gem"></i>
+                    <span class="nav-label">Ring</span>
+                    <span class="nav-badge" style="background: var(--success);">✓</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="family">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-label">Family</span>
+                    <span class="nav-badge">6/7</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="travel">
+                    <i class="fas fa-plane"></i>
+                    <span class="nav-label">Travel</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="itinerary">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span class="nav-label">Itinerary</span>
+                    <span class="nav-badge">47</span>
+                </a>
+                
+                <a href="#" class="nav-item" data-page="packing">
+                    <i class="fas fa-suitcase"></i>
+                    <span class="nav-label">Packing</span>
+                    <span class="nav-badge" style="background: var(--warning);">0/7</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Top Banner -->
+        <header class="top-banner">
+            <div class="banner-left">
+                <div class="page-title" id="page-title">Dashboard Overview</div>
+            </div>
+            
+            <div class="banner-right">
+                <div class="countdown-mini" id="countdown-mini">
+                    157 days, 14 hours, 23 minutes
+                </div>
+                <div class="user-profile">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="page-content">
+                <!-- Hero Statistics -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number" id="countdown-days">157</div>
+                        <div class="stat-label">Days Until</div>
+                        <div class="stat-sublabel">September 24, 2025</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number">64.2%</div>
+                        <div class="stat-label">Budget Saved</div>
+                        <div class="stat-sublabel">$7,511 of $11,691</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number">8/10</div>
+                        <div class="stat-label">Tasks Complete</div>
+                        <div class="stat-sublabel">2 remaining</div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-number">6/7</div>
+                        <div class="stat-label">Family Approved</div>
+                        <div class="stat-sublabel">1 pending</div>
+                    </div>
+                </div>
+
+                <!-- Content Grid -->
+                <div class="content-grid">
+                    <!-- Budget Progress -->
+                    <div class="widget">
+                        <div class="widget-header">
+                            <div>
+                                <h3 class="widget-title">Budget Progress</h3>
+                                <p class="widget-subtitle">$7,511.20 saved of $11,691.20 total</p>
+                            </div>
+                        </div>
+                        
+                        <div class="budget-item">
+                            <div class="budget-info">
+                                <div class="budget-name">Ring</div>
+                                <div class="budget-amount">$6,400.00</div>
+                            </div>
+                            <div class="budget-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            <div class="budget-status">
+                                <span class="status-badge complete">Complete</span>
+                            </div>
+                        </div>
+                        
+                        <div class="budget-item">
+                            <div class="budget-info">
+                                <div class="budget-name">Flights</div>
+                                <div class="budget-amount">$11.20</div>
+                            </div>
+                            <div class="budget-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            <div class="budget-status">
+                                <span class="status-badge complete">Complete</span>
+                            </div>
+                        </div>
+                        
+                        <div class="budget-item">
+                            <div class="budget-info">
+                                <div class="budget-name">Photographer</div>
+                                <div class="budget-amount">$1,100.00</div>
+                            </div>
+                            <div class="budget-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            <div class="budget-status">
+                                <span class="status-badge complete">Complete</span>
+                            </div>
+                        </div>
+                        
+                        <div class="budget-item">
+                            <div class="budget-info">
+                                <div class="budget-name">Hotels</div>
+                                <div class="budget-amount">$0 / $2,130.00</div>
+                            </div>
+                            <div class="budget-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill pending" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="budget-status">
+                                <span class="status-badge pending">Pending</span>
+                            </div>
+                        </div>
+                        
+                        <div class="budget-item">
+                            <div class="budget-info">
+                                <div class="budget-name">Transportation</div>
+                                <div class="budget-amount">$0 / $450.00</div>
+                            </div>
+                            <div class="budget-progress">
+                                <div class="progress-bar">
+                                    <div class="progress-fill pending" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="budget-status">
+                                <span class="status-badge pending">Pending</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div>
+                        <!-- Countdown Widget -->
+                        <div class="countdown-display">
+                            <h3 class="countdown-title">Proposal Trip Countdown</h3>
+                            <div class="countdown-numbers">
+                                <div class="countdown-unit">
+                                    <span class="countdown-value" id="countdown-days-large">157</span>
+                                    <div class="countdown-label">Days</div>
+                                </div>
+                                <div class="countdown-unit">
+                                    <span class="countdown-value" id="countdown-hours">14</span>
+                                    <div class="countdown-label">Hours</div>
+                                </div>
+                                <div class="countdown-unit">
+                                    <span class="countdown-value" id="countdown-minutes">23</span>
+                                    <div class="countdown-label">Minutes</div>
+                                </div>
+                            </div>
+                            <div class="trip-dates">September 24-29, 2025 • Banff, Canada</div>
+                        </div>
+
+                        <!-- Task Status -->
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3 class="widget-title">Remaining Tasks</h3>
+                                <p class="widget-subtitle">2 of 10 tasks pending</p>
+                            </div>
+                            
+                            <div class="task-item">
+                                <div class="task-checkbox">
+                                    <i class="fas fa-utensils"></i>
+                                </div>
+                                <div class="task-content">
+                                    <div class="task-name">Reserve Dining</div>
+                                    <div class="task-deadline">Due: August 1, 2025</div>
+                                </div>
+                            </div>
+                            
+                            <div class="task-item">
+                                <div class="task-checkbox">
+                                    <i class="fas fa-suitcase"></i>
+                                </div>
+                                <div class="task-content">
+                                    <div class="task-name">Pack Essentials</div>
+                                    <div class="task-deadline">Due: September 28, 2025</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Family Status -->
+                        <div class="widget">
+                            <div class="widget-header">
+                                <h3 class="widget-title">Family Permissions</h3>
+                                <p class="widget-subtitle">6 approved, 1 pending</p>
+                            </div>
+                            
+                            <div class="family-grid">
+                                <div class="family-member">
+                                    <div class="member-avatar" style="background: var(--success);">P</div>
+                                    <div class="member-name">Papa</div>
+                                    <div class="status-badge complete">Approved</div>
+                                </div>
+                                
+                                <div class="family-member">
+                                    <div class="member-avatar" style="background: var(--success);">M</div>
+                                    <div class="member-name">Mama</div>
+                                    <div class="status-badge complete">Approved</div>
+                                </div>
+                                
+                                <div class="family-member">
+                                    <div class="member-avatar" style="background: var(--warning);">G</div>
+                                    <div class="member-name">Graden</div>
+                                    <div class="status-badge pending">Not Asked</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Budget Page -->
+            <div id="page-budget" class="page-content hidden">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">Budget Overview</h2>
+                        <p class="widget-subtitle">Total Budget: $11,691.20 | Saved: $7,511.20 | Remaining: $4,180.00</p>
+                    </div>
+                    
+                    <!-- Budget categories would go here -->
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-dollar-sign" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                        <p>Detailed budget tracking interface</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ring Page -->
+            <div id="page-ring" class="page-content hidden">
+                <div class="ring-showcase">
+                    <div class="ring-image-placeholder">
+                        <i class="fas fa-gem"></i>
+                    </div>
+                    <h2 class="ring-title">Lab Grown Diamond Ring</h2>
+                    <p class="ring-subtitle">2.98ct • 18k Yellow Gold • GWFJ</p>
+                    
+                    <div class="ring-specs">
+                        <div class="spec-item">
+                            <span class="spec-label">Jeweler</span>
+                            <span class="spec-value">GWFJ</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Metal</span>
+                            <span class="spec-value">18k Yellow Gold</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Stone</span>
+                            <span class="spec-value">Lab Grown Diamond</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Carat</span>
+                            <span class="spec-value">2.98ct</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Status</span>
+                            <span class="spec-value text-success">Delivered</span>
+                        </div>
+                        <div class="spec-item">
+                            <span class="spec-label">Insurance</span>
+                            <span class="spec-value">Jewelers Mutual</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Family Page -->
+            <div id="page-family" class="page-content hidden">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">Family Permissions</h2>
+                        <p class="widget-subtitle">6 of 7 family members have given approval</p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-users" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                        <p>Family approval tracking interface</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Travel Page -->
+            <div id="page-travel" class="page-content hidden">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">Travel Details</h2>
+                        <p class="widget-subtitle">Flights, Hotel & Rental Car</p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-plane" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                        <p>Travel booking and itinerary interface</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Itinerary Page -->
+            <div id="page-itinerary" class="page-content hidden">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">Trip Itinerary</h2>
+                        <p class="widget-subtitle">47 activities across 5 days</p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-calendar-alt" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                        <p>Daily schedule and activity planning interface</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Packing Page -->
+            <div id="page-packing" class="page-content hidden">
+                <div class="widget">
+                    <div class="widget-header">
+                        <h2 class="widget-title">Packing Checklist</h2>
+                        <p class="widget-subtitle">0 of 7 items packed</p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+                        <i class="fas fa-suitcase" style="font-size: 48px; margin-bottom: 16px; opacity: 0.3;"></i>
+                        <p>Packing checklist and preparation interface</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Navigation functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const navItems = document.querySelectorAll('.nav-item');
+            const pageTitle = document.getElementById('page-title');
+            const pages = document.querySelectorAll('.page-content');
+
+            // Page titles mapping
+            const pageTitles = {
+                'dashboard': 'Dashboard Overview',
+                'budget': 'Budget Management',
+                'ring': 'Ring Details',
+                'family': 'Family Permissions',
+                'travel': 'Travel Arrangements',
+                'itinerary': 'Trip Itinerary',
+                'packing': 'Packing Checklist'
+            };
+
+            // Navigation click handler
+            navItems.forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    const targetPage = this.getAttribute('data-page');
+                    
+                    // Update active nav item
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Update page title
+                    pageTitle.textContent = pageTitles[targetPage] || 'HERA';
+                    
+                    // Show target page, hide others
+                    pages.forEach(page => {
+                        if (page.id === `page-${targetPage}`) {
+                            page.classList.remove('hidden');
+                        } else {
+                            page.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+
+            // Real-time countdown functionality
+            function updateCountdown() {
+                const tripDate = new Date('2025-09-24T00:00:00');
+                const now = new Date();
+                const timeDiff = tripDate - now;
+
+                if (timeDiff > 0) {
+                    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+                    // Update countdown displays
+                    document.getElementById('countdown-days').textContent = days;
+                    document.getElementById('countdown-days-large').textContent = days;
+                    document.getElementById('countdown-hours').textContent = hours;
+                    document.getElementById('countdown-minutes').textContent = minutes;
+                    document.getElementById('countdown-mini').textContent = `${days} days, ${hours} hours, ${minutes} minutes`;
+                }
+            }
+
+            // Update countdown every minute
+            updateCountdown();
+            setInterval(updateCountdown, 60000);
+
+            // Add subtle animations on widget hover
+            const widgets = document.querySelectorAll('.widget, .stat-card');
+            widgets.forEach(widget => {
+                widget.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-8px)';
+                });
+                
+                widget.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0px)';
+                });
+            });
+
+            // Add staggered animation on page load
+            setTimeout(() => {
+                const cards = document.querySelectorAll('.stat-card');
+                cards.forEach((card, index) => {
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0px)';
+                    }, index * 100);
+                });
+            }, 100);
+
+            // Initialize cards as hidden for animation
+            document.querySelectorAll('.stat-card').forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+,,,,,,,,,
+,,,,,,,,,
+,Segment,Airline,Flight Number,Departure Time,Arrival Time,Duration,Date,Confirmation Number,Seat
+,IAD - DEN,United,UA419,8:15 AM,10:03 AM,3h 48m,9/24/2025,AT9Z8V,"2E, 2F"
+,DEN - YYC,United,UA2459,11:22 AM,1:53 PM,2h 31m,9/24/2025,AT9Z8V,"1E, 1F"
+,YYC - YYZ,United,UA750,1:55 PM,7:04 PM,4h 9m,9/29/2025,AT9Z8V,"2E, 2F"
+,YYZ - DCA,United,UA2224,7:50 PM,11:50 PM,3h,9/29/2025,AT9Z8V,"2E, 2F"
+,,,,,,,,,
+,,,,,,,,,
+,Name,Address,Phone Number ,Check-In Date,Check-Out Date,Confirmation Number,Notes,,
+,Canalta Lodge,"545 Banff Ave #1B5, Banff, AB T1L 1B5, Canada",403-762-2112,9/24/2025 4:00 PM,9/29/2025 11:00 AM,73022774416687,King Room w/ Balcony,,
+,,,,,,,,,
+,,,,,,,,,
+,Company,Location,Pick-up Date,Drop-off Date,Confirmation Number,Car Type,Notes,,
+,Alamo,YYC,9/24/2025,9/29/2025,#1785932383,"Intermediate SUV
+Toyota RAV4 or similar",,,
