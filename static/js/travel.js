@@ -1,788 +1,720 @@
-// Travel JavaScript functionality - FIXED VERSION
-// Flight map, travel management, and booking tracking
+// HERA Travel Module - Flight Map & Travel Management
+// Modular design for travel page functionality
 
+let map;
+let flightLayers = {};
+let weatherLayer;
+let activeLayer = 'route';
+
+// Airport coordinates and information
+const AIRPORTS = {
+    'IAD': {
+        coords: [38.9445, -77.4558],
+        name: 'Washington Dulles International',
+        code: 'IAD',
+        city: 'Washington, DC',
+        type: 'origin'
+    },
+    'DEN': {
+        coords: [39.8617, -104.6737],
+        name: 'Denver International Airport',
+        code: 'DEN',
+        city: 'Denver, CO',
+        type: 'layover'
+    },
+    'YYC': {
+        coords: [51.1315, -114.0106],
+        name: 'Calgary International Airport',
+        code: 'YYC',
+        city: 'Calgary, AB',
+        type: 'destination'
+    },
+    'YYZ': {
+        coords: [43.6777, -79.6248],
+        name: 'Toronto Pearson International',
+        code: 'YYZ',
+        city: 'Toronto, ON',
+        type: 'layover'
+    },
+    'DCA': {
+        coords: [38.8512, -77.0402],
+        name: 'Ronald Reagan Washington National',
+        code: 'DCA',
+        city: 'Washington, DC',
+        type: 'destination'
+    }
+};
+
+// Flight route data
+const FLIGHT_ROUTES = [
+    {
+        id: 'outbound_1',
+        from: 'IAD',
+        to: 'DEN',
+        flightNumber: 'UA419',
+        date: '2025-09-24',
+        departure: '13:15',
+        arrival: '15:03',
+        duration: '3h 48m',
+        status: 'confirmed',
+        aircraft: 'Boeing 737-800'
+    },
+    {
+        id: 'outbound_2',
+        from: 'DEN',
+        to: 'YYC',
+        flightNumber: 'UA2459',
+        date: '2025-09-24',
+        departure: '16:22',
+        arrival: '18:53',
+        duration: '2h 31m',
+        status: 'confirmed',
+        aircraft: 'Embraer E175'
+    },
+    {
+        id: 'return_1',
+        from: 'YYC',
+        to: 'YYZ',
+        flightNumber: 'UA750',
+        date: '2025-09-29',
+        departure: '18:55',
+        arrival: '00:04+1',
+        duration: '4h 9m',
+        status: 'confirmed',
+        aircraft: 'Boeing 737 MAX 8'
+    },
+    {
+        id: 'return_2',
+        from: 'YYZ',
+        to: 'DCA',
+        flightNumber: 'UA2224',
+        date: '2025-09-29',
+        departure: '00:50',
+        arrival: '04:50',
+        duration: '3h',
+        status: 'confirmed',
+        aircraft: 'Airbus A320'
+    }
+];
+
+// Initialize travel module
 document.addEventListener('DOMContentLoaded', function() {
-    initializeTravelPage();
-    setupFlightMap();
-    setupTravelManagement();
+    initializeFlightMap();
+    setupMapControls();
+    setupTravelActions();
+    updateFlightStatus();
+
+    // Update status every 30 seconds
+    setInterval(updateFlightStatus, 30000);
 });
 
-function initializeTravelPage() {
-    console.log('Initializing travel page...');
+// Initialize the interactive flight map
+function initializeFlightMap() {
+    // Create map centered on North America
+    map = L.map('flight-map', {
+        center: [45.0, -95.0],
+        zoom: 4,
+        zoomControl: false,
+        attributionControl: false
+    });
 
-    // Setup all travel functionality
-    setupFlightTracking();
-    setupBookingManagement();
-    setupEditableTravelItems();
+    // Add custom zoom control
+    L.control.zoom({ position: 'topright' }).addTo(map);
 
-    console.log('Travel page initialized successfully');
+    // Add beautiful base layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors, © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 18
+    }).addTo(map);
+
+    // Initialize layers
+    initializeMapLayers();
+
+    // Remove loading state
+    document.getElementById('flight-map').classList.remove('loading');
+
+    // Add weather overlay
+    addWeatherOverlay();
 }
 
-// Flight Map with Leaflet - FIXED
-function setupFlightMap() {
-    // Check if map container exists
-    const mapContainer = document.getElementById('flight-map');
-    if (!mapContainer) {
-        console.log('No map container found');
-        return;
-    }
+// Initialize map layers
+function initializeMapLayers() {
+    flightLayers = {
+        route: new L.LayerGroup(),
+        airports: new L.LayerGroup(),
+        weather: new L.LayerGroup(),
+        elevation: new L.LayerGroup()
+    };
 
-    // Initialize Leaflet map
-    try {
-        const map = L.map('flight-map', {
-            center: [45.0, -100.0], // Center of North America
-            zoom: 4,
-            zoomControl: true,
-            scrollWheelZoom: true
+    // Add route layer by default
+    flightLayers.route.addTo(map);
+    flightLayers.airports.addTo(map);
+
+    // Create airport markers
+    createAirportMarkers();
+
+    // Create flight paths
+    createFlightPaths();
+
+    // Create animated planes
+    createFlightAnimations();
+}
+
+// Create airport markers with custom styling
+function createAirportMarkers() {
+    Object.entries(AIRPORTS).forEach(([code, airport]) => {
+        // Create custom marker
+        const markerElement = document.createElement('div');
+        markerElement.className = `airport-marker ${airport.type}`;
+        markerElement.innerHTML = `
+            <div class="airport-code">${code}</div>
+        `;
+
+        const marker = L.marker(airport.coords, {
+            icon: L.divIcon({
+                html: markerElement.outerHTML,
+                className: 'custom-div-icon',
+                iconSize: [60, 30],
+                iconAnchor: [30, 35]
+            })
         });
 
-        // Add tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 18
-        }).addTo(map);
-
-        // Flight route coordinates
-        const airports = {
-            'IAD': [38.9445, -77.4558], // Washington Dulles
-            'DEN': [39.8617, -104.6737], // Denver
-            'YYC': [51.1315, -114.0106], // Calgary
-            'YYZ': [43.6777, -79.6248], // Toronto
-            'DCA': [38.8521, -77.0377]  // Washington Reagan
-        };
-
-        // Define flight path
-        const flightPath = [
-            airports.IAD, // Washington
-            airports.DEN, // Denver
-            airports.YYC, // Calgary
-            airports.YYZ, // Toronto
-            airports.DCA  // Washington (return)
-        ];
-
-        // Add airport markers
-        Object.entries(airports).forEach(([code, coords]) => {
-            const marker = L.marker(coords).addTo(map);
-
-            let airportName = '';
-            switch(code) {
-                case 'IAD': airportName = 'Washington Dulles (IAD)'; break;
-                case 'DEN': airportName = 'Denver (DEN)'; break;
-                case 'YYC': airportName = 'Calgary (YYC)'; break;
-                case 'YYZ': airportName = 'Toronto (YYZ)'; break;
-                case 'DCA': airportName = 'Washington Reagan (DCA)'; break;
-            }
-
-            marker.bindPopup(`<strong>${airportName}</strong>`);
-
-            // Style markers differently for origin/destination vs connections
-            if (code === 'IAD' || code === 'DCA') {
-                marker.setIcon(L.divIcon({
-                    className: 'airport-marker origin',
-                    html: '<i class="fas fa-plane-departure"></i>',
-                    iconSize: [24, 24]
-                }));
-            } else if (code === 'YYC') {
-                marker.setIcon(L.divIcon({
-                    className: 'airport-marker destination',
-                    html: '<i class="fas fa-heart"></i>',
-                    iconSize: [24, 24]
-                }));
-            } else {
-                marker.setIcon(L.divIcon({
-                    className: 'airport-marker connection',
-                    html: '<i class="fas fa-plane"></i>',
-                    iconSize: [20, 20]
-                }));
-            }
-        });
-
-        // Add flight path polylines
-        const pathSegments = [
-            [airports.IAD, airports.DEN], // Outbound 1
-            [airports.DEN, airports.YYC], // Outbound 2
-            [airports.YYC, airports.YYZ], // Return 1
-            [airports.YYZ, airports.DCA]  // Return 2
-        ];
-
-        pathSegments.forEach((segment, index) => {
-            const isReturn = index >= 2;
-
-            L.polyline(segment, {
-                color: isReturn ? '#ff6b6b' : '#4ecdc4',
-                weight: 3,
-                opacity: 0.8,
-                dashArray: isReturn ? '10, 5' : null
-            }).addTo(map);
-        });
-
-        // Fit map to show all points
-        const group = new L.featureGroup(Object.values(airports).map(coords => L.marker(coords)));
-        map.fitBounds(group.getBounds().pad(0.1));
-
-        console.log('Flight map initialized successfully');
-
-    } catch (error) {
-        console.error('Error initializing map:', error);
-        // Fallback: Show static route text
-        mapContainer.innerHTML = `
-            <div class="map-fallback">
-                <div class="route-display">
-                    <div class="route-item">
-                        <i class="fas fa-plane-departure"></i>
-                        <span>Washington (IAD)</span>
+        // Create detailed popup
+        const popupContent = `
+            <div class="airport-popup">
+                <h4>${airport.name}</h4>
+                <p><strong>${code}</strong> • ${airport.city}</p>
+                <div class="airport-details">
+                    <div class="detail-row">
+                        <span>Flights:</span>
+                        <span>${getFlightCountForAirport(code)}</span>
                     </div>
-                    <div class="route-arrow">→</div>
-                    <div class="route-item">
-                        <i class="fas fa-plane"></i>
-                        <span>Denver (DEN)</span>
-                    </div>
-                    <div class="route-arrow">→</div>
-                    <div class="route-item">
-                        <i class="fas fa-heart"></i>
-                        <span>Calgary (YYC)</span>
-                    </div>
-                    <div class="route-arrow">→</div>
-                    <div class="route-item">
-                        <i class="fas fa-plane"></i>
-                        <span>Toronto (YYZ)</span>
-                    </div>
-                    <div class="route-arrow">→</div>
-                    <div class="route-item">
-                        <i class="fas fa-plane-arrival"></i>
-                        <span>Washington (DCA)</span>
+                    <div class="detail-row">
+                        <span>Status:</span>
+                        <span class="status-active">Active</span>
                     </div>
                 </div>
-                <p class="map-error">Interactive map unavailable - showing route overview</p>
             </div>
         `;
-    }
-}
 
-// Travel Management - FIXED
-function setupTravelManagement() {
-    // Setup travel card interactions
-    const travelCards = document.querySelectorAll('.travel-card');
-    travelCards.forEach(card => {
-        setupTravelCardEvents(card);
-    });
-
-    // Setup add travel buttons
-    const addButtons = document.querySelectorAll('.add-btn[onclick*="Flight"], .add-btn[onclick*="Hotel"], .add-btn[onclick*="Transport"]');
-    addButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const type = this.getAttribute('onclick').match(/\('(\w+)'\)/)?.[1] || 'flight';
-            openAddTravelModal(type);
+        marker.bindPopup(popupContent, {
+            maxWidth: 250,
+            className: 'airport-popup-container'
         });
+
+        marker.addTo(flightLayers.airports);
     });
 }
 
-function setupTravelCardEvents(card) {
-    // Edit button
-    const editBtn = card.querySelector('.edit-btn');
-    if (editBtn) {
-        editBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            openEditTravelModal(card);
+// Create animated flight paths
+function createFlightPaths() {
+    FLIGHT_ROUTES.forEach((flight, index) => {
+        const fromCoords = AIRPORTS[flight.from].coords;
+        const toCoords = AIRPORTS[flight.to].coords;
+
+        // Create realistic curved path using great circle route
+        const pathCoords = createCurvedFlightPath(fromCoords, toCoords);
+
+        const flightPath = L.polyline(pathCoords, {
+            color: '#d4af37',
+            weight: 4,
+            opacity: 0.7,
+            dashArray: '12, 8',
+            className: `flight-path flight-${flight.id}`
         });
-    }
 
-    // Status toggle
-    const statusBadge = card.querySelector('.status-badge');
-    if (statusBadge) {
-        statusBadge.addEventListener('click', function(e) {
-            e.stopPropagation();
-            toggleTravelStatus(card);
-        });
-    }
-
-    // Confirmation number editing
-    const confirmationField = card.querySelector('[data-editable="confirmation"]');
-    if (confirmationField) {
-        confirmationField.addEventListener('click', function() {
-            startInlineEdit(this, 'text');
-        });
-    }
-
-    // Price editing
-    const priceField = card.querySelector('[data-editable="price"]');
-    if (priceField) {
-        priceField.addEventListener('click', function() {
-            startInlineEdit(this, 'number');
-        });
-    }
-}
-
-// Flight Tracking - FIXED
-function setupFlightTracking() {
-    // Setup flight status updates
-    const flightCards = document.querySelectorAll('.flight-card');
-    flightCards.forEach(card => {
-        const flightNumber = card.querySelector('.flight-number')?.textContent;
-        if (flightNumber) {
-            // You could integrate with a flight tracking API here
-            checkFlightStatus(flightNumber, card);
-        }
-    });
-
-    // Setup departure/arrival time editing
-    const timeFields = document.querySelectorAll('.flight-time[data-editable]');
-    timeFields.forEach(field => {
-        field.addEventListener('click', function() {
-            startTimeEdit(this);
-        });
-    });
-}
-
-function checkFlightStatus(flightNumber, card) {
-    // Placeholder for flight status checking
-    // In a real app, you'd call a flight tracking API
-    const statusElement = card.querySelector('.flight-status');
-    if (statusElement) {
-        // Simulate status check
-        setTimeout(() => {
-            const statuses = ['On Time', 'Delayed', 'Boarding', 'Departed'];
-            const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-
-            if (randomStatus !== statusElement.textContent.trim()) {
-                statusElement.textContent = randomStatus;
-                statusElement.className = `flight-status ${randomStatus.toLowerCase().replace(' ', '-')}`;
-
-                // Show notification for status changes
-                showTravelNotification(`Flight ${flightNumber} status updated: ${randomStatus}`, 'info');
-            }
-        }, 2000);
-    }
-}
-
-// Booking Management - FIXED
-function setupBookingManagement() {
-    // Setup booking confirmation tracking
-    const bookingFields = document.querySelectorAll('[data-booking-field]');
-    bookingFields.forEach(field => {
-        field.addEventListener('blur', function() {
-            saveTravelField(this);
-        });
-    });
-
-    // Setup file upload for booking confirmations
-    setupBookingFileUpload();
-}
-
-function setupBookingFileUpload() {
-    const uploadButtons = document.querySelectorAll('.upload-confirmation-btn');
-    uploadButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = '.pdf,.jpg,.jpeg,.png';
-            input.onchange = function(e) {
-                uploadBookingConfirmation(e.target.files[0], btn.closest('.travel-card'));
-            };
-            input.click();
-        });
-    });
-}
-
-function uploadBookingConfirmation(file, travelCard) {
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('confirmation', file);
-    formData.append('travel_id', travelCard.dataset.travelId);
-
-    const progressIndicator = showUploadProgress(file.name);
-
-    fetch('/api/travel/upload-confirmation', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        hideUploadProgress(progressIndicator);
-
-        if (data.success) {
-            showTravelNotification('Confirmation uploaded successfully!', 'success');
-
-            // Add download link to card
-            addConfirmationLink(travelCard, data.filename, data.url);
-        } else {
-            showTravelNotification(data.error || 'Upload failed', 'error');
-        }
-    })
-    .catch(error => {
-        hideUploadProgress(progressIndicator);
-        console.error('Upload error:', error);
-        showTravelNotification('Upload failed. Please try again.', 'error');
-    });
-}
-
-// Editable Fields - FIXED
-function setupEditableTravelItems() {
-    const editableFields = document.querySelectorAll('[data-editable]');
-    editableFields.forEach(field => {
-        field.addEventListener('click', function() {
-            if (!this.classList.contains('editing')) {
-                const fieldType = this.dataset.editable;
-                let inputType = 'text';
-
-                if (fieldType === 'price') inputType = 'number';
-                if (fieldType === 'time') inputType = 'time';
-                if (fieldType === 'date') inputType = 'date';
-
-                startInlineEdit(this, inputType);
-            }
-        });
-    });
-}
-
-function startInlineEdit(element, inputType = 'text') {
-    const currentValue = element.textContent.trim().replace('$', '').replace(',', '');
-
-    element.classList.add('editing');
-
-    const input = document.createElement('input');
-    input.type = inputType;
-    input.value = currentValue;
-    input.className = 'inline-edit-input';
-
-    // Style the input
-    input.style.cssText = `
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid #d4af37;
-        border-radius: 4px;
-        padding: 4px 8px;
-        color: white;
-        font-size: inherit;
-        width: 100%;
-        max-width: 150px;
-    `;
-
-    element.innerHTML = '';
-    element.appendChild(input);
-    input.focus();
-    input.select();
-
-    function saveEdit() {
-        const newValue = input.value.trim();
-        element.classList.remove('editing');
-
-        // Format value based on type
-        let displayValue = newValue;
-        if (element.dataset.editable === 'price') {
-            displayValue = `$${parseFloat(newValue || 0).toLocaleString()}`;
-        }
-
-        element.textContent = displayValue;
-
-        // Save to backend
-        saveTravelField(element, newValue);
-    }
-
-    input.addEventListener('blur', saveEdit);
-    input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            saveEdit();
-        } else if (e.key === 'Escape') {
-            element.classList.remove('editing');
-            element.textContent = currentValue;
-        }
-    });
-}
-
-function startTimeEdit(element) {
-    const currentTime = element.textContent.trim();
-
-    element.classList.add('editing');
-
-    const input = document.createElement('input');
-    input.type = 'time';
-    input.value = convertTo24Hour(currentTime);
-    input.className = 'inline-edit-input';
-
-    input.style.cssText = `
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid #d4af37;
-        border-radius: 4px;
-        padding: 4px 8px;
-        color: white;
-        font-size: inherit;
-    `;
-
-    element.innerHTML = '';
-    element.appendChild(input);
-    input.focus();
-
-    function saveTimeEdit() {
-        const newTime = input.value;
-        element.classList.remove('editing');
-        element.textContent = convertTo12Hour(newTime);
-
-        saveTravelField(element, newTime);
-    }
-
-    input.addEventListener('blur', saveTimeEdit);
-    input.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            saveTimeEdit();
-        }
-    });
-}
-
-// Modal Management - FIXED
-function openAddTravelModal(type) {
-    let modal = document.getElementById(`add-${type}-modal`);
-
-    if (!modal) {
-        modal = createTravelModal(type, 'add');
-        document.body.appendChild(modal);
-    }
-
-    modal.style.display = 'flex';
-    modal.classList.add('modal-show');
-
-    // Focus first input
-    const firstInput = modal.querySelector('input, select');
-    if (firstInput) {
-        setTimeout(() => firstInput.focus(), 100);
-    }
-}
-
-function openEditTravelModal(travelCard) {
-    const travelType = getTravelType(travelCard);
-    let modal = document.getElementById(`edit-${travelType}-modal`);
-
-    if (!modal) {
-        modal = createTravelModal(travelType, 'edit');
-        document.body.appendChild(modal);
-    }
-
-    // Populate with current data
-    populateTravelModal(modal, travelCard);
-
-    modal.style.display = 'flex';
-    modal.classList.add('modal-show');
-}
-
-function createTravelModal(type, mode) {
-    const modal = document.createElement('div');
-    modal.id = `${mode}-${type}-modal`;
-    modal.className = 'modal-overlay';
-
-    const title = mode === 'add' ? `Add ${type}` : `Edit ${type}`;
-
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>${title}</h3>
-                <button class="modal-close" onclick="closeTravelModal('${modal.id}')">&times;</button>
-            </div>
-
-            <form class="modal-form" id="${mode}-${type}-form">
-                <input type="hidden" id="${mode}-${type}-id">
-                ${getTravelFormFields(type, mode)}
-
-                <div class="modal-actions">
-                    <button type="button" class="btn-secondary" onclick="closeTravelModal('${modal.id}')">Cancel</button>
-                    <button type="submit" class="btn-primary">${mode === 'add' ? 'Add' : 'Save'} ${type}</button>
+        // Add flight info popup to path
+        const pathPopupContent = `
+            <div class="flight-popup">
+                <h4>Flight ${flight.flightNumber}</h4>
+                <p>${AIRPORTS[flight.from].city} → ${AIRPORTS[flight.to].city}</p>
+                <div class="flight-details">
+                    <div class="detail-row">
+                        <span>Departure:</span>
+                        <span>${flight.departure}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Arrival:</span>
+                        <span>${flight.arrival}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Duration:</span>
+                        <span>${flight.duration}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span>Aircraft:</span>
+                        <span>${flight.aircraft}</span>
+                    </div>
                 </div>
-            </form>
+            </div>
+        `;
+
+        flightPath.bindPopup(pathPopupContent, {
+            className: 'flight-popup-container'
+        });
+
+        flightPath.addTo(flightLayers.route);
+
+        // Store path coordinates for plane animation
+        flight.pathCoords = pathCoords;
+
+        // Animate the path drawing with delay
+        setTimeout(() => {
+            animateFlightPath(flightPath, index);
+        }, index * 1000);
+    });
+}
+
+// Create animated plane icons that follow flight paths sequentially
+function createFlightAnimations() {
+    // Start the sequential flight animation
+    startSequentialFlightAnimation();
+}
+
+// Create realistic curved flight path
+function createCurvedFlightPath(from, to) {
+    const points = [];
+    const numPoints = 50; // More points for smoother curve
+
+    // Calculate great circle path with realistic aviation curve
+    for (let i = 0; i <= numPoints; i++) {
+        const fraction = i / numPoints;
+
+        // Create realistic flight path curve (higher altitude over land)
+        const lat = from[0] + (to[0] - from[0]) * fraction;
+        const lng = from[1] + (to[1] - from[1]) * fraction;
+
+        // Add curvature based on distance and direction
+        const distance = Math.sqrt(Math.pow(to[0] - from[0], 2) + Math.pow(to[1] - from[1], 2));
+        const curvature = Math.sin(fraction * Math.PI) * distance * 0.15;
+
+        points.push([lat + curvature, lng]);
+    }
+
+    return points;
+}
+
+// Start sequential flight animations
+function startSequentialFlightAnimation() {
+    let currentFlightIndex = 0;
+
+    function animateNextFlight() {
+        if (currentFlightIndex >= FLIGHT_ROUTES.length) {
+            // All flights done, restart the sequence
+            setTimeout(() => {
+                currentFlightIndex = 0;
+                animateNextFlight();
+            }, 3000);
+            return;
+        }
+
+        const flight = FLIGHT_ROUTES[currentFlightIndex];
+        animatePlaneAlongPath(flight, () => {
+            currentFlightIndex++;
+            // Start next flight after current one completes
+            setTimeout(animateNextFlight, 500);
+        });
+    }
+
+    // Start the first flight animation after a short delay
+    setTimeout(animateNextFlight, 2000);
+}
+
+// Animate plane following the actual flight path
+function animatePlaneAlongPath(flight, onComplete) {
+    const pathCoords = flight.pathCoords;
+    if (!pathCoords || pathCoords.length === 0) return;
+
+    // Create plane marker with proper airplane icon
+    const planeIcon = L.divIcon({
+        html: `<div class="animated-plane">✈️</div>`,
+        className: 'plane-marker',
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+    });
+
+    const planeMarker = L.marker(pathCoords[0], { icon: planeIcon });
+    planeMarker.addTo(flightLayers.route);
+
+    // Add flight info popup to plane
+    planeMarker.bindPopup(`
+        <div class="plane-popup">
+            <h4>Flight ${flight.flightNumber}</h4>
+            <p>${AIRPORTS[flight.from].code} → ${AIRPORTS[flight.to].code}</p>
+            <p><strong>Status:</strong> In Flight</p>
+        </div>
+    `);
+
+    // Animate plane along path
+    let currentPointIndex = 0;
+    const animationDuration = 8000; // 8 seconds per flight
+    const intervalTime = animationDuration / pathCoords.length;
+
+    const animationInterval = setInterval(() => {
+        if (currentPointIndex >= pathCoords.length - 1) {
+            // Flight complete
+            clearInterval(animationInterval);
+
+            // Flash the destination airport
+            flashAirport(flight.to);
+
+            // Remove plane after brief pause
+            setTimeout(() => {
+                map.removeLayer(planeMarker);
+                if (onComplete) onComplete();
+            }, 1000);
+
+            return;
+        }
+
+        const currentPoint = pathCoords[currentPointIndex];
+        const nextPoint = pathCoords[currentPointIndex + 1];
+
+        // Calculate bearing for plane rotation
+        const bearing = calculateBearing(currentPoint, nextPoint);
+
+        // Update plane position and rotation
+        planeMarker.setLatLng(currentPoint);
+        const planeElement = planeMarker.getElement();
+        if (planeElement) {
+            const planeDiv = planeElement.querySelector('.animated-plane');
+            if (planeDiv) {
+                planeDiv.style.transform = `rotate(${bearing}deg)`;
+            }
+        }
+
+        currentPointIndex++;
+    }, intervalTime);
+}
+
+// Animate flight path drawing with enhanced visual effect
+function animateFlightPath(path, index) {
+    const pathElement = path.getElement();
+    if (pathElement) {
+        // Initial state - hidden path
+        pathElement.style.strokeDasharray = '0, 1000';
+        pathElement.style.strokeDashoffset = '0';
+
+        // Animate path drawing
+        setTimeout(() => {
+            pathElement.style.transition = 'stroke-dasharray 2s ease-in-out';
+            pathElement.style.strokeDasharray = '12, 8';
+        }, 100);
+
+        // Add glow effect during drawing
+        pathElement.style.filter = 'drop-shadow(0 0 6px rgba(212, 175, 55, 0.6))';
+    }
+}
+
+// Calculate bearing between two points for plane rotation
+function calculateBearing(point1, point2) {
+    const lat1 = point1[0] * Math.PI / 180;
+    const lat2 = point2[0] * Math.PI / 180;
+    const deltaLng = (point2[1] - point1[1]) * Math.PI / 180;
+
+    const x = Math.sin(deltaLng) * Math.cos(lat2);
+    const y = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
+
+    const bearing = Math.atan2(x, y) * 180 / Math.PI;
+    return (bearing + 360) % 360;
+}
+
+// Flash airport when plane arrives
+function flashAirport(airportCode) {
+    const airportMarkers = document.querySelectorAll('.airport-marker');
+    airportMarkers.forEach(marker => {
+        if (marker.textContent.includes(airportCode)) {
+            marker.style.animation = 'flash-airport 1s ease-in-out';
+            setTimeout(() => {
+                marker.style.animation = '';
+            }, 1000);
+        }
+    });
+}
+
+// Setup map control interactions
+function setupMapControls() {
+    const toggles = document.querySelectorAll('.map-toggle');
+
+    toggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const layer = this.dataset.layer;
+            switchMapLayer(layer);
+
+            // Update active state
+            toggles.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+}
+
+// Switch between map layers
+function switchMapLayer(layerName) {
+    // Remove all layers
+    Object.values(flightLayers).forEach(layer => {
+        map.removeLayer(layer);
+    });
+
+    activeLayer = layerName;
+
+    // Add requested layer
+    switch(layerName) {
+        case 'route':
+            flightLayers.route.addTo(map);
+            flightLayers.airports.addTo(map);
+            break;
+        case 'airports':
+            flightLayers.airports.addTo(map);
+            break;
+        case 'weather':
+            flightLayers.airports.addTo(map);
+            addWeatherLayer();
+            break;
+        case 'elevation':
+            flightLayers.airports.addTo(map);
+            addElevationLayer();
+            break;
+    }
+}
+
+// Add weather overlay to map
+function addWeatherLayer() {
+    // Simulate weather data for airports
+    const weatherData = {
+        'IAD': { temp: '72°F', condition: 'Clear', icon: 'fas fa-sun' },
+        'DEN': { temp: '65°F', condition: 'Partly Cloudy', icon: 'fas fa-cloud-sun' },
+        'YYC': { temp: '58°F', condition: 'Overcast', icon: 'fas fa-cloud' },
+        'YYZ': { temp: '68°F', condition: 'Clear', icon: 'fas fa-sun' },
+        'DCA': { temp: '74°F', condition: 'Clear', icon: 'fas fa-sun' }
+    };
+
+    Object.entries(weatherData).forEach(([code, weather]) => {
+        const airport = AIRPORTS[code];
+        const weatherMarker = L.marker(airport.coords, {
+            icon: L.divIcon({
+                html: `
+                    <div class="weather-marker">
+                        <i class="${weather.icon}"></i>
+                        <span>${weather.temp}</span>
+                    </div>
+                `,
+                className: 'weather-icon',
+                iconSize: [60, 40],
+                iconAnchor: [30, 40]
+            })
+        });
+
+        weatherMarker.bindPopup(`
+            <div class="weather-popup">
+                <h4>${airport.city}</h4>
+                <p><i class="${weather.icon}"></i> ${weather.condition}</p>
+                <p><strong>${weather.temp}</strong></p>
+            </div>
+        `);
+
+        weatherMarker.addTo(flightLayers.weather);
+    });
+
+    flightLayers.weather.addTo(map);
+}
+
+// Add elevation/terrain layer
+function addElevationLayer() {
+    // Add terrain tiles
+    const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenTopoMap contributors'
+    });
+
+    terrainLayer.addTo(map);
+    flightLayers.elevation = terrainLayer;
+}
+
+// Add weather overlay widget
+function addWeatherOverlay() {
+    const weatherHTML = `
+        <div class="weather-overlay">
+            <h4><i class="fas fa-cloud"></i> Current Weather</h4>
+            <div class="weather-item">
+                <span class="weather-location">Washington</span>
+                <span class="weather-condition">
+                    <i class="fas fa-sun"></i> 72°F
+                </span>
+            </div>
+            <div class="weather-item">
+                <span class="weather-location">Denver</span>
+                <span class="weather-condition">
+                    <i class="fas fa-cloud-sun"></i> 65°F
+                </span>
+            </div>
+            <div class="weather-item">
+                <span class="weather-location">Calgary</span>
+                <span class="weather-condition">
+                    <i class="fas fa-cloud"></i> 58°F
+                </span>
+            </div>
         </div>
     `;
 
-    // Setup form submission
-    modal.querySelector('form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        handleTravelFormSubmit(e, type, mode);
+    document.querySelector('.flight-map').insertAdjacentHTML('beforeend', weatherHTML);
+}
+
+// Setup travel card interactions
+function setupTravelActions() {
+    // Edit buttons
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const card = this.closest('.travel-card');
+            editTravel(card.dataset.travelId);
+        });
     });
 
-    return modal;
+    // Status toggles
+    document.querySelectorAll('.status-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const card = this.closest('.travel-card');
+            toggleTravelStatus(card);
+        });
+    });
+
+    // Editable fields
+    document.querySelectorAll('.editable').forEach(field => {
+        field.addEventListener('click', function() {
+            startInlineEdit(this);
+        });
+    });
 }
 
-function getTravelFormFields(type, mode) {
-    const prefix = `${mode}-${type}`;
+// Update flight status periodically
+function updateFlightStatus() {
+    const lastUpdated = document.getElementById('last-updated');
+    if (lastUpdated) {
+        lastUpdated.textContent = new Date().toLocaleTimeString();
+    }
 
-    switch (type) {
-        case 'flight':
-            return `
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Flight Number</label>
-                        <input type="text" id="${prefix}-number" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Route</label>
-                        <input type="text" id="${prefix}-route" placeholder="e.g., IAD - DEN" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Departure</label>
-                        <input type="datetime-local" id="${prefix}-departure" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Arrival</label>
-                        <input type="datetime-local" id="${prefix}-arrival" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Price</label>
-                        <input type="number" id="${prefix}-price" step="0.01" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select id="${prefix}-status">
-                            <option value="Booked">Booked</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Checked In">Checked In</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Confirmation Number</label>
-                    <input type="text" id="${prefix}-confirmation">
-                </div>
-            `;
+    // Simulate real-time flight updates
+    simulateFlightUpdates();
+}
 
-        case 'hotel':
-            return `
-                <div class="form-group">
-                    <label>Hotel Name</label>
-                    <input type="text" id="${prefix}-name" required>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Check-in</label>
-                        <input type="date" id="${prefix}-checkin" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Check-out</label>
-                        <input type="date" id="${prefix}-checkout" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Price per Night</label>
-                        <input type="number" id="${prefix}-price" step="0.01" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select id="${prefix}-status">
-                            <option value="Reserved">Reserved</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Checked In">Checked In</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Confirmation Number</label>
-                    <input type="text" id="${prefix}-confirmation">
-                </div>
-                <div class="form-group">
-                    <label>Address</label>
-                    <textarea id="${prefix}-address" rows="2"></textarea>
-                </div>
-            `;
+// Simulate flight status updates
+function simulateFlightUpdates() {
+    const statusItems = document.querySelectorAll('.status-indicator');
+    statusItems.forEach((indicator, index) => {
+        // Randomly update status indicators
+        setTimeout(() => {
+            const statuses = ['on-time', 'delayed', ''];
+            const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
 
-        case 'transport':
-            return `
-                <div class="form-group">
-                    <label>Transport Type</label>
-                    <select id="${prefix}-type" required>
-                        <option value="Rental Car">Rental Car</option>
-                        <option value="Taxi">Taxi</option>
-                        <option value="Shuttle">Shuttle</option>
-                        <option value="Train">Train</option>
-                        <option value="Bus">Bus</option>
-                    </select>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Pickup Date</label>
-                        <input type="datetime-local" id="${prefix}-pickup" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Return Date</label>
-                        <input type="datetime-local" id="${prefix}-return">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Price</label>
-                        <input type="number" id="${prefix}-price" step="0.01" min="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select id="${prefix}-status">
-                            <option value="Reserved">Reserved</option>
-                            <option value="Confirmed">Confirmed</option>
-                            <option value="Picked Up">Picked Up</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Confirmation Number</label>
-                    <input type="text" id="${prefix}-confirmation">
-                </div>
-            `;
+            indicator.className = `status-indicator ${randomStatus}`;
+        }, index * 2000);
+    });
+}
 
-        default:
-            return '';
+// Utility Functions
+function calculateCurvature(from, to) {
+    const distance = Math.sqrt(
+        Math.pow(to[0] - from[0], 2) + Math.pow(to[1] - from[1], 2)
+    );
+
+    return {
+        lat: distance * 0.1,
+        lng: 0
+    };
+}
+
+function getFlightPathColor(status) {
+    switch(status) {
+        case 'confirmed': return '#d4af37';
+        case 'delayed': return '#f59e0b';
+        case 'cancelled': return '#ef4444';
+        default: return '#6b7280';
     }
 }
 
-// Utility Functions - FIXED
-function getTravelType(card) {
-    if (card.classList.contains('flight-card')) return 'flight';
-    if (card.classList.contains('hotel-card')) return 'hotel';
-    if (card.classList.contains('transport-card')) return 'transport';
-    return 'flight';
+function getFlightCountForAirport(code) {
+    return FLIGHT_ROUTES.filter(flight =>
+        flight.from === code || flight.to === code
+    ).length;
 }
 
-function convertTo24Hour(time12h) {
-    const [time, modifier] = time12h.split(' ');
-    let [hours, minutes] = time.split(':');
-
-    if (hours === '12') {
-        hours = '00';
-    }
-
-    if (modifier === 'PM') {
-        hours = parseInt(hours, 10) + 12;
-    }
-
-    return `${hours}:${minutes}`;
-}
-
-function convertTo12Hour(time24h) {
-    const [hours, minutes] = time24h.split(':');
-    const hour = parseInt(hours, 10);
-    const modifier = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-
-    return `${displayHour}:${minutes} ${modifier}`;
+// Travel Management Functions
+function editTravel(travelId) {
+    console.log('Editing travel item:', travelId);
+    // Open edit modal
 }
 
 function toggleTravelStatus(card) {
-    const statusBadge = card.querySelector('.status-badge');
-    const currentStatus = statusBadge.textContent.trim();
-
-    // Define status progression
-    const statusFlow = {
-        'Pending': 'Booked',
-        'Booked': 'Confirmed',
-        'Confirmed': 'Complete',
-        'Complete': 'Pending'
-    };
-
-    const newStatus = statusFlow[currentStatus] || 'Booked';
-
-    statusBadge.textContent = newStatus;
-    statusBadge.className = `status-badge ${newStatus.toLowerCase()}`;
-
-    // Save to backend
-    const travelId = card.dataset.travelId;
-    if (travelId) {
-        saveTravelField(statusBadge, newStatus);
-    }
+    card.classList.toggle('success');
+    console.log('Toggled status for:', card.dataset.travelId);
 }
 
-function saveTravelField(element, value) {
-    const card = element.closest('.travel-card');
-    const travelId = card?.dataset.travelId;
-    const field = element.dataset.editable || 'status';
+function startInlineEdit(element) {
+    const currentValue = element.textContent.trim();
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentValue;
+    input.className = 'inline-edit-input';
 
-    if (!travelId) return;
+    input.addEventListener('blur', function() {
+        saveInlineEdit(element, this.value);
+    });
 
-    fetch(`/api/travel/${travelId}/update`, {
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            saveInlineEdit(element, this.value);
+        }
+    });
+
+    element.innerHTML = '';
+    element.appendChild(input);
+    input.focus();
+}
+
+function saveInlineEdit(element, newValue) {
+    element.textContent = newValue;
+
+    // Save to backend
+    const field = element.dataset.field;
+    const id = element.dataset.id;
+
+    fetch('/api/travel/update', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ field, value })
+        body: JSON.stringify({
+            id: id,
+            field: field,
+            value: newValue
+        })
     })
     .then(response => response.json())
     .then(data => {
-        if (!data.success) {
-            console.error('Failed to save travel field:', data.error);
-            showTravelNotification('Failed to save changes', 'error');
+        if (data.success) {
+            showNotification('Updated successfully', 'success');
+        } else {
+            showNotification('Update failed', 'error');
         }
-    })
-    .catch(error => {
-        console.error('Error saving travel field:', error);
-        showTravelNotification('Error saving changes', 'error');
     });
 }
 
-function showTravelNotification(message, type = 'info') {
+function showNotification(message, type) {
     const notification = document.createElement('div');
-    notification.className = `travel-notification ${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-            <span>${message}</span>
-        </div>
-    `;
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
 
     document.body.appendChild(notification);
 
-    setTimeout(() => notification.classList.add('show'), 10);
     setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 4000);
+        notification.remove();
+    }, 3000);
 }
-
-function showUploadProgress(filename) {
-    const progressDiv = document.createElement('div');
-    progressDiv.className = 'upload-progress';
-    progressDiv.innerHTML = `
-        <div class="upload-item">
-            <span class="upload-filename">${filename}</span>
-            <div class="upload-progress-bar">
-                <div class="upload-progress-fill"></div>
-            </div>
-            <span class="upload-status">Uploading...</span>
-        </div>
-    `;
-
-    document.body.appendChild(progressDiv);
-    return progressDiv;
-}
-
-function hideUploadProgress(progressIndicator) {
-    if (progressIndicator) {
-        const progressFill = progressIndicator.querySelector('.upload-progress-fill');
-        const statusText = progressIndicator.querySelector('.upload-status');
-
-        progressFill.style.width = '100%';
-        statusText.textContent = 'Complete!';
-
-        setTimeout(() => {
-            progressIndicator.remove();
-        }, 1500);
-    }
-}
-
-function closeTravelModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-        modal.classList.remove('modal-show');
-    }
-}
-
-// Global functions for onclick handlers
-window.openAddFlightModal = (type) => openAddTravelModal(type || 'flight');
-window.openAddHotelModal = () => openAddTravelModal('hotel');
-window.openAddTransportModal = () => openAddTravelModal('transport');
 
 // Export functions for global access
-window.TravelManager = {
-    initializeMap: setupFlightMap,
-    toggleStatus: toggleTravelStatus,
-    uploadConfirmation: uploadBookingConfirmation,
-    refreshData: initializeTravelPage
+window.TravelModule = {
+    editTravel,
+    toggleTravelStatus,
+    updateFlightStatus
 };

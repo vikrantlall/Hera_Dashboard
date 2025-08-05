@@ -6,29 +6,86 @@
 
 {% block styles %}
 <link href="{{ url_for('static', filename='css/travel.css') }}" rel="stylesheet">
+<!-- Leaflet CSS for flight map -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 {% endblock %}
 
 {% block content %}
-<!-- Flight Path Map -->
-<div class="flight-map-container">
+
+<!-- Flight Path Map Module -->
+<div class="flight-map-section">
     <div class="widget">
         <div class="widget-header">
-            <h3 class="widget-title">Flight Route</h3>
-            <p class="widget-subtitle">Washington → Denver → Calgary → Toronto → Washington</p>
+            <div class="map-title-group">
+                <h3 class="widget-title">
+                    <svg class="flight-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                    </svg>
+                    Flight Route Visualization
+                </h3>
+                <p class="widget-subtitle">Washington → Denver → Calgary → Toronto → Washington</p>
+            </div>
+            <div class="map-controls">
+                <button class="map-toggle active" data-layer="route" title="Show Flight Path">
+                    <i class="fas fa-route"></i> Route
+                </button>
+                <button class="map-toggle" data-layer="airports" title="Show Airports">
+                    <i class="fas fa-map-marker-alt"></i> Airports
+                </button>
+                <button class="map-toggle" data-layer="weather" title="Show Weather">
+                    <i class="fas fa-cloud"></i> Weather
+                </button>
+                <button class="map-toggle" data-layer="elevation" title="Show Elevation">
+                    <i class="fas fa-mountain"></i> Terrain
+                </button>
+            </div>
         </div>
-        <div id="flight-map" class="flight-map"></div>
+
+        <!-- Interactive Flight Map -->
+        <div id="flight-map" class="flight-map loading">
+            <div class="map-loading">
+                <div class="loading-spinner"></div>
+                <p>Loading flight path...</p>
+            </div>
+        </div>
+
+        <!-- Flight Statistics -->
         <div class="flight-summary">
             <div class="flight-stat">
                 <span class="stat-number">4</span>
-                <span class="stat-label">Flights</span>
+                <span class="stat-label">Total Flights</span>
             </div>
             <div class="flight-stat">
-                <span class="stat-number">~13h</span>
-                <span class="stat-label">Total Flight Time</span>
+                <span class="stat-number">~13h 28m</span>
+                <span class="stat-label">Flight Time</span>
+            </div>
+            <div class="flight-stat">
+                <span class="stat-number">3,847</span>
+                <span class="stat-label">Total Miles</span>
             </div>
             <div class="flight-stat">
                 <span class="stat-number">3</span>
                 <span class="stat-label">Connections</span>
+            </div>
+            <div class="flight-stat">
+                <span class="stat-number">$11.20</span>
+                <span class="stat-label">Total Cost</span>
+            </div>
+        </div>
+
+        <!-- Live Flight Status -->
+        <div class="flight-status-bar">
+            <div class="status-item">
+                <div class="status-indicator on-time"></div>
+                <span>All flights confirmed & on schedule</span>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <span>Weather: Clear conditions expected</span>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <span>Last updated: <span id="last-updated">Just now</span></span>
             </div>
         </div>
     </div>
@@ -66,38 +123,34 @@
                 <div class="travel-details">
                     <div class="travel-detail">
                         <div class="detail-label">Departure</div>
-                        <div class="detail-value editable-text" data-field="departureTime" data-item-id="{{ travel.id }}">{{ travel.departureTime }}</div>
+                        <div class="detail-value">{{ travel.departureTime if travel.departureTime else 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Arrival</div>
-                        <div class="detail-value editable-text" data-field="arrivalTime" data-item-id="{{ travel.id }}">{{ travel.arrivalTime }}</div>
+                        <div class="detail-value">{{ travel.arrivalTime if travel.arrivalTime else 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Duration</div>
-                        <div class="detail-value">{{ travel.duration }}</div>
+                        <div class="detail-value">{{ travel.duration or 'N/A' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Seats</div>
-                        <div class="detail-value editable-text" data-field="seat" data-item-id="{{ travel.id }}">{{ travel.seat }}</div>
+                        <div class="detail-value">{{ travel.seat or 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Confirmation</div>
-                        <div class="detail-value">{{ travel.confirmationNumber }}</div>
-                    </div>
-                    <div class="travel-detail">
-                        <div class="detail-label">Status</div>
-                        <div class="detail-value">
-                            <span class="status-badge confirmed">{{ travel.status }}</span>
+                        <div class="detail-value editable" data-field="confirmation" data-id="{{ travel.id }}">
+                            {{ travel.confirmationNumber or 'Pending' }}
                         </div>
                     </div>
                 </div>
 
                 <div class="travel-actions">
-                    <button class="action-btn edit-btn" onclick="openFlightEditModal({{ travel.id }})" data-tooltip="Edit Flight">
+                    <button class="action-btn edit-btn" onclick="editTravel({{ travel.id }})" data-tooltip="Edit Flight">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn delete-btn" onclick="deleteTravel({{ travel.id }})" data-tooltip="Delete">
-                        <i class="fas fa-trash"></i>
+                    <button class="action-btn status-btn" onclick="toggleFlightStatus({{ travel.id }})" data-tooltip="Update Status">
+                        <i class="fas fa-plane"></i>
                     </button>
                 </div>
             </div>
@@ -135,38 +188,34 @@
                 <div class="travel-details">
                     <div class="travel-detail">
                         <div class="detail-label">Departure</div>
-                        <div class="detail-value editable-text" data-field="departureTime" data-item-id="{{ travel.id }}">{{ travel.departureTime }}</div>
+                        <div class="detail-value">{{ travel.departureTime if travel.departureTime else 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Arrival</div>
-                        <div class="detail-value editable-text" data-field="arrivalTime" data-item-id="{{ travel.id }}">{{ travel.arrivalTime }}</div>
+                        <div class="detail-value">{{ travel.arrivalTime if travel.arrivalTime else 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Duration</div>
-                        <div class="detail-value">{{ travel.duration }}</div>
+                        <div class="detail-value">{{ travel.duration or 'N/A' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Seats</div>
-                        <div class="detail-value editable-text" data-field="seat" data-item-id="{{ travel.id }}">{{ travel.seat }}</div>
+                        <div class="detail-value">{{ travel.seat or 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Confirmation</div>
-                        <div class="detail-value">{{ travel.confirmationNumber }}</div>
-                    </div>
-                    <div class="travel-detail">
-                        <div class="detail-label">Status</div>
-                        <div class="detail-value">
-                            <span class="status-badge confirmed">{{ travel.status }}</span>
+                        <div class="detail-value editable" data-field="confirmation" data-id="{{ travel.id }}">
+                            {{ travel.confirmationNumber or 'Pending' }}
                         </div>
                     </div>
                 </div>
 
                 <div class="travel-actions">
-                    <button class="action-btn edit-btn" onclick="openFlightEditModal({{ travel.id }})" data-tooltip="Edit Flight">
+                    <button class="action-btn edit-btn" onclick="editTravel({{ travel.id }})" data-tooltip="Edit Flight">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn delete-btn" onclick="deleteTravel({{ travel.id }})" data-tooltip="Delete">
-                        <i class="fas fa-trash"></i>
+                    <button class="action-btn status-btn" onclick="toggleFlightStatus({{ travel.id }})" data-tooltip="Update Status">
+                        <i class="fas fa-plane"></i>
                     </button>
                 </div>
             </div>
@@ -174,15 +223,15 @@
         </div>
     </div>
 
-    <!-- Hotel Accommodations -->
+    <!-- Hotels Section -->
     <div class="widget">
         <div class="widget-header">
             <div>
                 <h3 class="widget-title">
-                    <i class="fas fa-bed"></i>
+                    <i class="fas fa-hotel"></i>
                     Hotel Accommodations
                 </h3>
-                <p class="widget-subtitle">Canalta Lodge, Banff</p>
+                <p class="widget-subtitle">September 24-29, 2025 - Banff, AB</p>
             </div>
             <button class="action-btn add-btn" onclick="openAddHotelModal()" data-tooltip="Add Hotel">
                 <i class="fas fa-plus"></i>
@@ -190,46 +239,53 @@
         </div>
 
         <div class="travel-cards">
-            {% for travel in hotels %}
-            <div class="travel-card hotel-card" data-travel-id="{{ travel.id }}">
+            {% for hotel in hotels %}
+            <div class="travel-card hotel-card" data-travel-id="{{ hotel.id }}">
                 <div class="travel-header">
-                    <div class="hotel-name">{{ travel.provider }}</div>
+                    <div class="hotel-info">
+                        <div class="hotel-name">{{ hotel.name }}</div>
+                        <div class="hotel-address">{{ hotel.address }}</div>
+                    </div>
                     <div class="hotel-rating">
-                        <span class="status-badge confirmed">{{ travel.status }}</span>
+                        <div class="stars">
+                            {% for i in range(5) %}
+                            <i class="fas fa-star"></i>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
-
-                <div class="hotel-address">{{ travel.address }}</div>
 
                 <div class="travel-details">
                     <div class="travel-detail">
                         <div class="detail-label">Check-in</div>
-                        <div class="detail-value editable-text" data-field="checkIn" data-item-id="{{ travel.id }}">{{ travel.checkIn }}</div>
+                        <div class="detail-value">{{ hotel.checkInDate if hotel.checkInDate else 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Check-out</div>
-                        <div class="detail-value editable-text" data-field="checkOut" data-item-id="{{ travel.id }}">{{ travel.checkOut }}</div>
+                        <div class="detail-value">{{ hotel.checkOutDate if hotel.checkOutDate else 'TBD' }}</div>
+                    </div>
+                    <div class="travel-detail">
+                        <div class="detail-label">Nights</div>
+                        <div class="detail-value">5</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Room Type</div>
-                        <div class="detail-value editable-text" data-field="roomType" data-item-id="{{ travel.id }}">{{ travel.roomType }}</div>
-                    </div>
-                    <div class="travel-detail">
-                        <div class="detail-label">Phone</div>
-                        <div class="detail-value">{{ travel.phone }}</div>
+                        <div class="detail-value">{{ hotel.notes or 'Standard' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Confirmation</div>
-                        <div class="detail-value">{{ travel.confirmationNumber }}</div>
+                        <div class="detail-value editable" data-field="confirmation" data-id="{{ hotel.id }}">
+                            {{ hotel.confirmationNumber or 'Pending' }}
+                        </div>
                     </div>
                 </div>
 
                 <div class="travel-actions">
-                    <button class="action-btn edit-btn" onclick="openHotelEditModal({{ travel.id }})" data-tooltip="Edit Hotel">
+                    <button class="action-btn edit-btn" onclick="editTravel({{ hotel.id }})" data-tooltip="Edit Hotel">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn delete-btn" onclick="deleteTravel({{ travel.id }})" data-tooltip="Delete">
-                        <i class="fas fa-trash"></i>
+                    <button class="action-btn phone-btn" onclick="callHotel('{{ hotel.phoneNumber }}')" data-tooltip="Call Hotel">
+                        <i class="fas fa-phone"></i>
                     </button>
                 </div>
             </div>
@@ -245,7 +301,7 @@
                     <i class="fas fa-car"></i>
                     Ground Transportation
                 </h3>
-                <p class="widget-subtitle">Rental cars and local transport</p>
+                <p class="widget-subtitle">Rental Car & Local Transport</p>
             </div>
             <button class="action-btn add-btn" onclick="openAddTransportModal()" data-tooltip="Add Transport">
                 <i class="fas fa-plus"></i>
@@ -253,40 +309,46 @@
         </div>
 
         <div class="travel-cards">
-            {% for travel in ground_transport %}
-            <div class="travel-card transport-card" data-travel-id="{{ travel.id }}">
+            {% for transport in ground_transport %}
+            <div class="travel-card transport-card" data-travel-id="{{ transport.id }}">
                 <div class="travel-header">
-                    <div class="transport-provider">{{ travel.provider }}</div>
-                    <div class="transport-location">{{ travel.location }}</div>
+                    <div class="transport-info">
+                        <div class="transport-provider">{{ transport.company }}</div>
+                        <div class="transport-location">{{ transport.location }}</div>
+                    </div>
+                    <div class="transport-type">
+                        <i class="fas fa-car"></i>
+                        {{ transport.carType or 'Vehicle' }}
+                    </div>
                 </div>
 
                 <div class="travel-details">
                     <div class="travel-detail">
-                        <div class="detail-label">Car Type</div>
-                        <div class="detail-value editable-text" data-field="carType" data-item-id="{{ travel.id }}">{{ travel.carType }}</div>
+                        <div class="detail-label">Pick-up</div>
+                        <div class="detail-value">{{ transport.pickupDate if transport.pickupDate else 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
-                        <div class="detail-label">Pickup Date</div>
-                        <div class="detail-value editable-text" data-field="pickupDate" data-item-id="{{ travel.id }}">{{ travel.pickupDate }}</div>
+                        <div class="detail-label">Drop-off</div>
+                        <div class="detail-value">{{ transport.dropoffDate if transport.dropoffDate else 'TBD' }}</div>
+                    </div>
+                    <div class="travel-detail">
+                        <div class="detail-label">Duration</div>
+                        <div class="detail-value">5 days</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Confirmation</div>
-                        <div class="detail-value">{{ travel.confirmationNumber }}</div>
-                    </div>
-                    <div class="travel-detail">
-                        <div class="detail-label">Status</div>
-                        <div class="detail-value">
-                            <span class="status-badge confirmed">{{ travel.status }}</span>
+                        <div class="detail-value editable" data-field="confirmation" data-id="{{ transport.id }}">
+                            {{ transport.confirmationNumber or 'Pending' }}
                         </div>
                     </div>
                 </div>
 
                 <div class="travel-actions">
-                    <button class="action-btn edit-btn" onclick="openTransportEditModal({{ travel.id }})" data-tooltip="Edit Transport">
+                    <button class="action-btn edit-btn" onclick="editTravel({{ transport.id }})" data-tooltip="Edit Rental">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn delete-btn" onclick="deleteTravel({{ travel.id }})" data-tooltip="Delete">
-                        <i class="fas fa-trash"></i>
+                    <button class="action-btn location-btn" onclick="showLocation('{{ transport.location }}')" data-tooltip="Show Location">
+                        <i class="fas fa-map-marker-alt"></i>
                     </button>
                 </div>
             </div>
@@ -295,204 +357,10 @@
     </div>
 </div>
 
-<!-- Flight Edit Modal -->
-<div id="flight-edit-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title" id="flight-modal-title">Edit Flight</h3>
-            <button class="modal-close" onclick="closeFlightEditModal()">&times;</button>
-        </div>
-        <form id="flight-edit-form">
-            <div class="modal-body">
-                <input type="hidden" id="flight-item-id">
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Flight Number</label>
-                        <input type="text" class="form-input" id="flight-number" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Airline</label>
-                        <input type="text" class="form-input" id="flight-airline" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Departure Time</label>
-                        <input type="time" class="form-input" id="flight-departure" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Arrival Time</label>
-                        <input type="time" class="form-input" id="flight-arrival" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Date</label>
-                        <input type="date" class="form-input" id="flight-date" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Duration</label>
-                        <input type="text" class="form-input" id="flight-duration" placeholder="e.g., 3h 48m">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Seats</label>
-                        <input type="text" class="form-input" id="flight-seats" placeholder="e.g., 2E, 2F">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Confirmation Number</label>
-                        <input type="text" class="form-input" id="flight-confirmation">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" id="flight-status">
-                        <option value="Confirmed">Confirmed</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Cancelled">Cancelled</option>
-                    </select>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeFlightEditModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i>
-                    Save Changes
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Hotel Edit Modal -->
-<div id="hotel-edit-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Edit Hotel</h3>
-            <button class="modal-close" onclick="closeHotelEditModal()">&times;</button>
-        </div>
-        <form id="hotel-edit-form">
-            <div class="modal-body">
-                <input type="hidden" id="hotel-item-id">
-
-                <div class="form-group">
-                    <label class="form-label">Hotel Name</label>
-                    <input type="text" class="form-input" id="hotel-name" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Address</label>
-                    <textarea class="form-textarea" id="hotel-address" rows="2" required></textarea>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Phone</label>
-                        <input type="tel" class="form-input" id="hotel-phone">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Room Type</label>
-                        <input type="text" class="form-input" id="hotel-room-type">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Check-in Time</label>
-                        <input type="time" class="form-input" id="hotel-checkin">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Check-out Time</label>
-                        <input type="time" class="form-input" id="hotel-checkout">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Confirmation Number</label>
-                    <input type="text" class="form-input" id="hotel-confirmation">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeHotelEditModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i>
-                    Save Changes
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Transport Edit Modal -->
-<div id="transport-edit-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Edit Transportation</h3>
-            <button class="modal-close" onclick="closeTransportEditModal()">&times;</button>
-        </div>
-        <form id="transport-edit-form">
-            <div class="modal-body">
-                <input type="hidden" id="transport-item-id">
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Provider</label>
-                        <input type="text" class="form-input" id="transport-provider" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Location</label>
-                        <input type="text" class="form-input" id="transport-location" required>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Vehicle Type</label>
-                    <input type="text" class="form-input" id="transport-car-type" required>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Pickup Date</label>
-                        <input type="date" class="form-input" id="transport-pickup-date" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Return Date</label>
-                        <input type="date" class="form-input" id="transport-return-date">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Confirmation Number</label>
-                    <input type="text" class="form-input" id="transport-confirmation">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeTransportEditModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i>
-                    Save Changes
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
+<!-- Leaflet JavaScript -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="{{ url_for('static', filename='js/travel.js') }}"></script>
-<script>
-    // Pass data to JavaScript
-    window.TRAVEL_DATA = {
-        outbound: {{ outbound_flights | tojson }},
-        return: {{ return_flights | tojson }},
-        hotels: {{ hotels | tojson }},
-        transport: {{ ground_transport | tojson }}
-    };
-</script>
 {% endblock %}

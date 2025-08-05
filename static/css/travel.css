@@ -1,99 +1,392 @@
 /* Travel Page Specific Styles */
 
-/* Flight Map Container */
-.flight-map-container {
+/* Flight Map Module Styles */
+.flight-map-section {
     margin-bottom: 32px;
 }
 
-.flight-map {
-    height: 400px;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
+.flight-map-section .widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+    color: white;
+    border-radius: 12px 12px 0 0;
 }
 
+.map-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.map-title-group .widget-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0;
+    font-size: 20px;
+}
+
+.flight-icon {
+    width: 24px;
+    height: 24px;
+    fill: var(--accent-gold);
+}
+
+.map-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.map-toggle {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.map-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.map-toggle.active {
+    background: var(--accent-gold);
+    border-color: var(--accent-gold);
+    color: var(--primary-dark);
+}
+
+/* Flight Map Container */
+.flight-map {
+    height: 500px;
+    width: 100%;
+    position: relative;
+    background: #f8fafc;
+    border-radius: 0 0 12px 12px;
+    overflow: hidden;
+}
+
+.flight-map.loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #e2e8f0, #f1f5f9);
+}
+
+.map-loading {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border);
+    border-top: 3px solid var(--accent-gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Flight Summary Stats */
 .flight-summary {
     display: flex;
     justify-content: center;
     gap: 40px;
-    padding: 20px 0;
+    padding: 24px 20px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
 }
 
 .flight-stat {
     text-align: center;
+    min-width: 80px;
 }
 
 .flight-stat .stat-number {
     font-size: 24px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--accent-gold);
     display: block;
+    margin-bottom: 4px;
 }
 
 .flight-stat .stat-label {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    font-weight: 500;
 }
 
-/* Map Custom Elements */
+/* Flight Status Bar */
+.flight-status-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--white);
+    border-top: 1px solid var(--border);
+    border-radius: 0 0 12px 12px;
+}
+
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-light);
+    animation: pulse 2s infinite;
+}
+
+.status-indicator.on-time {
+    background: var(--success);
+}
+
+.status-indicator.delayed {
+    background: var(--warning);
+}
+
+.status-indicator.cancelled {
+    background: var(--error);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Custom Leaflet Map Styles */
+.leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    padding: 0;
+    overflow: hidden;
+}
+
+.leaflet-popup-content {
+    margin: 0;
+    padding: 16px;
+    color: var(--text-primary);
+}
+
+.leaflet-popup-tip {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Airport Marker Styles */
 .airport-marker {
     background: var(--accent-gold);
     border-radius: 8px;
-    border: 2px solid white;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.airport-marker-content {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
+    border: 3px solid white;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     color: white;
     font-weight: 600;
     font-size: 12px;
+    padding: 6px 10px;
+    text-align: center;
+    min-width: 50px;
+    position: relative;
 }
 
-.flight-plane-icon {
-    color: var(--info);
-    animation: fly 4s ease-in-out infinite;
+.airport-marker::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid var(--accent-gold);
 }
 
-@keyframes fly {
-    0%, 100% { transform: translateX(-10px); }
-    50% { transform: translateX(10px); }
+.airport-marker.origin {
+    background: var(--success);
 }
 
-.flight-control {
+.airport-marker.origin::after {
+    border-top-color: var(--success);
+}
+
+.airport-marker.destination {
+    background: var(--error);
+}
+
+.airport-marker.destination::after {
+    border-top-color: var(--error);
+}
+
+.airport-marker.layover {
+    background: var(--info);
+}
+
+.airport-marker.layover::after {
+    border-top-color: var(--info);
+}
+
+/* Enhanced Flight Path Animations */
+.flight-path {
+    stroke: var(--accent-gold);
+    stroke-width: 4;
+    fill: none;
+    stroke-dasharray: 12, 8;
+    filter: drop-shadow(0 0 6px rgba(212, 175, 55, 0.6));
+    animation: pulse-path 3s ease-in-out infinite;
+}
+
+@keyframes pulse-path {
+    0%, 100% {
+        stroke-width: 4;
+        opacity: 0.7;
+    }
+    50% {
+        stroke-width: 5;
+        opacity: 1;
+    }
+}
+
+.flight-path.completed {
+    stroke: var(--success);
+    stroke-dasharray: none;
+    animation: none;
+    filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.4));
+}
+
+.flight-path.active {
+    stroke: var(--info);
+    stroke-width: 6;
+    filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.8));
+    animation: active-path 2s ease-in-out infinite;
+}
+
+@keyframes active-path {
+    0%, 100% {
+        stroke-width: 6;
+        opacity: 0.8;
+    }
+    50% {
+        stroke-width: 8;
+        opacity: 1;
+    }
+}
+
+/* Enhanced Plane Animation */
+.animated-plane {
+    font-size: 20px;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+    animation: fly-smooth 1s ease-in-out infinite;
+}
+
+@keyframes fly-smooth {
+    0%, 100% {
+        transform: translateY(-1px);
+    }
+    50% {
+        transform: translateY(1px);
+    }
+}
+
+.plane-marker {
+    z-index: 1000;
+}
+
+/* Airport Flash Animation */
+@keyframes flash-airport {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    25% {
+        transform: scale(1.2);
+        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.6);
+    }
+    50% {
+        transform: scale(1.15);
+        box-shadow: 0 6px 20px rgba(212, 175, 55, 0.8);
+    }
+    75% {
+        transform: scale(1.1);
+        box-shadow: 0 8px 25px rgba(212, 175, 55, 0.6);
+    }
+}
+
+/* Weather Overlay */
+.weather-overlay {
+    position: absolute;
+    top: 10px;
+    right: 10px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     border-radius: 8px;
-    padding: 16px;
+    padding: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    font-size: 12px;
+    min-width: 150px;
 }
 
-.flight-control-content h4 {
-    margin-bottom: 12px;
-    color: var(--text-primary);
-    font-size: 14px;
-}
-
-.flight-stats {
+.weather-item {
     display: flex;
-    gap: 20px;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
 }
 
-/* Travel Sections */
+.weather-item:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.weather-location {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.weather-condition {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-secondary);
+}
+
+/* Travel Cards Grid */
 .travel-sections {
     display: flex;
     flex-direction: column;
     gap: 32px;
 }
 
-/* Travel Cards */
 .travel-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
@@ -169,14 +462,14 @@
     margin-bottom: 12px;
 }
 
-.hotel-name {
+.hotel-info .hotel-name {
     font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 4px;
 }
 
-.hotel-address {
+.hotel-info .hotel-address {
     color: var(--text-secondary);
     font-size: 13px;
     margin-bottom: 16px;
@@ -189,20 +482,33 @@
     gap: 8px;
 }
 
+.stars {
+    color: var(--accent-gold);
+}
+
 /* Transport Cards */
 .transport-card {
     border-left: 4px solid var(--success);
 }
 
-.transport-provider {
+.transport-info .transport-provider {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
 }
 
-.transport-location {
+.transport-info .transport-location {
     color: var(--text-secondary);
     font-size: 13px;
+}
+
+.transport-type {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--success);
+    font-size: 13px;
+    font-weight: 500;
 }
 
 /* Travel Details Grid */
@@ -235,6 +541,18 @@
     font-size: 13px;
 }
 
+.detail-value.editable {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 4px;
+    transition: all 0.2s ease;
+}
+
+.detail-value.editable:hover {
+    background: var(--accent-gold);
+    color: white;
+}
+
 /* Travel Actions */
 .travel-actions {
     position: absolute;
@@ -250,127 +568,63 @@
     opacity: 1;
 }
 
-/* Map Popup Styles */
-.flight-popup {
-    text-align: center;
-    padding: 8px;
-}
-
-.flight-popup h4 {
-    margin-bottom: 4px;
-    color: var(--text-primary);
-    font-size: 14px;
-}
-
-.flight-popup p {
-    color: var(--text-secondary);
-    font-size: 12px;
-    margin: 0;
-}
-
-/* Filter Controls */
-.filter-controls {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 20px;
-    justify-content: center;
-}
-
-/* Travel Stats */
-.travel-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-    padding: 20px;
+.action-btn {
     background: var(--bg-secondary);
-    border-radius: 12px;
-}
-
-.travel-stat {
-    text-align: center;
-}
-
-.travel-stat-number {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--accent-gold);
-    display: block;
-}
-
-.travel-stat-label {
-    font-size: 11px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
     color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
 }
 
-/* Travel Timeline */
-.travel-timeline {
-    position: relative;
-    padding: 20px 0;
-}
-
-.travel-timeline::before {
-    content: '';
-    position: absolute;
-    left: 30px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: var(--border);
-}
-
-.travel-timeline-item {
-    position: relative;
-    margin-bottom: 24px;
-    padding-left: 60px;
-}
-
-.travel-timeline-item::before {
-    content: '';
-    position: absolute;
-    left: 21px;
-    top: 8px;
-    width: 18px;
-    height: 18px;
+.action-btn:hover {
     background: var(--accent-gold);
-    border-radius: 50%;
-    border: 3px solid var(--white);
+    border-color: var(--accent-gold);
+    color: white;
+    transform: scale(1.05);
 }
 
-.timeline-time {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.timeline-event {
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.timeline-details {
-    color: var(--text-secondary);
-    font-size: 13px;
-    margin-top: 4px;
+.action-btn.add-btn {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+    opacity: 1;
 }
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-    .travel-cards {
-        grid-template-columns: 1fr;
-    }
-
     .flight-summary {
         gap: 20px;
+    }
+
+    .travel-cards {
+        grid-template-columns: 1fr;
     }
 }
 
 @media (max-width: 768px) {
     .flight-map {
         height: 300px;
+    }
+
+    .flight-summary {
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .map-controls {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .map-toggle {
+        padding: 6px 8px;
+        font-size: 10px;
     }
 
     .travel-details {
@@ -383,49 +637,29 @@
         align-items: flex-start;
     }
 
-    .flight-summary {
+    .flight-status-bar {
         flex-direction: column;
-        gap: 16px;
+        gap: 8px;
         text-align: center;
+    }
+
+    .weather-overlay {
+        position: relative;
+        top: 0;
+        right: 0;
+        margin-bottom: 16px;
     }
 }
 
-/* Loading States for Map */
-.flight-map.loading {
-    position: relative;
-}
+@media (max-width: 480px) {
+    .flight-map-section .widget-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
 
-.flight-map.loading::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--border);
-    border-top: 3px solid var(--accent-gold);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-/* Custom Leaflet Overrides */
-.leaflet-popup-content-wrapper {
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-}
-
-.leaflet-popup-tip {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* Animation Classes */
-.travel-card.success {
-    border-color: var(--success);
-    background: rgba(16, 185, 129, 0.05);
-}
-
-.travel-card.error {
-    border-color: var(--error);
-    background: rgba(239, 68, 68, 0.05);
+    .map-controls {
+        width: 100%;
+        justify-content: center;
+    }
 }
