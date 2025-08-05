@@ -8,302 +8,125 @@
 {% endblock %}
 
 {% block content %}
-<div class="family-container">
-    <!-- Family Progress Overview -->
-    <div class="family-overview">
-        <div class="overview-card">
-            <div class="overview-icon">
-                <i class="fas fa-users"></i>
-            </div>
-            <div class="overview-content">
-                <h2 class="overview-title">Family Buy-In Progress</h2>
-                <div class="progress-stats">
-                    <div class="stat-item">
-                        <span class="stat-number" id="approved-count">{{ family_members|selectattr('status', 'equalto', 'Approved')|list|length }}</span>
-                        <span class="stat-label">Approved</span>
-                    </div>
-                    <div class="stat-divider">/</div>
-                    <div class="stat-item">
-                        <span class="stat-number" id="total-count">{{ family_members|length }}</span>
-                        <span class="stat-label">Total</span>
-                    </div>
+<div class="content-section">
+    <div class="section-header">
+        <h2 class="section-title">Family Members</h2>
+        <div class="section-actions">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    {% set approved = family_members|selectattr('status', 'equalto', 'Approved')|list|length %}
+                    {% set total = family_members|length %}
+                    <div class="progress-fill" style="width: {{ (approved / total * 100) if total > 0 else 0 }}%"></div>
                 </div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar">
-                        {% set approved = family_members|selectattr('status', 'equalto', 'Approved')|list|length %}
-                        {% set total = family_members|length %}
-                        <div class="progress-fill" style="width: {{ (approved / total * 100) if total > 0 else 0 }}%;"></div>
-                    </div>
-                    <span class="progress-percentage">{{ "%.0f"|format((approved / total * 100) if total > 0 else 0) }}%</span>
-                </div>
+                <span class="progress-text">{{ approved }}/{{ total }} Complete</span>
             </div>
-        </div>
-        
-        <div class="quick-actions">
-            <button class="btn btn-primary add-member-btn" id="add-family-member">
-                <i class="fas fa-user-plus"></i>
-                Add Family Member
-            </button>
         </div>
     </div>
 
-    <!-- Family Members List -->
-    <div class="family-members-section">
-        <div class="section-header">
-            <h2 class="section-title">
-                <i class="fas fa-heart"></i>
-                Family Members
-            </h2>
-            <div class="filter-controls">
-                <button class="filter-btn active" data-filter="all">All</button>
-                <button class="filter-btn" data-filter="approved">Approved</button>
-                <button class="filter-btn" data-filter="pending">Pending</button>
-            </div>
-        </div>
-
-        <div class="family-members-grid" id="family-members-grid">
-            {% for member in family_members %}
-            <div class="family-member-card" data-member-id="{{ member.id }}" data-status="{{ member.status.lower() }}">
+    <div class="family-grid">
+        {% for member in family_members %}
+        <div class="family-card" data-status="{{ member.status.lower().replace(' ', '-') }}" data-member-id="{{ member.id }}">
+            <div class="card-content">
                 <div class="member-header">
                     <div class="member-avatar">
-                        <i class="fas fa-user"></i>
+                        <span class="avatar-text">{{ member.name[0].upper() }}</span>
+                        <div class="status-indicator status-{{ member.status.lower().replace(' ', '-') }}"></div>
                     </div>
-                    
+
                     <div class="member-info">
-                        <h3 class="member-name">
-                            <span class="editable-text" data-field="name">{{ member.name }}</span>
-                        </h3>
-                        
-                        <div class="member-status">
-                            <select class="status-select" data-field="status">
-                                <option value="Approved" {% if member.status == 'Approved' %}selected{% endif %}>✅ Approved</option>
-                                <option value="Pending" {% if member.status == 'Pending' %}selected{% endif %}>⏳ Pending</option>
-                                <option value="Not Asked" {% if member.status == 'Not Asked' %}selected{% endif %}>❓ Not Asked</option>
-                                <option value="Declined" {% if member.status == 'Declined' %}selected{% endif %}>❌ Declined</option>
+                        <h3 class="member-name">{{ member.name }}</h3>
+                        <div class="member-controls">
+                            <select class="status-select" data-member-id="{{ member.id }}">
+                                <option value="Not Asked" {% if member.status == 'Not Asked' %}selected{% endif %}>Not Asked</option>
+                                <option value="Pending" {% if member.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Approved" {% if member.status == 'Approved' %}selected{% endif %}>Approved</option>
+                                <option value="Declined" {% if member.status == 'Declined' %}selected{% endif %}>Declined</option>
                             </select>
                         </div>
                     </div>
-                    
-                    <div class="member-actions">
-                        <div class="action-menu">
-                            <button class="menu-toggle">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <div class="menu-dropdown">
-                                <button class="menu-item edit-member">
-                                    <i class="fas fa-edit"></i>
-                                    Edit Details
-                                </button>
-                                <button class="menu-item delete-member">
-                                    <i class="fas fa-trash"></i>
-                                    Remove
-                                </button>
-                            </div>
-                        </div>
+
+                    <div class="card-actions">
+                        <button class="action-btn edit-btn" data-member-id="{{ member.id }}" title="Edit Member">
+                            <i class="fas fa-edit"></i>
+                        </button>
                     </div>
                 </div>
 
-                <div class="member-content">
-                    <div class="conversation-section">
-                        <div class="conversation-header">
-                            <h4 class="conversation-title">
-                                <i class="fas fa-comments"></i>
-                                Conversation
-                            </h4>
-                            <div class="conversation-date">
-                                <i class="fas fa-calendar"></i>
-                                <input type="date" class="date-input" data-field="conversation_date" 
-                                       value="{{ member.conversation_date.isoformat() if member.conversation_date else '' }}">
-                            </div>
-                        </div>
-                        
-                        <div class="conversation-content">
-                            <div class="reaction-field">
-                                <label class="field-label">Reaction:</label>
-                                <div class="editable-text" data-field="reaction" data-placeholder="How did they react?">{{ member.reaction or '' }}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="notes-section">
-                        <div class="notes-header">
-                            <h4 class="notes-title">
-                                <i class="fas fa-sticky-note"></i>
-                                Notes
-                            </h4>
-                        </div>
-                        <div class="notes-content">
-                            <div class="editable-textarea" data-field="notes" data-placeholder="Add any additional notes...">{{ member.notes or '' }}</div>
-                        </div>
+                {% if member.notes %}
+                <div class="member-notes">
+                    <div class="notes-content">
+                        <p class="notes-text">{{ member.notes }}</p>
                     </div>
                 </div>
+                {% endif %}
 
                 <div class="member-footer">
-                    <div class="last-updated">
-                        <i class="fas fa-clock"></i>
-                        <span>Updated {{ member.updated_at.strftime('%b %d, %Y') if member.updated_at else 'Never' }}</span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Family Insights -->
-    <div class="family-insights">
-        <div class="insights-card">
-            <h3 class="insights-title">
-                <i class="fas fa-chart-pie"></i>
-                Family Insights
-            </h3>
-            
-            <div class="insights-grid">
-                <div class="insight-item">
-                    <div class="insight-icon excited">
-                        <i class="fas fa-smile-beam"></i>
-                    </div>
-                    <div class="insight-content">
-                        <div class="insight-number">{{ family_members|selectattr('reaction', 'search', 'excited|happy|thrilled')|list|length }}</div>
-                        <div class="insight-label">Excited</div>
-                    </div>
-                </div>
-                
-                <div class="insight-item">
-                    <div class="insight-icon supportive">
-                        <i class="fas fa-thumbs-up"></i>
-                    </div>
-                    <div class="insight-content">
-                        <div class="insight-number">{{ family_members|selectattr('status', 'equalto', 'Approved')|list|length }}</div>
-                        <div class="insight-label">Supportive</div>
-                    </div>
-                </div>
-                
-                <div class="insight-item">
-                    <div class="insight-icon pending">
-                        <i class="fas fa-hourglass-half"></i>
-                    </div>
-                    <div class="insight-content">
-                        <div class="insight-number">{{ family_members|selectattr('status', 'equalto', 'Pending')|list|length + family_members|selectattr('status', 'equalto', 'Not Asked')|list|length }}</div>
-                        <div class="insight-label">Pending</div>
+                    <div class="status-badge status-{{ member.status.lower().replace(' ', '-') }}">
+                        {% if member.status == 'Approved' %}
+                            <i class="fas fa-check-circle"></i>
+                            <span>Approved</span>
+                        {% elif member.status == 'Pending' %}
+                            <i class="fas fa-clock"></i>
+                            <span>Pending</span>
+                        {% elif member.status == 'Declined' %}
+                            <i class="fas fa-times-circle"></i>
+                            <span>Declined</span>
+                        {% else %}
+                            <i class="fas fa-question-circle"></i>
+                            <span>Not Asked</span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
+        {% endfor %}
     </div>
 </div>
 
-<!-- Add Family Member Modal -->
-<div class="glass-overlay" id="add-member-modal">
-    <div class="glass-modal">
+<!-- Edit Member Modal -->
+<div class="modal-overlay" id="edit-modal">
+    <div class="modal-container">
         <div class="modal-header">
-            <h3 class="modal-title">Add Family Member</h3>
-            <button class="modal-close" data-modal="add-member-modal">
+            <h3 class="modal-title">Edit Family Member</h3>
+            <button class="modal-close" type="button">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        
-        <form class="modal-form" id="add-member-form">
-            <div class="input-group">
-                <label class="input-label">Name</label>
-                <input type="text" class="form-input" name="name" required>
+
+        <form class="modal-form" id="edit-form">
+            <input type="hidden" id="edit-member-id">
+
+            <div class="form-group">
+                <label class="form-label">Name</label>
+                <input type="text" class="form-input" id="edit-name" required>
             </div>
-            
-            <div class="input-group">
-                <label class="input-label">Status</label>
-                <select class="form-input" name="status">
-                    <option value="Not Asked">❓ Not Asked</option>
-                    <option value="Pending">⏳ Pending</option>
-                    <option value="Approved">✅ Approved</option>
-                    <option value="Declined">❌ Declined</option>
+
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-input" id="edit-status">
+                    <option value="Not Asked">Not Asked</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Declined">Declined</option>
                 </select>
             </div>
-            
-            <div class="input-group">
-                <label class="input-label">Conversation Date</label>
-                <input type="date" class="form-input" name="conversation_date">
+
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea class="form-input" id="edit-notes" rows="3" placeholder="Any notes about their reaction..."></textarea>
             </div>
-            
-            <div class="input-group">
-                <label class="input-label">Their Reaction</label>
-                <textarea class="form-input" name="reaction" rows="3" placeholder="How did they react to the news?"></textarea>
-            </div>
-            
-            <div class="input-group">
-                <label class="input-label">Notes</label>
-                <textarea class="form-input" name="notes" rows="3" placeholder="Any additional notes or details..."></textarea>
-            </div>
-            
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" data-modal="add-member-modal">Cancel</button>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-close">Cancel</button>
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-user-plus"></i>
-                    Add Member
+                    <i class="fas fa-save"></i>
+                    Save Changes
                 </button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Delete Confirmation Modal -->
-<div class="glass-overlay" id="delete-member-modal">
-    <div class="glass-modal">
-        <div class="modal-header">
-            <h3 class="modal-title">Remove Family Member</h3>
-        </div>
-        
-        <div class="modal-content">
-            <p>Are you sure you want to remove <strong id="member-to-delete-name"></strong> from your family list? This action cannot be undone.</p>
-        </div>
-        
-        <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" data-modal="delete-member-modal">Cancel</button>
-            <button type="button" class="btn btn-error" id="confirm-delete-member">
-                <i class="fas fa-trash"></i>
-                Remove Member
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Quick Status Update Modal -->
-<div class="glass-overlay" id="status-update-modal">
-    <div class="glass-modal">
-        <div class="modal-header">
-            <h3 class="modal-title">Update Status</h3>
-            <button class="modal-close" data-modal="status-update-modal">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        
-        <div class="modal-content">
-            <div class="status-options">
-                <button class="status-option approved" data-status="Approved">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Approved</span>
-                    <div class="status-description">They're excited and supportive!</div>
-                </button>
-                
-                <button class="status-option pending" data-status="Pending">
-                    <i class="fas fa-clock"></i>
-                    <span>Pending</span>
-                    <div class="status-description">Still thinking it over</div>
-                </button>
-                
-                <button class="status-option not-asked" data-status="Not Asked">
-                    <i class="fas fa-question-circle"></i>
-                    <span>Not Asked</span>
-                    <div class="status-description">Haven't talked to them yet</div>
-                </button>
-                
-                <button class="status-option declined" data-status="Declined">
-                    <i class="fas fa-times-circle"></i>
-                    <span>Declined</span>
-                    <div class="status-description">They have concerns</div>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}

@@ -99,48 +99,47 @@ HERA_DATA = {
         {"id": 6, "segment": "Rental Car - Alamo", "provider": "Alamo", "location": "YYC", "pickupDate": "2025-09-24", "confirmationNumber": "#1785932383", "carType": "Intermediate SUV\\nToyota RAV4 or similar", "status": "Confirmed"}
     ],
     "itinerary": [
-        {"id": 1, "time": "2:00 PM", "activity": "Arrival at Calgary Airport", "location": "YYC", "notes": "Pick up rental car"},
-        {"id": 2, "time": "15:15–16:15", "activity": "Drive to Banff", "location": "YYC to Canalta Lodge", "notes": "Approx. 1.5-hour scenic drive"},
-        {"id": 3, "time": "16:15–17:45", "activity": "Hotel check-in and unwind", "location": "Canalta Lodge, Banff", "notes": "Relax after travel"},
-        {"id": 4, "time": "17:45–19:15", "activity": "Dinner", "location": "Farm & Fire or Lupo, Banff", "notes": "Reservation recommended"},
-        {"id": 5, "time": "19:15–20:00", "activity": "Relaxation", "location": "Canalta Lodge", "notes": "Use hot tub, fireplace lounge"},
-        {"id": 6, "time": "08:00–09:00", "activity": "Breakfast", "location": "Canalta Lodge or Whitebark Café", "notes": "Casual breakfast, local options"},
-        {"id": 7, "time": "11:30–12:30", "activity": "Ride Banff Gondola and explore summit", "location": "Sulphur Mountain Summit", "notes": "Uplift at 11:30 AM, download at 2:30 PM"},
-        {"id": 8, "time": "12:30–14:00", "activity": "Lunch at summit", "location": "Sky Bistro", "notes": "Reserved at 12:30 PM"},
-        {"id": 9, "time": "14:00–14:30", "activity": "Explore summit boardwalk", "location": "Sulphur Mountain", "notes": "Interpretive signage, scenic views"},
-        {"id": 10, "time": "15:00–15:45", "activity": "Nap or rest break", "location": "Canalta Lodge", "notes": "Recharge"},
-        {"id": 11, "time": "16:15–17:15", "activity": "Spa session", "location": "Cedar + Sage Co", "notes": "60-minute Couples' Massage"},
-        {"id": 12, "time": "18:00–19:30", "activity": "Dinner", "location": "Bear Street Tavern or similar", "notes": "Walk-in possible, reservations good"},
-        {"id": 13, "time": "19:30+", "activity": "Evening at lodge", "location": "Canalta Lodge", "notes": "Optional hot tub or early night"},
-        {"id": 14, "time": "7:00 AM", "activity": "Drive to Emerald Lake", "location": "Banff to Emerald Lake", "notes": "~1-hour scenic drive"},
-        {"id": 15, "time": "08:00–10:00", "activity": "Proposal + Photoshoot", "location": "Emerald Lake", "notes": "2-hour session with photographer", "isProposal": True},
-        {"id": 16, "time": "12:00–13:00", "activity": "Lunch", "location": "Around Banff", "notes": "Flexible lunch stop"},
-        {"id": 17, "time": "15:30–16:30", "activity": "Distillery Tour", "location": "Park Distillery, Banff", "notes": "Arrive 5–10 mins early for check-in"},
-        {"id": 18, "time": "18:30–20:30", "activity": "Dinner", "location": "1888 Chop House, Fairmont Banff Springs", "notes": "Reservation at 6:30 PM"},
-        {"id": 19, "time": "20:30+", "activity": "Wind down", "location": "Canalta Lodge", "notes": "Relax, hot tub, or fireplace lounge"},
-        {"id": 20, "time": "08:00–09:00", "activity": "Breakfast", "location": "Canalta Lodge", "notes": "Light breakfast to start the day"},
-        {"id": 21, "time": "12:00–13:00", "activity": "Lake Minnewanka Cruise", "location": "Lake Minnewanka", "notes": "Arrive at dock by 11:45 AM"},
-        {"id": 22, "time": "13:00–14:00", "activity": "Lunch", "location": "Minnewanka or Banff", "notes": "Optional café nearby or pack a picnic"},
-        {"id": 23, "time": "14:00–14:30", "activity": "Return & prep for afternoon", "location": "Canalta Lodge", "notes": "Change or rest briefly"},
-        {"id": 24, "time": "14:30–18:30", "activity": "Lake Louise Visit (incl. drive)", "location": "Lake Louise", "notes": "~1 hr drive each way, ~2 hrs at the lake"},
-        {"id": 25, "time": "19:30–21:00", "activity": "Dinner", "location": "The Bison", "notes": "Reservation at 7:30 PM"},
-        {"id": 26, "time": "20:00+", "activity": "Evening rest", "location": "Canalta Lodge", "notes": "Hot tub, fireplace lounge, or early night"},
-        {"id": 27, "time": "09:00–10:00", "activity": "Breakfast", "location": "Canalta Lodge", "notes": "Start slowly after several busy days"},
-        {"id": 28, "time": "10:00–11:15", "activity": "Drive to Peyto Lake", "location": "Banff → Bow Summit (Icefields Pkwy)", "notes": "~75-minute scenic drive (peytolake.ca)"},
-        {"id": 29, "time": "11:15–12:00", "activity": "Short walk to Peyto Viewpoint", "location": "Paved ~1.5 km round-trip", "notes": "Easy walk to iconic viewpoint"},
-        {"id": 30, "time": "12:00–13:15", "activity": "Drive to Field, BC", "location": "Peyto → Field via Trans-Canada Hwy", "notes": "~1-hour drive"},
-        {"id": 31, "time": "13:15–14:45", "activity": "Lunch at Truffle Pigs Bistro", "location": "Field, BC", "notes": "Opens at 11 am—great timing for a relaxed meal"},
-        {"id": 32, "time": "14:45–15:15", "activity": "Drive to Takakkaw Falls", "location": "Field → Yoho Valley Rd turnoff", "notes": "~30 minutes scenic through Kicking Horse Pass"},
-        {"id": 33, "time": "15:15–16:00", "activity": "Visit Takakkaw Falls", "location": "Yoho National Park", "notes": "300 m paved walk to base—easy family-friendly trail"},
-        {"id": 34, "time": "16:00–17:00", "activity": "Return drive to Banff", "location": "Yoho → Banff", "notes": "~60-minute drive back via Trans-Canada Hwy"},
-        {"id": 35, "time": "17:00–18:30", "activity": "Optional rest/spa or nap", "location": "Canalta Lodge", "notes": "Rejuvenate before evening"},
-        {"id": 36, "time": "18:30–20:00", "activity": "Farewell dinner", "location": "Eden, The Bison, or Saltlik", "notes": "Reservation recommended"},
-        {"id": 37, "time": "20:00+", "activity": "Final evening wind-down", "location": "Canalta Lodge", "notes": "Hot tub, fireplace lounge, finalize packing"},
-        {"id": 38, "time": "08:30–09:30", "activity": "Breakfast and packing", "location": "Canalta Lodge", "notes": "Light breakfast included or grab coffee/pastries"},
-        {"id": 39, "time": "09:30–11:15", "activity": "Drive to Calgary International Airport (YYC)", "location": "Banff → YYC", "notes": "~1 hr 45 min drive with traffic buffer"},
-        {"id": 40, "time": "11:15–11:45", "activity": "Return rental car", "location": "Calgary Airport rental desk", "notes": "Budget 20–30 minutes"},
-        {"id": 41, "time": "11:45–13:55", "activity": "Security and boarding", "location": "YYC Departures Terminal", "notes": "Recommended 2 hours before international flight"},
-        {"id": 42, "time": "13:55", "activity": "Flight departs", "location": "YYC", "notes": "Bon voyage!"}
+        {"id": 2, "date": "2025-09-24", "day": 1, "time": "15:15", "activity": "Drive to Banff", "location": "YYC to Canalta Lodge", "notes": "Approx. 1.5-hour scenic drive"},
+        {"id": 3, "date": "2025-09-24", "day": 1, "time": "16:15", "activity": "Hotel check-in and unwind", "location": "Canalta Lodge, Banff", "notes": "Relax after travel"},
+        {"id": 4, "date": "2025-09-24", "day": 1, "time": "17:45", "activity": "Dinner", "location": "Farm & Fire or Lupo, Banff", "notes": "Reservation recommended"},
+        {"id": 5, "date": "2025-09-24", "day": 1, "time": "19:15", "activity": "Relaxation", "location": "Canalta Lodge", "notes": "Use hot tub, fireplace lounge"},
+        {"id": 6, "date": "2025-09-25", "day": 2, "time": "08:00", "activity": "Breakfast", "location": "Canalta Lodge or Whitebark Café", "notes": "Casual breakfast, local options"},
+        {"id": 7, "date": "2025-09-25", "day": 2, "time": "11:30", "activity": "Ride Banff Gondola and explore summit", "location": "Sulphur Mountain Summit", "notes": "Uplift at 11:30 AM, download at 2:30 PM"},
+        {"id": 8, "date": "2025-09-25", "day": 2, "time": "12:30", "activity": "Lunch at summit", "location": "Sky Bistro", "notes": "Reserved at 12:30 PM"},
+        {"id": 9, "date": "2025-09-25", "day": 2, "time": "14:00", "activity": "Explore summit boardwalk", "location": "Sulphur Mountain", "notes": "Interpretive signage, scenic views"},
+        {"id": 10, "date": "2025-09-25", "day": 2, "time": "15:00", "activity": "Nap or rest break", "location": "Canalta Lodge", "notes": "Recharge"},
+        {"id": 11, "date": "2025-09-25", "day": 2, "time": "16:15", "activity": "Spa session", "location": "Cedar + Sage Co", "notes": "60-minute Couples' Massage"},
+        {"id": 12, "date": "2025-09-25", "day": 2, "time": "18:00", "activity": "Dinner", "location": "Bear Street Tavern or similar", "notes": "Walk-in possible, reservations good"},
+        {"id": 13, "date": "2025-09-25", "day": 2, "time": "19:30", "activity": "Evening at lodge", "location": "Canalta Lodge", "notes": "Optional hot tub or early night"},
+        {"id": 14, "date": "2025-09-26", "day": 3, "time": "07:00", "activity": "Drive to Emerald Lake", "location": "Banff to Emerald Lake", "notes": "~1-hour scenic drive"},
+        {"id": 15, "date": "2025-09-26", "day": 3, "time": "08:00", "activity": "Proposal + Photoshoot", "location": "Emerald Lake", "notes": "2-hour session with photographer", "isProposal": True},
+        {"id": 16, "date": "2025-09-26", "day": 3, "time": "12:00", "activity": "Lunch", "location": "Around Banff", "notes": "Flexible lunch stop"},
+        {"id": 17, "date": "2025-09-26", "day": 3, "time": "15:30", "activity": "Distillery Tour", "location": "Park Distillery, Banff", "notes": "Arrive 5–10 mins early for check-in"},
+        {"id": 18, "date": "2025-09-26", "day": 3, "time": "18:30", "activity": "Dinner", "location": "1888 Chop House, Fairmont Banff Springs", "notes": "Reservation at 6:30 PM"},
+        {"id": 19, "date": "2025-09-26", "day": 3, "time": "20:30", "activity": "Wind down", "location": "Canalta Lodge", "notes": "Relax, hot tub, or fireplace lounge"},
+        {"id": 20, "date": "2025-09-27", "day": 4, "time": "08:00", "activity": "Breakfast", "location": "Canalta Lodge", "notes": "Light breakfast to start the day"},
+        {"id": 21, "date": "2025-09-27", "day": 4, "time": "12:00", "activity": "Lake Minnewanka Cruise", "location": "Lake Minnewanka", "notes": "Arrive at dock by 11:45 AM"},
+        {"id": 22, "date": "2025-09-27", "day": 4, "time": "13:00", "activity": "Lunch", "location": "Minnewanka or Banff", "notes": "Optional café nearby or pack a picnic"},
+        {"id": 23, "date": "2025-09-27", "day": 4, "time": "14:00", "activity": "Return & prep for afternoon", "location": "Canalta Lodge", "notes": "Change or rest briefly"},
+        {"id": 24, "date": "2025-09-27", "day": 4, "time": "14:30", "activity": "Lake Louise Visit (incl. drive)", "location": "Lake Louise", "notes": "~1 hr drive each way, ~2 hrs at the lake"},
+        {"id": 25, "date": "2025-09-27", "day": 4, "time": "19:30", "activity": "Dinner", "location": "The Bison", "notes": "Reservation at 7:30 PM"},
+        {"id": 26, "date": "2025-09-27", "day": 4, "time": "20:00", "activity": "Evening rest", "location": "Canalta Lodge", "notes": "Hot tub, fireplace lounge, or early night"},
+        {"id": 27, "date": "2025-09-28", "day": 5, "time": "09:00", "activity": "Breakfast", "location": "Canalta Lodge", "notes": "Start slowly after several busy days"},
+        {"id": 28, "date": "2025-09-28", "day": 5, "time": "10:00", "activity": "Drive to Peyto Lake", "location": "Banff → Bow Summit (Icefields Pkwy)", "notes": "~75-minute scenic drive (peytolake.ca)"},
+        {"id": 29, "date": "2025-09-28", "day": 5, "time": "11:15", "activity": "Short walk to Peyto Viewpoint", "location": "Paved ~1.5 km round-trip", "notes": "Easy walk to iconic viewpoint"},
+        {"id": 30, "date": "2025-09-28", "day": 5, "time": "12:00", "activity": "Drive to Field, BC", "location": "Peyto → Field via Trans-Canada Hwy", "notes": "~1-hour drive"},
+        {"id": 31, "date": "2025-09-28", "day": 5, "time": "13:15", "activity": "Lunch at Truffle Pigs Bistro", "location": "Field, BC", "notes": "Opens at 11 am—great timing for a relaxed meal"},
+        {"id": 32, "date": "2025-09-28", "day": 5, "time": "14:45", "activity": "Drive to Takakkaw Falls", "location": "Field → Yoho Valley Rd turnoff", "notes": "~30 minutes scenic through Kicking Horse Pass"},
+        {"id": 33, "date": "2025-09-28", "day": 5, "time": "15:15", "activity": "Visit Takakkaw Falls", "location": "Yoho National Park", "notes": "300 m paved walk to base—easy family-friendly trail"},
+        {"id": 34, "date": "2025-09-28", "day": 5, "time": "16:00", "activity": "Return drive to Banff", "location": "Yoho → Banff", "notes": "~60-minute drive back via Trans-Canada Hwy"},
+        {"id": 35, "date": "2025-09-28", "day": 5, "time": "17:00", "activity": "Optional rest/spa or nap", "location": "Canalta Lodge", "notes": "Rejuvenate before evening"},
+        {"id": 36, "date": "2025-09-28", "day": 5, "time": "18:30", "activity": "Farewell dinner", "location": "Eden, The Bison, or Saltlik", "notes": "Reservation recommended"},
+        {"id": 37, "date": "2025-09-28", "day": 5, "time": "20:00", "activity": "Final evening wind-down", "location": "Canalta Lodge", "notes": "Hot tub, fireplace lounge, finalize packing"},
+        {"id": 38, "date": "2025-09-29", "day": 6, "time": "08:30", "activity": "Breakfast and packing", "location": "Canalta Lodge", "notes": "Light breakfast included or grab coffee/pastries"},
+        {"id": 39, "date": "2025-09-29", "day": 6, "time": "09:30", "activity": "Drive to Calgary International Airport (YYC)", "location": "Banff → YYC", "notes": "~1 hr 45 min drive with traffic buffer"},
+        {"id": 40, "date": "2025-09-29", "day": 6, "time": "11:15", "activity": "Return rental car", "location": "Calgary Airport rental desk", "notes": "Budget 20–30 minutes"},
+        {"id": 41, "date": "2025-09-29", "day": 6, "time": "11:45", "activity": "Security and boarding", "location": "YYC Departures Terminal", "notes": "Recommended 2 hours before international flight"},
+        {"id": 42, "date": "2025-09-29", "day": 6, "time": "13:55", "activity": "Flight departs", "location": "YYC", "notes": "Bon voyage!"}
     ],
     "packing": [
         {"id": 1, "item": "Engagement Ring", "packed": False, "notes": ""},
@@ -305,6 +304,22 @@ def itinerary():
 def packing():
     """Packing list page with categories"""
     packed_count = len([p for p in HERA_DATA['packing'] if p['packed']])
+
+    # Add default category to items that don't have one
+    for item in HERA_DATA['packing']:
+        if 'category' not in item:
+            # Assign categories based on item names
+            item_lower = item['item'].lower()
+            if any(word in item_lower for word in ['ring', 'documents', 'passport']):
+                item['category'] = 'Essential'
+            elif any(word in item_lower for word in ['camera', 'tripod', 'gear']):
+                item['category'] = 'Equipment'
+            elif any(word in item_lower for word in ['clothes', 'hiking']):
+                item['category'] = 'Clothing'
+            elif any(word in item_lower for word in ['toiletries']):
+                item['category'] = 'Personal Care'
+            else:
+                item['category'] = 'General'
 
     # Get unique categories
     categories = list(set([item.get('category', 'General') for item in HERA_DATA['packing']]))

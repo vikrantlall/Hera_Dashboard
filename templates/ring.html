@@ -1,178 +1,256 @@
 {% extends "base.html" %}
 
-{% block title %}HERA - Ring Details{% endblock %}
-
+{% block title %}Ring - HERA{% endblock %}
 {% block page_title %}Ring Details{% endblock %}
 
 {% block styles %}
-<link href="{{ url_for('static', filename='css/ring.css') }}" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ring.css') }}">
 {% endblock %}
 
 {% block content %}
-<!-- Ring Showcase -->
-<div class="ring-showcase">
-    <div class="ring-gallery">
-        <div class="ring-main-image">
-            {% if ring_images and ring_images|length > 0 %}
-                <img src="{{ url_for('static', filename='uploads/ring/' + ring_images[0]) }}" alt="Engagement Ring" id="main-ring-image">
-            {% else %}
-                <div class="ring-image-placeholder">
-                    <i class="fas fa-gem"></i>
-                    <p>No images uploaded</p>
-                </div>
-            {% endif %}
-
-            <div class="image-overlay">
-                <button class="image-action-btn" onclick="openImageUpload('ring')" data-tooltip="Upload Images">
-                    <i class="fas fa-camera"></i>
-                </button>
+<div class="ring-container">
+    <!-- Ring Showcase -->
+    <div class="ring-showcase">
+        <div class="ring-gallery">
+            <div class="ring-main-image">
                 {% if ring_images and ring_images|length > 0 %}
-                <button class="image-action-btn" onclick="openImageEditor()" data-tooltip="Edit Image">
+                    <img src="{{ url_for('static', filename='uploads/ring/' + ring_images[0]) }}" alt="Engagement Ring" id="main-ring-image">
+                    <div class="image-overlay">
+                        <button class="image-action-btn" onclick="openPhotoLightbox('{{ ring_images[0] }}')" data-tooltip="View Full Size">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                        <button class="image-action-btn" onclick="openImageUpload()" data-tooltip="Upload More Images">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                        <button class="image-action-btn" onclick="deleteRingImage('{{ ring_images[0] }}')" data-tooltip="Delete Image">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="ring-image-placeholder" onclick="openImageUpload()">
+                        <i class="fas fa-gem"></i>
+                        <p>Click to upload ring photos</p>
+                        <button class="btn btn-primary">
+                            <i class="fas fa-camera"></i>
+                            Upload Photos
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if ring_images and ring_images|length > 1 %}
+            <div class="ring-thumbnails">
+                {% for image in ring_images %}
+                <div class="ring-thumbnail {{ 'active' if loop.first else '' }}" onclick="changeMainImage('{{ image }}')">
+                    <img src="{{ url_for('static', filename='uploads/ring/' + image) }}" alt="Ring Image {{ loop.index }}">
+                    <button class="thumbnail-delete" onclick="deleteRingImage('{{ image }}')" title="Delete">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="ring-details">
+            <h2 class="ring-title">
+                <span class="editable-text" data-field="stone" data-item-id="ring">{{ ring['Stone(s)'] or 'Custom' }}</span>
+                Ring
+            </h2>
+            <p class="ring-subtitle">
+                <span class="editable-text" data-field="metal" data-item-id="ring">{{ ring.Metal or '18k Gold' }}</span> •
+                <span class="editable-text" data-field="jeweler" data-item-id="ring">{{ ring.Jeweler or 'Custom Jeweler' }}</span>
+            </p>
+
+            <div class="ring-specs">
+                <div class="spec-item">
+                    <span class="spec-label">Jeweler</span>
+                    <span class="spec-value editable-text" data-field="jeweler" data-item-id="ring">{{ ring.Jeweler or 'GWFJ' }}</span>
+                </div>
+
+                <div class="spec-item">
+                    <span class="spec-label">Metal</span>
+                    <span class="spec-value editable-text" data-field="metal" data-item-id="ring">{{ ring.Metal or '18k Yellow Gold' }}</span>
+                </div>
+
+                <div class="spec-item">
+                    <span class="spec-label">Stone</span>
+                    <span class="spec-value editable-text" data-field="stone" data-item-id="ring">{{ ring['Stone(s)'] or '2.98ct Lab Grown Diamond' }}</span>
+                </div>
+
+                <div class="spec-item">
+                    <span class="spec-label">Ring Style</span>
+                    <span class="spec-value editable-text" data-field="style" data-item-id="ring">{{ ring['Ring Style (Inspiration)'] or 'Custom Design' }}</span>
+                </div>
+
+                <div class="spec-item">
+                    <span class="spec-label">Status</span>
+                    <span class="spec-value status-indicator {{ 'status-complete' if ring.Delivered == 'YES, delivered' else 'status-pending' }}">
+                        <span class="editable-select" data-field="delivered" data-item-id="ring" data-options="YES, delivered|In Progress|Ordered|Not Started">
+                            {{ ring.Delivered or 'In Progress' }}
+                        </span>
+                    </span>
+                </div>
+
+                <div class="spec-item">
+                    <span class="spec-label">Design Approved</span>
+                    <span class="spec-value editable-select" data-field="design_approved" data-item-id="ring" data-options="YES|NO|Pending">
+                        {{ ring['Design Approved'] or 'YES' }}
+                    </span>
+                </div>
+
+                <div class="spec-item">
+                    <span class="spec-label">Order Placed</span>
+                    <span class="spec-value editable-select" data-field="order_placed" data-item-id="ring" data-options="Yes|No|Pending">
+                        {{ ring['Order Placed'] or 'Yes' }}
+                    </span>
+                </div>
+
+                <div class="spec-item">
+                    <span class="spec-label">Insured</span>
+                    <span class="spec-value editable-select" data-field="insured" data-item-id="ring" data-options="Yes|No|Pending">
+                        {{ ring.Insured or 'Yes' }}
+                    </span>
+                </div>
+
+                {% if ring['Insurance Details'] %}
+                <div class="spec-item">
+                    <span class="spec-label">Insurance Details</span>
+                    <span class="spec-value editable-text" data-field="insurance_details" data-item-id="ring">{{ ring['Insurance Details'] }}</span>
+                </div>
+                {% endif %}
+
+                {% if ring.Engraving %}
+                <div class="spec-item">
+                    <span class="spec-label">Engraving</span>
+                    <span class="spec-value editable-text" data-field="engraving" data-item-id="ring">{{ ring.Engraving }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="ring-actions">
+                <button class="btn btn-primary" onclick="openRingEditModal()">
                     <i class="fas fa-edit"></i>
+                    Edit Details
                 </button>
+                <button class="btn btn-secondary" onclick="openImageUpload()">
+                    <i class="fas fa-camera"></i>
+                    Manage Photos
+                </button>
+                {% if ring['Ring Style (Inspiration)'] %}
+                <a href="{{ ring['Ring Style (Inspiration)'] }}" target="_blank" class="btn btn-outline">
+                    <i class="fas fa-external-link-alt"></i>
+                    View Inspiration
+                </a>
                 {% endif %}
             </div>
         </div>
-
-        {% if ring_images and ring_images|length > 1 %}
-        <div class="ring-thumbnails">
-            {% for image in ring_images %}
-            <div class="ring-thumbnail {{ 'active' if loop.first else '' }}" onclick="changeMainImage('{{ image }}')">
-                <img src="{{ url_for('static', filename='uploads/ring/' + image) }}" alt="Ring Image {{ loop.index }}">
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
     </div>
 
-    <div class="ring-details">
-        <h2 class="ring-title">
-            <span class="editable-text" data-field="stone" data-item-id="ring">{{ ring['Stone(s)'] }}</span>
-            Ring
-        </h2>
-        <p class="ring-subtitle">
-            <span class="editable-text" data-field="metal" data-item-id="ring">{{ ring.Metal }}</span> •
-            <span class="editable-text" data-field="jeweler" data-item-id="ring">{{ ring.Jeweler }}</span>
-        </p>
+    <!-- Ring Progress Timeline -->
+    <div class="widget ring-timeline">
+        <div class="widget-header">
+            <h3 class="widget-title">
+                <i class="fas fa-timeline"></i>
+                Ring Progress Timeline
+            </h3>
+            <p class="widget-subtitle">Track your ring from design to delivery</p>
+        </div>
 
-        <div class="ring-specs">
-            <div class="spec-item">
-                <span class="spec-label">Jeweler</span>
-                <span class="spec-value editable-text" data-field="jeweler" data-item-id="ring">{{ ring.Jeweler }}</span>
-            </div>
-
-            <div class="spec-item">
-                <span class="spec-label">Metal</span>
-                <span class="spec-value editable-text" data-field="metal" data-item-id="ring">{{ ring.Metal }}</span>
-            </div>
-
-            <div class="spec-item">
-                <span class="spec-label">Stone</span>
-                <span class="spec-value editable-text" data-field="stone" data-item-id="ring">{{ ring['Stone(s)'] }}</span>
-            </div>
-
-            <div class="spec-item">
-                <span class="spec-label">Status</span>
-                <span class="spec-value {{ 'text-success' if ring.Delivered == 'YES, delivered' else 'text-warning' }}">
-                    <span class="editable-select" data-field="delivered" data-item-id="ring" data-options="YES, delivered|In Progress|Ordered">
-                        {{ ring.Delivered }}
+        <div class="timeline">
+            <div class="timeline-item {{ 'completed' if ring['Design Approved'] == 'YES' else 'pending' }}">
+                <div class="timeline-icon">
+                    <i class="fas fa-drafting-compass"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>Design Approved</h4>
+                    <p>Ring design finalized and approved</p>
+                    <span class="timeline-status">
+                        {{ ring['Design Approved'] or 'Pending' }}
                     </span>
-                </span>
+                </div>
             </div>
 
-            <div class="spec-item">
-                <span class="spec-label">Insured</span>
-                <span class="spec-value editable-select" data-field="insured" data-item-id="ring" data-options="Yes|No">{{ ring.Insured }}</span>
+            <div class="timeline-item {{ 'completed' if ring['Order Placed'] == 'Yes' else 'pending' }}">
+                <div class="timeline-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>Order Placed</h4>
+                    <p>Ring ordered with jeweler</p>
+                    <span class="timeline-status">
+                        {{ ring['Order Placed'] or 'Pending' }}
+                    </span>
+                </div>
             </div>
 
-            <div class="spec-item">
-                <span class="spec-label">Insurance Details</span>
-                <span class="spec-value editable-text" data-field="insurance_details" data-item-id="ring">{{ ring['Insurance Details'] }}</span>
+            <div class="timeline-item {{ 'completed' if ring.Delivered == 'YES, delivered' else 'pending' }}">
+                <div class="timeline-icon">
+                    <i class="fas fa-gem"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>Ring Delivered</h4>
+                    <p>Ring completed and delivered</p>
+                    <span class="timeline-status">
+                        {{ ring.Delivered or 'In Progress' }}
+                    </span>
+                </div>
             </div>
-        </div>
 
-        <div class="ring-actions">
-            <button class="btn btn-primary" onclick="openRingEditModal()">
-                <i class="fas fa-edit"></i>
-                Edit Details
-            </button>
-            <button class="btn btn-secondary" onclick="openImageUpload('ring')">
-                <i class="fas fa-camera"></i>
-                Manage Images
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Ring Status Timeline -->
-<div class="widget">
-    <div class="widget-header">
-        <h3 class="widget-title">Ring Timeline</h3>
-        <p class="widget-subtitle">Track progress from order to delivery</p>
-    </div>
-
-    <div class="timeline">
-        <div class="timeline-item {{ 'completed' if ring['Order Placed'] else '' }}">
-            <div class="timeline-icon">
-                <i class="fas fa-shopping-cart"></i>
-            </div>
-            <div class="timeline-content">
-                <div class="timeline-title">Order Placed</div>
-                <div class="timeline-description">{{ ring['Order Placed'] or 'Not yet ordered' }}</div>
-            </div>
-        </div>
-
-        <div class="timeline-item {{ 'completed' if ring['Design Approved'] == 'YES, 50% deposit placed' else '' }}">
-            <div class="timeline-icon">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div class="timeline-content">
-                <div class="timeline-title">Design Approved</div>
-                <div class="timeline-description">{{ ring['Design Approved'] or 'Pending approval' }}</div>
-            </div>
-        </div>
-
-        <div class="timeline-item {{ 'completed' if ring.Delivered == 'YES, delivered' else '' }}">
-            <div class="timeline-icon">
-                <i class="fas fa-gem"></i>
-            </div>
-            <div class="timeline-content">
-                <div class="timeline-title">Delivered</div>
-                <div class="timeline-description">{{ ring.Delivered or 'Not yet delivered' }}</div>
-            </div>
-        </div>
-
-        <div class="timeline-item {{ 'completed' if ring.Insured == 'Yes' else '' }}">
-            <div class="timeline-icon">
-                <i class="fas fa-shield-alt"></i>
-            </div>
-            <div class="timeline-content">
-                <div class="timeline-title">Insured</div>
-                <div class="timeline-description">{{ ring['Insurance Details'] if ring.Insured == 'Yes' else 'Not yet insured' }}</div>
+            <div class="timeline-item {{ 'completed' if ring.Insured == 'Yes' else 'pending' }}">
+                <div class="timeline-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <div class="timeline-content">
+                    <h4>Insurance</h4>
+                    <p>Ring insured and protected</p>
+                    <span class="timeline-status">
+                        {{ ring.Insured or 'Pending' }}
+                    </span>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Ring Notes -->
-<div class="widget">
-    <div class="widget-header">
-        <h3 class="widget-title">Ring Notes & Updates</h3>
-        <button class="action-btn add-btn" onclick="openAddNoteModal()" data-tooltip="Add Note">
-            <i class="fas fa-plus"></i>
-        </button>
-    </div>
+<!-- Hidden file input for photo uploads -->
+<input type="file" id="photo-upload-input" accept="image/*" multiple style="display: none;">
 
-    <div class="ring-notes">
-        <div class="note-item">
-            <div class="note-content">
-                <div class="note-text">{{ ring.Status }}</div>
-            </div>
-            <div class="note-actions">
-                <button class="action-btn edit-btn" onclick="editNote(1)">
-                    <i class="fas fa-edit"></i>
+<!-- Photo Upload Modal -->
+<div id="photo-upload-modal" class="modal">
+    <div class="modal-content modal-large">
+        <div class="modal-header">
+            <h3 class="modal-title">Upload Ring Photos</h3>
+            <button class="modal-close" onclick="closePhotoUploadModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="upload-drop-zone" id="upload-drop-zone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag & drop photos here or click to browse</p>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('photo-upload-input').click()">
+                    <i class="fas fa-camera"></i>
+                    Choose Photos
                 </button>
             </div>
+
+            <div class="upload-preview" id="upload-preview" style="display: none;">
+                <h4>Photos to Upload</h4>
+                <div class="preview-grid" id="preview-grid"></div>
+            </div>
+
+            <div class="upload-progress" id="upload-progress" style="display: none;">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <p class="progress-text" id="progress-text">Uploading...</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closePhotoUploadModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" id="upload-photos-btn" onclick="uploadSelectedPhotos()" style="display: none;">
+                <i class="fas fa-upload"></i>
+                Upload Photos
+            </button>
         </div>
     </div>
 </div>
@@ -184,61 +262,76 @@
             <h3 class="modal-title">Edit Ring Details</h3>
             <button class="modal-close" onclick="closeRingEditModal()">&times;</button>
         </div>
-        <form id="ring-edit-form">
+        <form id="ring-edit-form" onsubmit="updateRingDetails(event)">
             <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Jeweler</label>
+                    <input type="text" class="form-input" id="edit-jeweler" value="{{ ring.Jeweler or 'GWFJ' }}">
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Jeweler</label>
-                        <input type="text" class="form-input" id="ring-jeweler" value="{{ ring.Jeweler }}">
+                        <label class="form-label">Metal</label>
+                        <input type="text" class="form-input" id="edit-metal" value="{{ ring.Metal or '18k Yellow Gold' }}">
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Metal</label>
-                        <input type="text" class="form-input" id="ring-metal" value="{{ ring.Metal }}">
+                        <label class="form-label">Stone(s)</label>
+                        <input type="text" class="form-input" id="edit-stone" value="{{ ring['Stone(s)'] or '2.98ct Lab Grown Diamond' }}">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">Stone(s)</label>
-                    <input type="text" class="form-input" id="ring-stone" value="{{ ring['Stone(s)'] }}">
+                    <label class="form-label">Ring Style (Inspiration Link)</label>
+                    <input type="url" class="form-input" id="edit-style" value="{{ ring['Ring Style (Inspiration)'] or '' }}" placeholder="https://...">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Design Approved</label>
+                        <select class="form-select" id="edit-design-approved">
+                            <option value="YES" {{ 'selected' if ring['Design Approved'] == 'YES' else '' }}>YES</option>
+                            <option value="NO" {{ 'selected' if ring['Design Approved'] == 'NO' else '' }}>NO</option>
+                            <option value="Pending" {{ 'selected' if ring['Design Approved'] == 'Pending' else '' }}>Pending</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Order Placed</label>
+                        <select class="form-select" id="edit-order-placed">
+                            <option value="Yes" {{ 'selected' if ring['Order Placed'] == 'Yes' else '' }}>Yes</option>
+                            <option value="No" {{ 'selected' if ring['Order Placed'] == 'No' else '' }}>No</option>
+                            <option value="Pending" {{ 'selected' if ring['Order Placed'] == 'Pending' else '' }}>Pending</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label class="form-label">Delivery Status</label>
-                        <select class="form-select" id="ring-delivered">
-                            <option value="YES, delivered" {{ 'selected' if ring.Delivered == 'YES, delivered' else '' }}>Delivered</option>
+                        <select class="form-select" id="edit-delivered">
+                            <option value="YES, delivered" {{ 'selected' if ring.Delivered == 'YES, delivered' else '' }}>YES, delivered</option>
                             <option value="In Progress" {{ 'selected' if ring.Delivered == 'In Progress' else '' }}>In Progress</option>
                             <option value="Ordered" {{ 'selected' if ring.Delivered == 'Ordered' else '' }}>Ordered</option>
-                            <option value="Not Ordered" {{ 'selected' if ring.Delivered == 'Not Ordered' else '' }}>Not Ordered</option>
+                            <option value="Not Started" {{ 'selected' if ring.Delivered == 'Not Started' else '' }}>Not Started</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label class="form-label">Insured</label>
-                        <select class="form-select" id="ring-insured">
+                        <select class="form-select" id="edit-insured">
                             <option value="Yes" {{ 'selected' if ring.Insured == 'Yes' else '' }}>Yes</option>
                             <option value="No" {{ 'selected' if ring.Insured == 'No' else '' }}>No</option>
+                            <option value="Pending" {{ 'selected' if ring.Insured == 'Pending' else '' }}>Pending</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Insurance Details</label>
-                    <input type="text" class="form-input" id="ring-insurance-details" value="{{ ring['Insurance Details'] }}">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Ring Style (Inspiration Link)</label>
-                    <input type="url" class="form-input" id="ring-style" value="{{ ring['Ring Style (Inspiration)'] }}" placeholder="https://...">
+                    <input type="text" class="form-input" id="edit-insurance-details" value="{{ ring['Insurance Details'] or '' }}" placeholder="Insurance provider and policy details">
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Engraving</label>
-                    <input type="text" class="form-input" id="ring-engraving" value="{{ ring.Engraving or '' }}" placeholder="Custom engraving text">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Status Notes</label>
-                    <textarea class="form-textarea" id="ring-status" rows="4">{{ ring.Status }}</textarea>
+                    <input type="text" class="form-input" id="edit-engraving" value="{{ ring.Engraving or '' }}" placeholder="Ring engraving text">
                 </div>
             </div>
             <div class="modal-footer">
@@ -252,69 +345,17 @@
     </div>
 </div>
 
-<!-- Add Note Modal -->
-<div id="add-note-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Add Ring Note</h3>
-            <button class="modal-close" onclick="closeAddNoteModal()">&times;</button>
-        </div>
-        <form id="add-note-form">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Note</label>
-                    <textarea class="form-textarea" id="note-text" rows="4" placeholder="Enter your note about the ring..." required></textarea>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeAddNoteModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    Add Note
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Image Upload Modal for Ring -->
-<div id="ring-image-modal" class="modal">
-    <div class="modal-content modal-large">
-        <div class="modal-header">
-            <h3 class="modal-title">Manage Ring Images</h3>
-            <button class="modal-close" onclick="closeRingImageModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="image-upload-area" id="ring-image-upload" onclick="document.getElementById('ring-image-input').click()">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Drag & drop ring images here or click to browse</p>
-                <input type="file" id="ring-image-input" accept="image/*" multiple>
-            </div>
-
-            <div class="current-images" id="current-ring-images">
-                <h4 style="margin-bottom: 16px; color: var(--text-primary);">Current Images</h4>
-                <div class="image-preview-grid">
-                    {% for image in ring_images %}
-                    <div class="image-preview" data-image="{{ image }}">
-                        <img src="{{ url_for('static', filename='uploads/ring/' + image) }}" alt="Ring Image">
-                        <button class="image-preview-remove" onclick="removeRingImage('{{ image }}')">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            <div class="new-images" id="new-ring-images" style="display: none;">
-                <h4 style="margin-bottom: 16px; color: var(--text-primary);">New Images to Upload</h4>
-                <div class="image-preview-grid" id="ring-preview-grid"></div>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeRingImageModal()">Cancel</button>
-            <button type="button" class="btn btn-primary" id="upload-ring-images-btn" onclick="uploadRingImages()">
-                <i class="fas fa-upload"></i>
-                Upload Images
+<!-- Photo Lightbox -->
+<div id="photo-lightbox" class="lightbox">
+    <div class="lightbox-content">
+        <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+        <img id="lightbox-image" src="" alt="Ring Photo">
+        <div class="lightbox-nav">
+            <button class="lightbox-nav-btn" onclick="previousPhoto()">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="lightbox-nav-btn" onclick="nextPhoto()">
+                <i class="fas fa-chevron-right"></i>
             </button>
         </div>
     </div>
@@ -324,8 +365,13 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/ring.js') }}"></script>
 <script>
-    // Pass data to JavaScript
+    // Pass Flask data to JavaScript
     window.RING_DATA = {{ ring | tojson }};
     window.RING_IMAGES = {{ ring_images | tojson }};
+
+    // Initialize ring page functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeRingPage();
+    });
 </script>
 {% endblock %}

@@ -9,7 +9,7 @@
 {% endblock %}
 
 {% block content %}
-<!-- Packing Overview -->
+<!-- Packing Overview Widget -->
 <div class="widget">
     <div class="widget-header">
         <div>
@@ -17,19 +17,16 @@
             <p class="widget-subtitle">{{ packed_count }} of {{ total_count }} items packed ({{ (packed_count / total_count * 100) | round }}% complete)</p>
         </div>
         <div class="widget-actions">
-            <button class="action-btn add-btn" onclick="openAddItemModal()" data-tooltip="Add Item">
+            <button class="action-btn" onclick="openAddItemModal()" title="Add New Item">
                 <i class="fas fa-plus"></i>
             </button>
-            <button class="action-btn" onclick="openAddCategoryModal()" data-tooltip="Add Category">
-                <i class="fas fa-folder-plus"></i>
-            </button>
-            <button class="action-btn" onclick="markAllPacked()" data-tooltip="Mark All Packed">
+            <button class="action-btn" onclick="markAllPacked()" title="Mark All Packed">
                 <i class="fas fa-check-double"></i>
             </button>
         </div>
     </div>
 
-    <!-- Packing Progress Bar -->
+    <!-- Progress Bar -->
     <div class="packing-progress">
         <div class="progress-bar">
             <div class="progress-fill" style="width: {{ (packed_count / total_count * 100) if total_count > 0 else 0 }}%"></div>
@@ -38,114 +35,136 @@
     </div>
 </div>
 
-<!-- Packing Categories -->
+<!-- Packing Categories Grid -->
 <div class="packing-grid">
     {% set categories = packing_items | groupby('category') %}
     {% for category, items in categories %}
     <div class="packing-category" data-category="{{ category }}">
+        <!-- Category Header -->
         <div class="category-header">
             <div class="category-info">
-                <h3 class="category-title">
-                    <span class="editable-text" data-field="category" data-category="{{ category }}">{{ category }}</span>
-                </h3>
+                <h3 class="category-title">{{ category }}</h3>
                 {% set category_packed = items | selectattr('packed', 'equalto', true) | list | length %}
                 {% set category_total = items | list | length %}
                 <p class="category-subtitle">{{ category_packed }} / {{ category_total }} packed</p>
             </div>
             <div class="category-actions">
-                <button class="action-btn add-btn" onclick="openAddItemModal('{{ category }}')" data-tooltip="Add Item">
+                <button class="action-btn" onclick="openAddItemModal('{{ category }}')" title="Add Item">
                     <i class="fas fa-plus"></i>
                 </button>
-                <button class="action-btn" onclick="toggleCategoryPacked('{{ category }}')" data-tooltip="Toggle All">
+                <button class="action-btn" onclick="toggleCategoryPacked('{{ category }}')" title="Toggle All">
                     <i class="fas fa-check-circle"></i>
-                </button>
-                <button class="action-btn delete-btn" onclick="deleteCategory('{{ category }}')" data-tooltip="Delete Category">
-                    <i class="fas fa-trash"></i>
                 </button>
             </div>
         </div>
 
+        <!-- Category Items -->
         <div class="packing-items">
             {% for item in items %}
             <div class="packing-item {{ 'packed' if item.packed else '' }}" data-item-id="{{ item.id }}">
+                <!-- Checkbox -->
                 <div class="packing-checkbox {{ 'checked' if item.packed else '' }}" onclick="toggleItemPacked({{ item.id }})">
                     {% if item.packed %}
                     <i class="fas fa-check"></i>
                     {% endif %}
                 </div>
 
+                <!-- Item Content -->
                 <div class="packing-content">
-                    <div class="packing-name">
-                        <span class="editable-text" data-field="item" data-item-id="{{ item.id }}">{{ item.item }}</span>
-                    </div>
-                    {% if item.notes %}
-                    <div class="packing-notes">
-                        <span class="editable-text" data-field="notes" data-item-id="{{ item.id }}">{{ item.notes }}</span>
-                    </div>
-                    {% endif %}
-                    {% if item.quantity and item.quantity > 1 %}
-                    <div class="packing-quantity">
-                        Qty: <span class="editable-text" data-field="quantity" data-item-id="{{ item.id }}">{{ item.quantity }}</span>
-                    </div>
+                    <div class="packing-name">{{ item.item }}</div>
+                    {% if item.get('notes') %}
+                    <div class="packing-notes">{{ item.notes }}</div>
                     {% endif %}
                 </div>
 
+                <!-- Item Actions -->
                 <div class="packing-actions">
-                    <button class="action-btn edit-btn" onclick="openEditItemModal({{ item.id }})" data-tooltip="Edit Item">
+                    <button class="action-btn edit-btn" onclick="editItem({{ item.id }}, '{{ item.item }}')" title="Edit Item">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn delete-btn" onclick="deletePackingItem({{ item.id }})" data-tooltip="Delete Item">
+                    <button class="action-btn delete-btn" onclick="deleteItem({{ item.id }}, '{{ item.item }}')" title="Delete Item">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
             {% endfor %}
-
-            <!-- Empty state for category -->
-            {% if items | list | length == 0 %}
-            <div class="empty-category">
-                <i class="fas fa-inbox"></i>
-                <p>No items in this category</p>
-                <button class="btn btn-sm btn-primary" onclick="openAddItemModal('{{ category }}')">Add First Item</button>
-            </div>
-            {% endif %}
         </div>
     </div>
     {% endfor %}
 </div>
 
-<!-- Quick Add Section -->
+<!-- Packing Tips Widget -->
 <div class="widget">
     <div class="widget-header">
-        <h3 class="widget-title">Quick Add Items</h3>
-        <p class="widget-subtitle">Add common packing items quickly</p>
+        <div>
+            <h3 class="widget-title">
+                <i class="fas fa-lightbulb"></i>
+                Packing Tips for Banff
+            </h3>
+            <p class="widget-subtitle">Essential advice for your September proposal trip</p>
+        </div>
     </div>
 
-    <div class="quick-add-grid">
-        <button class="quick-add-btn" onclick="quickAddItem('Passport', 'Travel Documents')">
-            <i class="fas fa-passport"></i>
-            <span>Passport</span>
-        </button>
-        <button class="quick-add-btn" onclick="quickAddItem('Phone Charger', 'Electronics')">
-            <i class="fas fa-plug"></i>
-            <span>Phone Charger</span>
-        </button>
-        <button class="quick-add-btn" onclick="quickAddItem('Hiking Boots', 'Hiking Gear')">
-            <i class="fas fa-hiking"></i>
-            <span>Hiking Boots</span>
-        </button>
-        <button class="quick-add-btn" onclick="quickAddItem('Sunglasses', 'Accessories')">
-            <i class="fas fa-glasses"></i>
-            <span>Sunglasses</span>
-        </button>
-        <button class="quick-add-btn" onclick="quickAddItem('Jacket', 'Clothes')">
-            <i class="fas fa-tshirt"></i>
-            <span>Jacket</span>
-        </button>
-        <button class="quick-add-btn" onclick="quickAddItem('Toothbrush', 'Toiletries')">
-            <i class="fas fa-tooth"></i>
-            <span>Toothbrush</span>
-        </button>
+    <div class="packing-tips">
+        <div class="tip-item">
+            <div class="tip-icon">
+                <i class="fas fa-snowflake"></i>
+            </div>
+            <div class="tip-content">
+                <h4 class="tip-title">September Weather in Banff</h4>
+                <p class="tip-description">Temperatures range from 5-15°C (41-59°F). Pack layers! Bring warm clothes for evenings and lighter options for hiking during the day.</p>
+            </div>
+        </div>
+
+        <div class="tip-item">
+            <div class="tip-icon">
+                <i class="fas fa-mountain"></i>
+            </div>
+            <div class="tip-content">
+                <h4 class="tip-title">Mountain Hiking Essentials</h4>
+                <p class="tip-description">Waterproof hiking boots, layers, rain jacket, daypack, snacks, and plenty of water. Weather changes quickly in the mountains!</p>
+            </div>
+        </div>
+
+        <div class="tip-item">
+            <div class="tip-icon">
+                <i class="fas fa-camera"></i>
+            </div>
+            <div class="tip-content">
+                <h4 class="tip-title">Photography Gear</h4>
+                <p class="tip-description">Don't forget extra batteries and memory cards! Cold weather drains batteries faster. Consider a tripod for those perfect proposal shots at Emerald Lake.</p>
+            </div>
+        </div>
+
+        <div class="tip-item">
+            <div class="tip-icon">
+                <i class="fas fa-heart"></i>
+            </div>
+            <div class="tip-content">
+                <h4 class="tip-title">The Most Important Item</h4>
+                <p class="tip-description">Double-check that ring! Keep it secure but accessible. Consider a small ring box for the actual moment at Emerald Lake.</p>
+            </div>
+        </div>
+
+        <div class="tip-item">
+            <div class="tip-icon">
+                <i class="fas fa-plane"></i>
+            </div>
+            <div class="tip-content">
+                <h4 class="tip-title">Travel Documents</h4>
+                <p class="tip-description">Passport, flight confirmations, hotel reservations, rental car details, and travel insurance. Keep digital and physical copies.</p>
+            </div>
+        </div>
+
+        <div class="tip-item">
+            <div class="tip-icon">
+                <i class="fas fa-maple-leaf"></i>
+            </div>
+            <div class="tip-content">
+                <h4 class="tip-title">Canadian Border Crossing</h4>
+                <p class="tip-description">Have your passport ready and declare any valuable items like the engagement ring if asked. No need to stress - you're legal!</p>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -153,67 +172,33 @@
 <div id="add-item-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title">Add Packing Item</h3>
-            <button class="modal-close" onclick="closeAddItemModal()">&times;</button>
+            <h3>Add Packing Item</h3>
+            <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
         </div>
-        <form id="add-item-form">
+        <form id="add-item-form" onsubmit="handleAddItem(event)">
             <div class="modal-body">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Item Name</label>
-                        <input type="text" class="form-input" id="new-item-name" required placeholder="e.g., Hiking boots">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Category</label>
-                        <select class="form-select" id="new-item-category" required>
-                            <option value="">Select Category</option>
-                            {% for category in categories %}
-                            <option value="{{ category }}">{{ category }}</option>
-                            {% endfor %}
-                            <option value="new">+ Create New Category</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group" id="new-category-group" style="display: none;">
-                    <label class="form-label">New Category Name</label>
-                    <input type="text" class="form-input" id="new-category-name" placeholder="e.g., Electronics">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Quantity</label>
-                        <input type="number" class="form-input" id="new-item-quantity" min="1" value="1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Priority</label>
-                        <select class="form-select" id="new-item-priority">
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                            <option value="high">High</option>
-                            <option value="critical">Critical</option>
-                        </select>
-                    </div>
-                </div>
-
                 <div class="form-group">
-                    <label class="form-label">Notes</label>
-                    <textarea class="form-textarea" id="new-item-notes" rows="2" placeholder="Size, color, specific requirements..."></textarea>
+                    <label for="item-name">Item Name</label>
+                    <input type="text" id="item-name" name="item" required>
                 </div>
-
                 <div class="form-group">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="new-item-packed" class="form-checkbox">
-                        <label for="new-item-packed" class="checkbox-label">Already packed</label>
-                    </div>
+                    <label for="item-category">Category</label>
+                    <select id="item-category" name="category">
+                        <option value="Essential">Essential</option>
+                        <option value="Equipment">Equipment</option>
+                        <option value="Clothing">Clothing</option>
+                        <option value="Personal Care">Personal Care</option>
+                        <option value="General">General</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="item-notes">Notes (Optional)</label>
+                    <textarea id="item-notes" name="notes" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeAddItemModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    Add Item
-                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Item</button>
             </div>
         </form>
     </div>
@@ -223,204 +208,31 @@
 <div id="edit-item-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title">Edit Packing Item</h3>
-            <button class="modal-close" onclick="closeEditItemModal()">&times;</button>
+            <h3>Edit Item</h3>
+            <button type="button" class="modal-close" onclick="closeModal()">&times;</button>
         </div>
-        <form id="edit-item-form">
+        <form id="edit-item-form" onsubmit="handleEditItem(event)">
             <div class="modal-body">
-                <input type="hidden" id="edit-item-id">
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Item Name</label>
-                        <input type="text" class="form-input" id="edit-item-name" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Category</label>
-                        <select class="form-select" id="edit-item-category" required>
-                            {% for category in categories %}
-                            <option value="{{ category }}">{{ category }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Quantity</label>
-                        <input type="number" class="form-input" id="edit-item-quantity" min="1">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Priority</label>
-                        <select class="form-select" id="edit-item-priority">
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="critical">Critical</option>
-                        </select>
-                    </div>
-                </div>
-
+                <input type="hidden" id="edit-item-id" name="id">
                 <div class="form-group">
-                    <label class="form-label">Notes</label>
-                    <textarea class="form-textarea" id="edit-item-notes" rows="2"></textarea>
+                    <label for="edit-item-name">Item Name</label>
+                    <input type="text" id="edit-item-name" name="item" required>
                 </div>
-
                 <div class="form-group">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="edit-item-packed" class="form-checkbox">
-                        <label for="edit-item-packed" class="checkbox-label">Packed</label>
-                    </div>
+                    <label for="edit-item-notes">Notes</label>
+                    <textarea id="edit-item-notes" name="notes" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeEditItemModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i>
-                    Save Changes
-                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Item</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Add Category Modal -->
-<div id="add-category-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Add Packing Category</h3>
-            <button class="modal-close" onclick="closeAddCategoryModal()">&times;</button>
-        </div>
-        <form id="add-category-form">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Category Name</label>
-                    <input type="text" class="form-input" id="new-category-name-input" required placeholder="e.g., Electronics, Documents">
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Description</label>
-                    <textarea class="form-textarea" id="new-category-description" rows="2" placeholder="Brief description of this category..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Icon</label>
-                    <div class="icon-grid">
-                        <button type="button" class="icon-option" data-icon="fas fa-suitcase">
-                            <i class="fas fa-suitcase"></i>
-                        </button>
-                        <button type="button" class="icon-option" data-icon="fas fa-tshirt">
-                            <i class="fas fa-tshirt"></i>
-                        </button>
-                        <button type="button" class="icon-option" data-icon="fas fa-laptop">
-                            <i class="fas fa-laptop"></i>
-                        </button>
-                        <button type="button" class="icon-option" data-icon="fas fa-file-alt">
-                            <i class="fas fa-file-alt"></i>
-                        </button>
-                        <button type="button" class="icon-option" data-icon="fas fa-heart">
-                            <i class="fas fa-heart"></i>
-                        </button>
-                        <button type="button" class="icon-option" data-icon="fas fa-camera">
-                            <i class="fas fa-camera"></i>
-                        </button>
-                    </div>
-                    <input type="hidden" id="new-category-icon" value="fas fa-suitcase">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeAddCategoryModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    Add Category
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Bulk Actions Modal -->
-<div id="bulk-actions-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">Bulk Actions</h3>
-            <button class="modal-close" onclick="closeBulkActionsModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="bulk-actions-grid">
-                <button class="bulk-action-btn" onclick="markAllCategoryPacked()">
-                    <i class="fas fa-check-circle"></i>
-                    <span>Mark Category as Packed</span>
-                </button>
-                <button class="bulk-action-btn" onclick="markAllCategoryUnpacked()">
-                    <i class="fas fa-circle"></i>
-                    <span>Mark Category as Unpacked</span>
-                </button>
-                <button class="bulk-action-btn" onclick="duplicateCategory()">
-                    <i class="fas fa-copy"></i>
-                    <span>Duplicate Category</span>
-                </button>
-                <button class="bulk-action-btn" onclick="exportCategory()">
-                    <i class="fas fa-download"></i>
-                    <span>Export Category</span>
-                </button>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeBulkActionsModal()">Close</button>
-        </div>
-    </div>
-</div>
-
-<!-- Packing Tips Widget -->
-<div class="widget">
-    <div class="widget-header">
-        <h3 class="widget-title">
-            <i class="fas fa-lightbulb"></i>
-            Packing Tips
-        </h3>
-        <p class="widget-subtitle">Smart suggestions for your trip</p>
-    </div>
-
-    <div class="packing-tips">
-        <div class="tip-item">
-            <div class="tip-icon">
-                <i class="fas fa-snowflake"></i>
-            </div>
-            <div class="tip-content">
-                <div class="tip-title">Weather in Banff</div>
-                <div class="tip-description">September temperatures: 5-15°C (41-59°F). Pack layers and waterproof gear.</div>
-            </div>
-        </div>
-
-        <div class="tip-item">
-            <div class="tip-icon">
-                <i class="fas fa-camera"></i>
-            </div>
-            <div class="tip-content">
-                <div class="tip-title">Photography Gear</div>
-                <div class="tip-description">Don't forget extra batteries and memory cards for the proposal photos!</div>
-            </div>
-        </div>
-
-        <div class="tip-item">
-            <div class="tip-icon">
-                <i class="fas fa-gem"></i>
-            </div>
-            <div class="tip-content">
-                <div class="tip-title">Ring Security</div>
-                <div class="tip-description">Keep the engagement ring in carry-on luggage and have a backup hiding spot.</div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/packing.js') }}"></script>
-<script>
-    // Pass data to JavaScript
-    window.PACKING_DATA = {{ packing_items | tojson }};
-    window.CATEGORIES = {{ categories | tojson }};
-</script>
 {% endblock %}
