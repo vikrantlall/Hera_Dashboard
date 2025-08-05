@@ -1,1038 +1,840 @@
-// Itinerary Page JavaScript with Drag-and-Drop Functionality
+// Itinerary JavaScript functionality - FIXED VERSION
+// Day-by-day activity management, timeline view, and progress tracking
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeItineraryPage();
-    initializeInlineEditing();
-    initializeDragAndDrop();
-    initializeTimelineControls();
-    initializeModals();
-    setupAutoSave();
+    initializeItinerary();
+    setupActivityManagement();
+    setupViewToggling();
+    updateDayProgress();
 });
 
-let currentEditingElement = null;
-let originalValue = null;
-let itineraryActivities = [];
-let draggedActivity = null;
+function initializeItinerary() {
+    console.log('Initializing itinerary page...');
 
-function initializeItineraryPage() {
-    // Load itinerary activities data
-    loadItineraryActivities();
-    
-    // Setup itinerary-specific features
-    setupItineraryAnimations();
-    setupActivityCards();
-    updateItineraryInsights();
-    
-    // Highlight proposal day activities
-    highlightProposalDay();
+    // Setup all itinerary functionality
+    setupActivityItems();
+    setupInlineEditing();
+    setupFiltering();
+    setupProgressTracking();
+
+    console.log('Itinerary page initialized successfully');
 }
 
-function loadItineraryActivities() {
-    const activityCards = document.querySelectorAll('.activity-card');
-    itineraryActivities = [];
-    
-    activityCards.forEach(card => {
-        const activityId = card.dataset.activityId;
-        const activityElement = card.querySelector('.editable-text[data-field="activity"]');
-        const dayElement = card.closest('.timeline-day');
-        
-        if (activityId && activityElement && dayElement) {
-            itineraryActivities.push({
-                id: activityId,
-                activity: activityElement.textContent.trim(),
-                day: dayElement.dataset.day,
-                special: card.dataset.special === 'true',
-                element: card
-            });
-        }
+// Activity Management - FIXED
+function setupActivityManagement() {
+    // Setup activity completion toggles
+    const activityItems = document.querySelectorAll('.activity-item');
+    activityItems.forEach(item => {
+        setupActivityEvents(item);
     });
-}
 
-function setupActivityCards() {
-    const activityCards = document.querySelectorAll('.activity-card');
-    
-    activityCards.forEach(card => {
-        const activityId = card.dataset.activityId;
-        
-        // Time input changes
-        const timeInputs = card.querySelectorAll('.time-input');
-        timeInputs.forEach(input => {
-            input.addEventListener('change', function() {
-                const field = this.dataset.field;
-                updateItineraryActivity(activityId, { [field]: this.value });
-            });
-        });
-        
-        // Menu toggle
-        const menuToggle = card.querySelector('.menu-toggle');
-        const menu = card.querySelector('.action-menu');
-        if (menuToggle && menu) {
-            menuToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                closeAllMenus();
-                menu.classList.toggle('active');
-            });
-        }
-        
-        // Edit button
-        const editBtn = card.querySelector('.edit-activity');
-        if (editBtn) {
-            editBtn.addEventListener('click', function() {
-                enableEditMode(card);
-                menu.classList.remove('active');
-            });
-        }
-        
-        // Toggle special button
-        const specialBtn = card.querySelector('.toggle-special');
-        if (specialBtn) {
-            specialBtn.addEventListener('click', function() {
-                const isSpecial = card.dataset.special === 'true';
-                toggleSpecialActivity(activityId, !isSpecial);
-                menu.classList.remove('active');
-            });
-        }
-        
-        // Delete button
-        const deleteBtn = card.querySelector('.delete-activity');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', function() {
-                const activityName = card.querySelector('.editable-text[data-field="activity"]').textContent;
-                showDeleteModal(activityId, activityName);
-                menu.classList.remove('active');
-            });
-        }
-        
-        // Add hover effects
-        card.addEventListener('mouseenter', function() {
-            if (!this.classList.contains('dragging')) {
-                this.style.transform = 'translateX(4px)';
-            }
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            if (!this.classList.contains('dragging')) {
-                this.style.transform = '';
-            }
-        });
-    });
-    
-    // Close menus when clicking outside
-    document.addEventListener('click', closeAllMenus);
-}
-
-function initializeInlineEditing() {
-    const editableElements = document.querySelectorAll('.editable-text, .editable-textarea');
-    
-    editableElements.forEach(element => {
-        element.addEventListener('click', function() {
-            if (currentEditingElement && currentEditingElement !== this) {
-                cancelEdit();
-            }
-            startEdit(this);
-        });
-        
-        element.addEventListener('blur', function() {
-            if (this === currentEditingElement) {
-                setTimeout(() => {
-                    if (document.activeElement !== this) {
-                        saveEdit();
-                    }
-                }, 100);
-            }
-        });
-        
-        element.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey && !this.classList.contains('editable-textarea')) {
-                e.preventDefault();
-                saveEdit();
-            } else if (e.key === 'Escape') {
-                cancelEdit();
-            }
-        });
-        
-        // Add hover effects
-        element.addEventListener('mouseenter', function() {
-            if (!this.classList.contains('editing')) {
-                this.style.background = 'rgba(212, 175, 55, 0.1)';
-            }
-        });
-        
-        element.addEventListener('mouseleave', function() {
-            if (!this.classList.contains('editing')) {
-                this.style.background = '';
-            }
-        });
-    });
-}
-
-function startEdit(element) {
-    if (currentEditingElement) return;
-    
-    currentEditingElement = element;
-    originalValue = element.textContent.trim();
-    
-    element.classList.add('editing');
-    element.style.background = '';
-    
-    if (element.classList.contains('editable-textarea')) {
-        element.contentEditable = true;
-        element.style.minHeight = '80px';
-    } else {
-        element.contentEditable = true;
-    }
-    
-    element.focus();
-    
-    // Select all text
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    
-    // Add edit indicator
-    showEditIndicator(element);
-}
-
-function saveEdit() {
-    if (!currentEditingElement) return;
-    
-    const newValue = currentEditingElement.textContent.trim();
-    const field = currentEditingElement.dataset.field;
-    const activityCard = currentEditingElement.closest('.activity-card');
-    const activityId = activityCard.dataset.activityId;
-    
-    if (newValue !== originalValue) {
-        // Validate input
-        if (field === 'activity' && !newValue) {
-            utils.showNotification('Activity name cannot be empty', 'error');
-            cancelEdit();
-            return;
-        }
-        
-        // Show loading state
-        activityCard.classList.add('saving');
-        showLoadingIndicator(currentEditingElement);
-        
-        // Prepare update data
-        const updateData = { [field]: newValue };
-        
-        // Send update to server
-        updateItineraryActivity(activityId, updateData)
-            .then(() => {
-                activityCard.classList.remove('saving');
-                activityCard.classList.add('saved');
-                hideLoadingIndicator(currentEditingElement);
-                showSuccessIndicator(currentEditingElement);
-                
-                setTimeout(() => activityCard.classList.remove('saved'), 2000);
-                
-                // Update local data
-                const activity = itineraryActivities.find(a => a.id === activityId);
-                if (activity && field === 'activity') {
-                    activity.activity = newValue;
-                }
-                
-                updateItineraryInsights();
-                utils.showNotification('Activity updated successfully', 'success');
-            })
-            .catch(error => {
-                activityCard.classList.remove('saving');
-                activityCard.classList.add('error');
-                hideLoadingIndicator(currentEditingElement);
-                showErrorIndicator(currentEditingElement);
-                
-                setTimeout(() => activityCard.classList.remove('error'), 2000);
-                
-                currentEditingElement.textContent = originalValue;
-                utils.showNotification('Failed to update activity', 'error');
-            });
-    }
-    
-    endEdit();
-}
-
-function cancelEdit() {
-    if (!currentEditingElement) return;
-    
-    currentEditingElement.textContent = originalValue;
-    endEdit();
-}
-
-function endEdit() {
-    if (currentEditingElement) {
-        currentEditingElement.classList.remove('editing');
-        currentEditingElement.contentEditable = false;
-        currentEditingElement.style.minHeight = '';
-        
-        hideEditIndicator(currentEditingElement);
-        
-        currentEditingElement = null;
-        originalValue = null;
-    }
-}
-
-function updateItineraryActivity(activityId, data) {
-    return utils.ajax(`/api/itinerary/${activityId}`, {
-        method: 'PUT',
-        data: data
-    });
-}
-
-function toggleSpecialActivity(activityId, isSpecial) {
-    const activityCard = document.querySelector(`[data-activity-id="${activityId}"]`);
-    
-    if (activityCard) {
-        activityCard.classList.add('loading');
-        
-        updateItineraryActivity(activityId, { special: isSpecial })
-            .then(() => {
-                activityCard.classList.remove('loading');
-                activityCard.dataset.special = isSpecial.toString();
-                
-                // Update visual indicators
-                const specialBadge = activityCard.querySelector('.special-badge');
-                const menuBtn = activityCard.querySelector('.toggle-special');
-                
-                if (isSpecial) {
-                    if (!specialBadge) {
-                        const badge = document.createElement('span');
-                        badge.className = 'special-badge';
-                        badge.innerHTML = '<i class="fas fa-star"></i> Special';
-                        activityCard.querySelector('.activity-title').appendChild(badge);
-                    }
-                    if (menuBtn) {
-                        menuBtn.innerHTML = '<i class="fas fa-star"></i> Remove Special';
-                    }
-                    activityCard.classList.add('special-activity');
-                } else {
-                    if (specialBadge) {
-                        specialBadge.remove();
-                    }
-                    if (menuBtn) {
-                        menuBtn.innerHTML = '<i class="fas fa-star"></i> Mark Special';
-                    }
-                    activityCard.classList.remove('special-activity');
-                }
-                
-                updateItineraryInsights();
-                utils.showNotification(`Activity ${isSpecial ? 'marked as special' : 'unmarked as special'}`, 'success');
-            })
-            .catch(error => {
-                activityCard.classList.remove('loading');
-                utils.showNotification('Failed to update activity', 'error');
-            });
-    }
-}
-
-function enableEditMode(activityCard) {
-    const editableElements = activityCard.querySelectorAll('.editable-text, .editable-textarea');
-    editableElements.forEach(element => {
-        element.classList.add('edit-mode-highlight');
-    });
-    
-    setTimeout(() => {
-        editableElements.forEach(element => {
-            element.classList.remove('edit-mode-highlight');
-        });
-    }, 2000);
-    
-    utils.showNotification('Click any field to edit', 'info');
-}
-
-function initializeDragAndDrop() {
-    const activityCards = document.querySelectorAll('.activity-card');
-    const dayActivities = document.querySelectorAll('.day-activities');
-    
-    // Make activity cards draggable
-    activityCards.forEach(card => {
-        card.draggable = true;
-        
-        card.addEventListener('dragstart', function(e) {
-            draggedActivity = this;
-            this.classList.add('dragging');
-            this.style.opacity = '0.5';
-            
-            // Store data for transfer
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/html', this.outerHTML);
-        });
-        
-        card.addEventListener('dragend', function(e) {
-            this.classList.remove('dragging');
-            this.style.opacity = '';
-            draggedActivity = null;
-        });
-    });
-    
-    // Make day containers droppable
-    dayActivities.forEach(dayContainer => {
-        dayContainer.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            
-            // Add drop zone styling
-            this.classList.add('drag-over');
-            
-            // Find insertion point
-            const afterElement = getDragAfterElement(this, e.clientY);
-            const dragPreview = this.querySelector('.drag-preview');
-            
-            if (dragPreview) {
-                dragPreview.remove();
-            }
-            
-            if (afterElement == null) {
-                this.appendChild(createDragPreview());
-            } else {
-                this.insertBefore(createDragPreview(), afterElement);
-            }
-        });
-        
-        dayContainer.addEventListener('dragleave', function(e) {
-            // Only remove styling if leaving the container entirely
-            if (!this.contains(e.relatedTarget)) {
-                this.classList.remove('drag-over');
-                const dragPreview = this.querySelector('.drag-preview');
-                if (dragPreview) {
-                    dragPreview.remove();
-                }
-            }
-        });
-        
-        dayContainer.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.classList.remove('drag-over');
-            
-            const dragPreview = this.querySelector('.drag-preview');
-            if (dragPreview && draggedActivity) {
-                // Move the actual element
-                const newDay = this.dataset.day;
-                const oldDay = draggedActivity.closest('.timeline-day').dataset.day;
-                
-                this.insertBefore(draggedActivity, dragPreview);
-                dragPreview.remove();
-                
-                // Update order and day on server
-                updateActivityOrder(draggedActivity.dataset.activityId, newDay);
-                
-                // Update local data
-                const activity = itineraryActivities.find(a => a.id === draggedActivity.dataset.activityId);
-                if (activity) {
-                    activity.day = newDay;
-                }
-                
-                utils.showNotification(`Activity moved to Day ${newDay}`, 'success');
-            }
-        });
-    });
-}
-
-function getDragAfterElement(container, y) {
-    const draggableElements = [...container.querySelectorAll('.activity-card:not(.dragging)')];
-    
-    return draggableElements.reduce((closest, child) => {
-        const box = child.getBoundingClientRect();
-        const offset = y - box.top - box.height / 2;
-        
-        if (offset < 0 && offset > closest.offset) {
-            return { offset: offset, element: child };
-        } else {
-            return closest;
-        }
-    }, { offset: Number.NEGATIVE_INFINITY }).element;
-}
-
-function createDragPreview() {
-    const preview = document.createElement('div');
-    preview.className = 'drag-preview';
-    preview.innerHTML = `
-        <div class="preview-content">
-            <i class="fas fa-arrows-alt"></i>
-            <span>Drop activity here</span>
-        </div>
-    `;
-    preview.style.cssText = `
-        border: 2px dashed var(--accent-gold);
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 0.75rem 0;
-        background: rgba(212, 175, 55, 0.05);
-        text-align: center;
-        color: var(--accent-gold);
-        font-weight: 500;
-    `;
-    return preview;
-}
-
-function updateActivityOrder(activityId, newDay) {
-    const dayContainer = document.querySelector(`[data-day="${newDay}"]`);
-    const activityCards = dayContainer.querySelectorAll('.activity-card');
-    const orderData = [];
-    
-    activityCards.forEach((card, index) => {
-        orderData.push({
-            id: card.dataset.activityId,
-            order: index,
-            day: newDay
-        });
-    });
-    
-    // Update specific activity
-    return utils.ajax(`/api/itinerary/${activityId}`, {
-        method: 'PUT',
-        data: { day: parseInt(newDay), order: orderData.find(item => item.id === activityId)?.order || 0 }
-    });
-}
-
-function initializeTimelineControls() {
-    const timelineButtons = document.querySelectorAll('.timeline-btn');
-    const timelineDays = document.querySelectorAll('.timeline-day');
-    
-    timelineButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Update active button
-            timelineButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            const view = this.dataset.view;
-            
-            // Show/hide timeline days
-            timelineDays.forEach(day => {
-                if (view === 'all') {
-                    day.classList.remove('hidden');
-                } else {
-                    const dayNum = day.dataset.day;
-                    if (view === `day${dayNum}`) {
-                        day.classList.remove('hidden');
-                    } else {
-                        day.classList.add('hidden');
-                    }
-                }
-            });
-            
-            // Special handling for proposal day
-            if (view === 'day3') {
-                highlightProposalDay();
-            }
-        });
-    });
-}
-
-function highlightProposalDay() {
-    const proposalDay = document.querySelector('[data-special="proposal"]');
-    if (proposalDay) {
-        proposalDay.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
-        // Add special animation
-        proposalDay.style.animation = 'proposalHighlight 2s ease-in-out';
-        setTimeout(() => {
-            proposalDay.style.animation = '';
-        }, 2000);
-    }
-}
-
-function initializeModals() {
-    // Setup add activity modal
-    const addBtn = document.getElementById('add-itinerary-activity');
-    const addDayBtns = document.querySelectorAll('.add-day-activity');
-    const addModal = document.getElementById('add-activity-modal');
+    // Setup add activity form
     const addForm = document.getElementById('add-activity-form');
-    
-    if (addBtn && addModal && addForm) {
-        addBtn.addEventListener('click', function() {
-            addModal.classList.add('active');
-            addForm.reset();
-            
-            // Focus on first input
-            const firstInput = addForm.querySelector('select[name="day"]');
-            if (firstInput) {
-                setTimeout(() => firstInput.focus(), 100);
-            }
-        });
-        
-        addDayBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const day = this.dataset.day;
-                addModal.classList.add('active');
-                addForm.reset();
-                
-                // Pre-select the day
-                const daySelect = addForm.querySelector('select[name="day"]');
-                if (daySelect) {
-                    daySelect.value = day;
-                }
-            });
-        });
-        
-        addForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            addItineraryActivity();
-        });
+    if (addForm) {
+        addForm.addEventListener('submit', handleAddActivity);
     }
-    
-    // Setup delete confirmation modal
-    setupDeleteModal();
-    
-    // Setup modal close handlers
-    setupModalCloseHandlers();
+
+    // Setup edit activity form
+    const editForm = document.getElementById('edit-activity-form');
+    if (editForm) {
+        editForm.addEventListener('submit', handleEditActivity);
+    }
 }
 
-function addItineraryActivity() {
-    const form = document.getElementById('add-activity-form');
-    const formData = new FormData(form);
-    
-    const data = {
-        day: parseInt(formData.get('day')),
-        activity: formData.get('activity'),
-        location: formData.get('location') || '',
-        start_time: formData.get('start_time') || null,
-        end_time: formData.get('end_time') || null,
-        notes: formData.get('notes') || '',
-        special: formData.get('special') === 'on',
-        order: 0 // Will be set based on position
-    };
-    
-    // Validate data
-    if (!data.activity.trim()) {
-        utils.showNotification('Activity name is required', 'error');
-        return;
+function setupActivityEvents(activityItem) {
+    const activityId = activityItem.dataset.activityId;
+
+    // Complete button
+    const completeBtn = activityItem.querySelector('.complete-btn');
+    if (completeBtn) {
+        completeBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleActivityComplete(activityItem);
+        });
     }
-    
-    if (!data.day || data.day < 1 || data.day > 3) {
-        utils.showNotification('Please select a valid day', 'error');
-        return;
+
+    // Edit button
+    const editBtn = activityItem.querySelector('.edit-btn');
+    if (editBtn) {
+        editBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openEditActivityModal(activityItem);
+        });
     }
-    
-    // Show loading state
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-    submitBtn.disabled = true;
-    
-    // Add new itinerary activity
-    utils.ajax('/api/itinerary', {
-        method: 'POST',
-        data: data
-    })
-    .then(response => {
-        if (response.success) {
-            addItineraryActivityToDOM(response.item);
-            updateItineraryInsights();
-            document.getElementById('add-activity-modal').classList.remove('active');
-            utils.showNotification('Activity added successfully', 'success');
+
+    // Delete button
+    const deleteBtn = activityItem.querySelector('.delete-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            deleteActivity(activityItem);
+        });
+    }
+
+    // Checkbox in list view
+    const checkbox = activityItem.querySelector('.activity-checkbox');
+    if (checkbox) {
+        checkbox.addEventListener('change', function() {
+            toggleActivityComplete(activityItem, this.checked);
+        });
+    }
+}
+
+// Activity Completion - FIXED
+function toggleActivityComplete(activityElement, forceState = null) {
+    let activityItem;
+
+    // Handle different element types
+    if (activityElement.classList.contains('activity-item') || activityElement.classList.contains('list-activity-item')) {
+        activityItem = activityElement;
+    } else {
+        activity_item = activityElement.closest('.activity-item, .list-activity-item');
+    }
+
+    if (!activityItem) return;
+
+    const activityId = activityItem.dataset.activityId;
+    const currentCompleted = activityItem.dataset.completed === 'true';
+    const newCompleted = forceState !== null ? forceState : !currentCompleted;
+
+    // Update UI
+    activityItem.dataset.completed = newCompleted;
+    activityItem.classList.toggle('completed', newCompleted);
+
+    // Update button states
+    const completeBtn = activityItem.querySelector('.complete-btn');
+    const checkbox = activityItem.querySelector('.activity-checkbox');
+
+    if (completeBtn) {
+        const icon = completeBtn.querySelector('i');
+        if (newCompleted) {
+            icon.className = 'fas fa-check-circle';
+            completeBtn.classList.add('completed');
+            completeBtn.title = 'Mark Incomplete';
         } else {
-            throw new Error(response.error || 'Failed to add activity');
+            icon.className = 'fas fa-check';
+            completeBtn.classList.remove('completed');
+            completeBtn.title = 'Mark Complete';
+        }
+    }
+
+    if (checkbox) {
+        checkbox.checked = newCompleted;
+    }
+
+    // Update progress
+    updateDayProgress();
+    updateOverallProgress();
+
+    // Save to backend
+    if (activityId) {
+        saveActivityCompletion(activityId, newCompleted);
+    }
+
+    // Show celebration for proposal activity
+    if (newCompleted && activityItem.classList.contains('proposal-activity')) {
+        showProposalCelebration();
+    }
+}
+
+function saveActivityCompletion(activityId, completed) {
+    fetch(`/api/itinerary/${activityId}/complete`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ completed })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to save completion status:', data.error);
+            showNotification('Failed to save completion status', 'error');
         }
     })
     .catch(error => {
-        utils.showNotification('Failed to add activity', 'error');
-    })
-    .finally(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        console.error('Error saving completion:', error);
+        showNotification('Error saving completion status', 'error');
     });
 }
 
-function addItineraryActivityToDOM(activity) {
-    const dayContainer = document.querySelector(`[data-day="${activity.day}"] .day-activities`);
-    const emptyDay = dayContainer.querySelector('.empty-day');
-    
-    // Remove empty day message if it exists
-    if (emptyDay) {
-        emptyDay.remove();
+// Progress Tracking - FIXED
+function updateDayProgress() {
+    const days = [1, 2, 3];
+
+    days.forEach(day => {
+        const dayActivities = document.querySelectorAll(`[data-day="${day}"]`);
+        const completedActivities = document.querySelectorAll(`[data-day="${day}"][data-completed="true"]`);
+
+        const total = dayActivities.length;
+        const completed = completedActivities.length;
+        const percentage = total > 0 ? (completed / total) * 100 : 0;
+
+        // Update day progress bar
+        const progressFill = document.querySelector(`.day-progress-fill[data-day="${day}"]`);
+        const progressText = document.querySelector(`.day-progress-text[data-day="${day}"]`);
+
+        if (progressFill) {
+            progressFill.style.width = `${percentage}%`;
+        }
+
+        if (progressText) {
+            progressText.textContent = `${completed}/${total}`;
+        }
+
+        // Update day block completion state
+        const dayBlock = document.querySelector(`.day-block[data-day="${day}"]`);
+        if (dayBlock) {
+            dayBlock.classList.toggle('day-complete', percentage === 100);
+        }
+    });
+}
+
+function updateOverallProgress() {
+    const allActivities = document.querySelectorAll('.activity-item, .list-activity-item');
+    const completedActivities = document.querySelectorAll('[data-completed="true"]');
+
+    const total = allActivities.length;
+    const completed = completedActivities.length;
+
+    // Update header stats
+    const completedCount = document.getElementById('completed-count');
+    if (completedCount) {
+        completedCount.textContent = completed;
     }
-    
-    const newActivityHTML = createItineraryActivityHTML(activity);
-    
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = newActivityHTML;
-    const newActivityCard = tempDiv.firstChild;
-    
-    newActivityCard.classList.add('new-itinerary-activity');
-    dayContainer.appendChild(newActivityCard);
-    
-    // Add to itinerary activities array
-    itineraryActivities.push({
-        id: activity.id,
-        activity: activity.activity,
-        day: activity.day.toString(),
-        special: activity.special,
-        element: newActivityCard
-    });
-    
-    // Setup event listeners for new activity
-    setupActivityCards();
-    initializeInlineEditing();
-    initializeDragAndDrop();
-    
-    // Scroll to new activity
-    newActivityCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    
-    // Remove new activity class after animation
-    setTimeout(() => {
-        newActivityCard.classList.remove('new-itinerary-activity');
-    }, 1000);
+
+    // Update overall progress if there's a progress bar
+    const overallProgress = document.querySelector('.overall-progress-fill');
+    if (overallProgress) {
+        const percentage = total > 0 ? (completed / total) * 100 : 0;
+        overallProgress.style.width = `${percentage}%`;
+    }
 }
 
-function createItineraryActivityHTML(activity) {
-    const startTime = activity.start_time || '';
-    const endTime = activity.end_time || '';
-    const location = activity.location || '';
-    const notes = activity.notes || '';
-    const isSpecial = activity.special;
-    const isProposalDay = activity.day === 3;
-    
-    return `
-        <div class="activity-card" data-activity-id="${activity.id}" ${isSpecial ? 'data-special="true"' : ''}>
-            <div class="activity-timeline-marker">
-                <div class="timeline-dot ${isSpecial ? 'special' : ''}"></div>
-                <div class="timeline-line"></div>
+// View Toggling - FIXED
+function setupViewToggling() {
+    const viewToggle = document.getElementById('view-toggle');
+    if (viewToggle) {
+        viewToggle.addEventListener('click', toggleView);
+    }
+
+    // Setup list view filters
+    setupListFilters();
+}
+
+function toggleView() {
+    const timelineView = document.getElementById('timeline-view');
+    const listView = document.getElementById('list-view');
+    const toggleBtn = document.getElementById('view-toggle');
+
+    if (!timelineView || !listView || !toggleBtn) return;
+
+    const isTimelineVisible = timelineView.style.display !== 'none';
+
+    if (isTimelineVisible) {
+        // Switch to list view
+        timelineView.style.display = 'none';
+        listView.style.display = 'block';
+
+        toggleBtn.innerHTML = '<i class="fas fa-calendar-alt"></i><span>Timeline View</span>';
+    } else {
+        // Switch to timeline view
+        timelineView.style.display = 'block';
+        listView.style.display = 'none';
+
+        toggleBtn.innerHTML = '<i class="fas fa-list"></i><span>List View</span>';
+    }
+
+    // Update progress after view switch
+    setTimeout(updateDayProgress, 100);
+}
+
+function setupListFilters() {
+    const dayFilter = document.getElementById('day-filter');
+    const statusFilter = document.getElementById('status-filter');
+    const searchInput = document.getElementById('search-activities');
+
+    if (dayFilter) {
+        dayFilter.addEventListener('change', filterActivities);
+    }
+
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterActivities);
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(filterActivities, 300));
+    }
+}
+
+function filterActivities() {
+    const dayFilter = document.getElementById('day-filter')?.value || 'all';
+    const statusFilter = document.getElementById('status-filter')?.value || 'all';
+    const searchTerm = document.getElementById('search-activities')?.value?.toLowerCase() || '';
+
+    const listActivities = document.querySelectorAll('.list-activity-item');
+
+    listActivities.forEach(activity => {
+        const day = activity.dataset.day;
+        const completed = activity.dataset.completed === 'true';
+        const title = activity.querySelector('.list-activity-title')?.textContent?.toLowerCase() || '';
+        const location = activity.querySelector('.list-activity-location span')?.textContent?.toLowerCase() || '';
+
+        let shouldShow = true;
+
+        // Day filter
+        if (dayFilter !== 'all' && day !== dayFilter) {
+            shouldShow = false;
+        }
+
+        // Status filter
+        if (statusFilter !== 'all') {
+            if (statusFilter === 'completed' && !completed) shouldShow = false;
+            if (statusFilter === 'pending' && completed) shouldShow = false;
+        }
+
+        // Search filter
+        if (searchTerm && !title.includes(searchTerm) && !location.includes(searchTerm)) {
+            shouldShow = false;
+        }
+
+        activity.style.display = shouldShow ? 'flex' : 'none';
+    });
+}
+
+// Modal Management - FIXED
+function openAddActivityModal() {
+    const modal = document.getElementById('add-activity-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('modal-show');
+
+        // Focus first input
+        const firstInput = modal.querySelector('input, select');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+        }
+    }
+}
+
+function openEditActivityModal(activityElement) {
+    const modal = document.getElementById('edit-activity-modal');
+    if (!modal) return;
+
+    const activityId = activityElement.dataset.activityId;
+    const day = activityElement.dataset.day;
+
+    // Get activity data from the element
+    const title = activityElement.querySelector('.activity-title, .list-activity-title')?.textContent?.trim() || '';
+    const location = activityElement.querySelector('.activity-location span, .list-activity-location span')?.textContent?.trim() || '';
+    const notes = activityElement.querySelector('.activity-notes p, .list-activity-notes p')?.textContent?.trim() || '';
+    const timeRange = activityElement.querySelector('.time-range, .activity-time')?.textContent?.trim() || '';
+    const isProposal = activityElement.classList.contains('proposal-activity');
+
+    // Populate form
+    document.getElementById('edit-activity-id').value = activityId;
+    document.getElementById('edit-activity-day').value = day;
+    document.getElementById('edit-activity-time').value = timeRange;
+    document.getElementById('edit-activity-title').value = title;
+    document.getElementById('edit-activity-location').value = location;
+    document.getElementById('edit-activity-notes').value = notes;
+    document.getElementById('edit-is-proposal').checked = isProposal;
+
+    modal.style.display = 'flex';
+    modal.classList.add('modal-show');
+}
+
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('modal-show');
+    }
+}
+
+// Form Handlers - FIXED
+function handleAddActivity(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const activityData = {
+        day: parseInt(formData.get('day')),
+        time_range: formData.get('time_range'),
+        activity: formData.get('activity'),
+        location: formData.get('location'),
+        notes: formData.get('notes'),
+        isProposal: formData.get('isProposal') === 'on'
+    };
+
+    // Add to UI
+    addActivityToUI(activityData);
+
+    // Close modal and reset form
+    closeModal('add-activity-modal');
+    e.target.reset();
+
+    // Save to backend
+    fetch('/api/itinerary/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(activityData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Activity added successfully!', 'success');
+
+            // Update the activity with server ID
+            const newActivity = document.querySelector('[data-activity-id="temp"]');
+            if (newActivity && data.id) {
+                newActivity.dataset.activityId = data.id;
+            }
+        } else {
+            showNotification(data.error || 'Failed to add activity', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding activity:', error);
+        showNotification('Error adding activity', 'error');
+    });
+}
+
+function handleEditActivity(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const activityId = formData.get('id') || document.getElementById('edit-activity-id').value;
+
+    const activityData = {
+        day: parseInt(formData.get('day')),
+        time_range: formData.get('time_range'),
+        activity: formData.get('activity'),
+        location: formData.get('location'),
+        notes: formData.get('notes'),
+        isProposal: formData.get('isProposal') === 'on'
+    };
+
+    // Update UI
+    updateActivityInUI(activityId, activityData);
+
+    // Close modal
+    closeModal('edit-activity-modal');
+
+    // Save to backend
+    fetch(`/api/itinerary/${activityId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(activityData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Activity updated successfully!', 'success');
+        } else {
+            showNotification(data.error || 'Failed to update activity', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating activity:', error);
+        showNotification('Error updating activity', 'error');
+    });
+}
+
+function deleteActivity(activityElement) {
+    if (!confirm('Are you sure you want to delete this activity?')) {
+        return;
+    }
+
+    const activityId = activityElement.dataset.activityId;
+
+    // Fade out
+    activityElement.style.opacity = '0.5';
+
+    // Delete from backend
+    fetch(`/api/itinerary/${activityId}/delete`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            activityElement.remove();
+            updateDayProgress();
+            updateOverallProgress();
+            showNotification('Activity deleted successfully', 'success');
+        } else {
+            activityElement.style.opacity = '1';
+            showNotification('Failed to delete activity', 'error');
+        }
+    })
+    .catch(error => {
+        activityElement.style.opacity = '1';
+        console.error('Error deleting activity:', error);
+        showNotification('Error deleting activity', 'error');
+    });
+}
+
+// UI Updates - FIXED
+function addActivityToUI(activityData) {
+    const dayBlock = document.querySelector(`.day-block[data-day="${activityData.day}"]`);
+    if (!dayBlock) return;
+
+    const activitiesContainer = dayBlock.querySelector('.day-activities');
+    if (!activitiesContainer) return;
+
+    const activityElement = createActivityElement(activityData, 'temp');
+    activitiesContainer.appendChild(activityElement);
+
+    // Add to list view as well
+    addActivityToListView(activityData, 'temp');
+
+    // Update progress
+    updateDayProgress();
+    updateOverallProgress();
+}
+
+function updateActivityInUI(activityId, activityData) {
+    const timelineActivity = document.querySelector(`.activity-item[data-activity-id="${activityId}"]`);
+    const listActivity = document.querySelector(`.list-activity-item[data-activity-id="${activityId}"]`);
+
+    if (timelineActivity) {
+        updateActivityElement(timelineActivity, activityData);
+    }
+
+    if (listActivity) {
+        updateListActivityElement(listActivity, activityData);
+    }
+
+    // Check if day changed - if so, move the activity
+    if (timelineActivity && timelineActivity.dataset.day !== activityData.day.toString()) {
+        moveActivityToDay(timelineActivity, activityData.day);
+    }
+
+    updateDayProgress();
+}
+
+function createActivityElement(activityData, activityId) {
+    const activityDiv = document.createElement('div');
+    activityDiv.className = `activity-item ${activityData.isProposal ? 'proposal-activity' : ''}`;
+    activityDiv.dataset.activityId = activityId;
+    activityDiv.dataset.day = activityData.day;
+    activityDiv.dataset.completed = 'false';
+
+    activityDiv.innerHTML = `
+        <div class="activity-time">
+            <div class="time-display">
+                <span class="time-range">${activityData.time_range || 'All Day'}</span>
             </div>
-            
-            <div class="activity-content">
-                <div class="activity-header">
-                    <div class="activity-time">
-                        <input type="time" class="time-input" data-field="start_time" value="${startTime}">
-                        <span class="time-separator">-</span>
-                        <input type="time" class="time-input" data-field="end_time" value="${endTime}">
-                    </div>
-                    
-                    <div class="activity-actions">
-                        <div class="action-menu">
-                            <button class="menu-toggle">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                            <div class="menu-dropdown">
-                                <button class="menu-item edit-activity">
-                                    <i class="fas fa-edit"></i>
-                                    Edit
-                                </button>
-                                <button class="menu-item toggle-special">
-                                    <i class="fas fa-star"></i>
-                                    ${isSpecial ? 'Remove Special' : 'Mark Special'}
-                                </button>
-                                <button class="menu-item delete-activity">
-                                    <i class="fas fa-trash"></i>
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+            ${activityData.isProposal ? `
+                <div class="proposal-badge">
+                    <i class="fas fa-heart"></i>
+                    <span>THE MOMENT</span>
                 </div>
-                
-                <div class="activity-info">
-                    <h4 class="activity-title">
-                        <span class="editable-text" data-field="activity">${activity.activity}</span>
-                        ${isSpecial ? '<span class="special-badge"><i class="fas fa-star"></i> Special</span>' : ''}
-                    </h4>
-                    
-                    <div class="activity-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span class="editable-text" data-field="location" data-placeholder="Add location">${location || 'Location'}</span>
-                    </div>
+            ` : ''}
+        </div>
+
+        <div class="activity-content">
+            <div class="activity-main">
+                <h4 class="activity-title" data-editable="activity">
+                    ${activityData.activity}
+                </h4>
+
+                ${activityData.location ? `
+                <div class="activity-location">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span data-editable="location">${activityData.location}</span>
                 </div>
-                
-                ${notes ? `
+                ` : ''}
+
+                ${activityData.notes ? `
                 <div class="activity-notes">
-                    <div class="notes-content">
-                        <div class="editable-textarea" data-field="notes" data-placeholder="Add notes about this activity...">${notes}</div>
-                    </div>
+                    <p data-editable="notes">${activityData.notes}</p>
                 </div>
                 ` : ''}
-                
-                ${isSpecial && isProposalDay ? `
-                <div class="proposal-highlight-box">
-                    <div class="highlight-icon">
-                        <i class="fas fa-heart"></i>
-                    </div>
-                    <div class="highlight-text">
-                        <strong>This is it!</strong> The moment you've been planning for.
-                    </div>
-                    <div class="highlight-sparkles">✨💍✨</div>
-                </div>
-                ` : ''}
+            </div>
+
+            <div class="activity-actions">
+                <button class="activity-action-btn complete-btn" onclick="toggleActivityComplete(this)" title="Mark Complete">
+                    <i class="fas fa-check"></i>
+                </button>
+                <button class="activity-action-btn edit-btn" onclick="openEditActivityModal(this)" title="Edit Activity">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="activity-action-btn delete-btn" onclick="deleteActivity(this)" title="Delete Activity">
+                    <i class="fas fa-trash"></i>
+                </button>
             </div>
         </div>
     `;
+
+    setupActivityEvents(activityDiv);
+    return activityDiv;
 }
 
-function setupDeleteModal() {
-    const deleteModal = document.getElementById('delete-activity-modal');
-    const confirmBtn = document.getElementById('confirm-delete-activity');
-    
-    let activityToDelete = null;
-    
-    window.showDeleteModal = function(activityId, activityName) {
-        activityToDelete = activityId;
-        deleteModal.classList.add('active');
-        
-        // Update modal content if needed
-        const modalBody = deleteModal.querySelector('.modal-body p');
-        if (modalBody) {
-            modalBody.textContent = `Are you sure you want to delete "${activityName}"? This action cannot be undone.`;
-        }
-    };
-    
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function() {
-            if (activityToDelete) {
-                deleteItineraryActivity(activityToDelete);
-            }
-        });
-    }
-}
+function addActivityToListView(activityData, activityId) {
+    const listContainer = document.querySelector('.activities-list');
+    if (!listContainer) return;
 
-function deleteItineraryActivity(activityId) {
-    const activityCard = document.querySelector(`[data-activity-id="${activityId}"]`);
-    
-    if (activityCard) {
-        activityCard.classList.add('loading');
-        
-        utils.ajax(`/api/itinerary/${activityId}`, {
-            method: 'DELETE'
-        })
-        .then(response => {
-            if (response.success) {
-                // Animate removal
-                activityCard.style.transform = 'translateX(-100%)';
-                activityCard.style.opacity = '0';
-                
-                setTimeout(() => {
-                    const dayContainer = activityCard.closest('.day-activities');
-                    activityCard.remove();
-                    
-                    // Remove from itinerary activities array
-                    itineraryActivities = itineraryActivities.filter(a => a.id !== activityId);
-                    
-                    // Show empty day message if no activities left
-                    const remainingActivities = dayContainer.querySelectorAll('.activity-card');
-                    if (remainingActivities.length === 0) {
-                        showEmptyDayState(dayContainer);
-                    }
-                    
-                    updateItineraryInsights();
-                }, 300);
-                
-                document.getElementById('delete-activity-modal').classList.remove('active');
-                utils.showNotification('Activity deleted successfully', 'success');
-            } else {
-                throw new Error(response.error || 'Failed to delete activity');
-            }
-        })
-        .catch(error => {
-            activityCard.classList.remove('loading');
-            utils.showNotification('Failed to delete activity', 'error');
-        });
-    }
-}
+    const listElement = document.createElement('div');
+    listElement.className = 'list-activity-item';
+    listElement.dataset.activityId = activityId;
+    listElement.dataset.day = activityData.day;
+    listElement.dataset.completed = 'false';
 
-function showEmptyDayState(dayContainer) {
-    const day = dayContainer.dataset.day;
-    const emptyDayHTML = `
-        <div class="empty-day">
-            <div class="empty-icon">
-                <i class="fas fa-calendar-plus"></i>
+    listElement.innerHTML = `
+        <div class="list-activity-checkbox">
+            <input type="checkbox" class="activity-checkbox" onchange="toggleActivityComplete(this)">
+        </div>
+
+        <div class="list-activity-content">
+            <div class="list-activity-header">
+                <h4 class="list-activity-title">${activityData.activity}</h4>
+                <div class="list-activity-meta">
+                    <span class="activity-day">Day ${activityData.day}</span>
+                    <span class="activity-time">${activityData.time_range || 'All Day'}</span>
+                </div>
             </div>
-            <p>No activities planned for this day yet</p>
-            <button class="btn btn-primary add-day-activity" data-day="${day}">
-                <i class="fas fa-plus"></i>
-                Add First Activity
+
+            ${activityData.location ? `
+            <div class="list-activity-location">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>${activityData.location}</span>
+            </div>
+            ` : ''}
+
+            ${activityData.notes ? `
+            <div class="list-activity-notes">
+                <p>${activityData.notes}</p>
+            </div>
+            ` : ''}
+        </div>
+
+        <div class="list-activity-actions">
+            <button class="activity-action-btn edit-btn" onclick="openEditActivityModal(this)" title="Edit">
+                <i class="fas fa-edit"></i>
+            </button>
+            <button class="activity-action-btn delete-btn" onclick="deleteActivity(this)" title="Delete">
+                <i class="fas fa-trash"></i>
             </button>
         </div>
     `;
-    dayContainer.innerHTML = emptyDayHTML;
-    
-    // Re-initialize the add day activity button
-    initializeModals();
+
+    listContainer.appendChild(listElement);
+    setupActivityEvents(listElement);
 }
 
-function updateItineraryInsights() {
-    const activityCards = document.querySelectorAll('.activity-card');
-    const specialActivities = document.querySelectorAll('.activity-card[data-special="true"]');
-    
-    // Update insight displays
-    const insightNumbers = document.querySelectorAll('.insight-number');
-    if (insightNumbers.length >= 4) {
-        insightNumbers[0].textContent = activityCards.length;
-        insightNumbers[1].textContent = specialActivities.length;
-        insightNumbers[2].textContent = '3'; // Always 3 days
-        insightNumbers[3].textContent = '1'; // Always 1 life-changing moment
+// Inline Editing - FIXED
+function setupInlineEditing() {
+    const editableFields = document.querySelectorAll('[data-editable]');
+    editableFields.forEach(field => {
+        field.addEventListener('click', function() {
+            if (!this.classList.contains('editing')) {
+                startInlineEdit(this);
+            }
+        });
+    });
+}
+
+function startInlineEdit(element) {
+    const currentValue = element.textContent.trim();
+    const fieldType = element.dataset.editable;
+
+    element.classList.add('editing');
+
+    let input;
+    if (fieldType === 'notes') {
+        input = document.createElement('textarea');
+        input.rows = 2;
+    } else {
+        input = document.createElement('input');
+        input.type = 'text';
     }
-}
 
-function setupModalCloseHandlers() {
-    // Setup modal close buttons
-    const modalCloses = document.querySelectorAll('.modal-close, [data-modal]');
-    modalCloses.forEach(button => {
-        button.addEventListener('click', function() {
-            const modalId = this.dataset.modal;
-            if (modalId) {
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            }
-        });
-    });
-    
-    // Close modals on overlay click
-    const overlays = document.querySelectorAll('.glass-overlay');
-    overlays.forEach(overlay => {
-        overlay.addEventListener('click', function(e) {
-            if (e.target === overlay) {
-                overlay.classList.remove('active');
-            }
-        });
-    });
-    
-    // ESC key to close modals
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const activeModal = document.querySelector('.glass-overlay.active');
-            if (activeModal) {
-                activeModal.classList.remove('active');
-            }
+    input.value = currentValue;
+    input.className = 'inline-edit-input';
+
+    input.style.cssText = `
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid #d4af37;
+        border-radius: 4px;
+        padding: 6px 10px;
+        color: white;
+        font-size: inherit;
+        font-family: inherit;
+        width: 100%;
+        resize: vertical;
+    `;
+
+    element.innerHTML = '';
+    element.appendChild(input);
+    input.focus();
+    input.select();
+
+    function saveEdit() {
+        const newValue = input.value.trim();
+        element.classList.remove('editing');
+        element.textContent = newValue;
+
+        // Save to backend
+        saveInlineEdit(element, fieldType, newValue);
+    }
+
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            saveEdit();
+        } else if (e.key === 'Escape') {
+            element.classList.remove('editing');
+            element.textContent = currentValue;
         }
     });
 }
 
-function setupItineraryAnimations() {
-    // Add entrance animations to activity cards
-    const activityCards = document.querySelectorAll('.activity-card');
-    activityCards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
-    });
-    
-    // Add special animations for proposal day
-    const proposalDayCards = document.querySelectorAll('[data-special="proposal"] .activity-card');
-    proposalDayCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.boxShadow = '0 0 25px rgba(236, 72, 153, 0.3)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.boxShadow = '';
-        });
-    });
-}
+function saveInlineEdit(element, field, value) {
+    const activityItem = element.closest('.activity-item, .list-activity-item');
+    const activityId = activityItem?.dataset.activityId;
 
-function setupAutoSave() {
-    let autoSaveTimeout;
-    
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('editable-text') || 
-            e.target.classList.contains('editable-textarea')) {
-            
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = setTimeout(() => {
-                if (currentEditingElement === e.target) {
-                    saveEdit();
-                }
-            }, 3000); // Auto-save after 3 seconds of inactivity
+    if (!activityId) return;
+
+    fetch(`/api/itinerary/${activityId}/update-field`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ field, value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to save inline edit:', data.error);
+            showNotification('Failed to save changes', 'error');
         }
+    })
+    .catch(error => {
+        console.error('Error saving inline edit:', error);
+        showNotification('Error saving changes', 'error');
     });
 }
 
-function closeAllMenus() {
-    const activeMenus = document.querySelectorAll('.action-menu.active');
-    activeMenus.forEach(menu => {
-        menu.classList.remove('active');
-    });
-}
-
-function showEditIndicator(element) {
-    const indicator = document.createElement('div');
-    indicator.className = 'edit-indicator';
-    indicator.innerHTML = '<i class="fas fa-edit"></i>';
-    indicator.style.cssText = `
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        background: var(--accent-gold);
-        color: var(--primary-dark);
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7rem;
-        z-index: 10;
+// Special Effects - FIXED
+function showProposalCelebration() {
+    // Create celebration overlay
+    const celebration = document.createElement('div');
+    celebration.className = 'proposal-celebration';
+    celebration.innerHTML = `
+        <div class="celebration-content">
+            <div class="celebration-icon">💍</div>
+            <h2>THE MOMENT IS COMPLETE!</h2>
+            <p>Congratulations on your engagement! 🎉</p>
+            <div class="celebration-hearts">
+                <span>💕</span>
+                <span>❤️</span>
+                <span>💖</span>
+                <span>💕</span>
+                <span>❤️</span>
+            </div>
+        </div>
     `;
-    element.style.position = 'relative';
-    element.appendChild(indicator);
-}
 
-function hideEditIndicator(element) {
-    const indicator = element.querySelector('.edit-indicator');
-    if (indicator) {
-        indicator.remove();
-    }
-}
+    document.body.appendChild(celebration);
 
-function showLoadingIndicator(element) {
-    element.classList.add('loading');
-    const indicator = document.createElement('div');
-    indicator.className = 'loading-indicator';
-    indicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    indicator.style.cssText = `
-        position: absolute;
-        top: 50%;
-        right: -25px;
-        transform: translateY(-50%);
-        color: var(--accent-gold);
-        z-index: 10;
-    `;
-    element.style.position = 'relative';
-    element.appendChild(indicator);
-}
-
-function hideLoadingIndicator(element) {
-    element.classList.remove('loading');
-    const indicator = element.querySelector('.loading-indicator');
-    if (indicator) {
-        indicator.remove();
-    }
-}
-
-function showSuccessIndicator(element) {
-    element.classList.add('success');
-    const indicator = document.createElement('div');
-    indicator.className = 'success-indicator';
-    indicator.innerHTML = '<i class="fas fa-check"></i>';
-    indicator.style.cssText = `
-        position: absolute;
-        top: 50%;
-        right: -25px;
-        transform: translateY(-50%);
-        color: var(--success);
-        z-index: 10;
-    `;
-    element.style.position = 'relative';
-    element.appendChild(indicator);
-    
+    setTimeout(() => celebration.classList.add('show'), 100);
     setTimeout(() => {
-        element.classList.remove('success');
-        if (indicator.parentNode) {
-            indicator.remove();
-        }
-    }, 2000);
+        celebration.classList.remove('show');
+        setTimeout(() => celebration.remove(), 1000);
+    }, 5000);
 }
 
-function showErrorIndicator(element) {
-    element.classList.add('error');
+// Export Functions - FIXED
+function exportItinerary() {
+    const itineraryData = {
+        trip: {
+            title: 'Emerald Lake Adventure',
+            dates: 'September 24-26, 2025',
+            location: 'Emerald Lake, Canada'
+        },
+        activities: []
+    };
+
+    // Collect all activities
+    const activities = document.querySelectorAll('.activity-item');
+    activities.forEach(activity => {
+        const data = {
+            day: activity.dataset.day,
+            time: activity.querySelector('.time-range')?.textContent || '',
+            title: activity.querySelector('.activity-title')?.textContent || '',
+            location: activity.querySelector('.activity-location span')?.textContent || '',
+            notes: activity.querySelector('.activity-notes p')?.textContent || '',
+            completed: activity.dataset.completed === 'true',
+            isProposal: activity.classList.contains('proposal-activity')
+        };
+
+        itineraryData.activities.push(data);
+    });
+
+    // Create and download file
+    const dataStr = JSON.stringify(itineraryData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = 'emerald-lake-itinerary.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    showNotification('Itinerary exported successfully!', 'success');
+}
+
+// Utility Functions - FIXED
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => notification.classList.add('show'), 10);
     setTimeout(() => {
-        element.classList.remove('error');
-    }, 2000);
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
-// Export functions for external use
-window.itineraryPageUtils = {
-    updateItineraryInsights,
-    addItineraryActivityToDOM,
-    deleteItineraryActivity,
-    showDeleteModal,
-    highlightProposalDay
+// Global function exports for onclick handlers
+window.toggleActivityComplete = toggleActivityComplete;
+window.openEditActivityModal = openEditActivityModal;
+window.deleteActivity = deleteActivity;
+window.openAddActivityModal = openAddActivityModal;
+window.closeModal = closeModal;
+window.toggleView = toggleView;
+window.exportItinerary = exportItinerary;
+
+// Export functions for global access
+window.ItineraryManager = {
+    updateProgress: updateDayProgress,
+    toggleComplete: toggleActivityComplete,
+    addActivity: addActivityToUI,
+    refreshData: initializeItinerary
 };

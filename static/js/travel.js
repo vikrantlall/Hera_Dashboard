@@ -1,989 +1,788 @@
-// Travel Page JavaScript with Complete Booking Management
+// Travel JavaScript functionality - FIXED VERSION
+// Flight map, travel management, and booking tracking
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeTravelPage();
-    initializeInlineEditing();
-    initializeFiltering();
-    initializeModals();
-    setupAutoSave();
+    setupFlightMap();
+    setupTravelManagement();
 });
 
-let currentEditingElement = null;
-let originalValue = null;
-let travelBookings = [];
-
 function initializeTravelPage() {
-    // Load travel bookings data
-    loadTravelBookings();
-    
-    // Setup travel-specific features
-    setupTravelAnimations();
-    setupBookingCards();
-    updateTravelInsights();
-    
-    // Initialize drag and drop for reordering
-    initializeDragAndDrop();
+    console.log('Initializing travel page...');
+
+    // Setup all travel functionality
+    setupFlightTracking();
+    setupBookingManagement();
+    setupEditableTravelItems();
+
+    console.log('Travel page initialized successfully');
 }
 
-function loadTravelBookings() {
-    const bookingCards = document.querySelectorAll('.travel-booking-card');
-    travelBookings = [];
-    
-    bookingCards.forEach(card => {
-        const bookingId = card.dataset.bookingId;
-        const typeElement = card.querySelector('.editable-text[data-field="type"]');
-        const statusSelect = card.querySelector('.status-select[data-field="status"]');
-        
-        if (bookingId && typeElement && statusSelect) {
-            travelBookings.push({
-                id: bookingId,
-                type: typeElement.textContent.trim(),
-                status: statusSelect.value,
-                element: card
-            });
-        }
-    });
-}
-
-function setupBookingCards() {
-    const bookingCards = document.querySelectorAll('.travel-booking-card');
-    
-    bookingCards.forEach(card => {
-        const bookingId = card.dataset.bookingId;
-        
-        // Status select change
-        const statusSelect = card.querySelector('.status-select');
-        if (statusSelect) {
-            statusSelect.addEventListener('change', function() {
-                updateTravelBooking(bookingId, { status: this.value });
-                updateCardAppearance(card, this.value);
-                updateTravelInsights();
-            });
-        }
-        
-        // Date and time input changes
-        const dateInput = card.querySelector('.date-input');
-        if (dateInput) {
-            dateInput.addEventListener('change', function() {
-                updateTravelBooking(bookingId, { date: this.value });
-            });
-        }
-        
-        const timeInput = card.querySelector('.time-input');
-        if (timeInput) {
-            timeInput.addEventListener('change', function() {
-                updateTravelBooking(bookingId, { time: this.value });
-            });
-        }
-        
-        // Menu toggle
-        const menuToggle = card.querySelector('.menu-toggle');
-        const menu = card.querySelector('.action-menu');
-        if (menuToggle && menu) {
-            menuToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                closeAllMenus();
-                menu.classList.toggle('active');
-            });
-        }
-        
-        // Edit button
-        const editBtn = card.querySelector('.edit-booking');
-        if (editBtn) {
-            editBtn.addEventListener('click', function() {
-                enableEditMode(card);
-                menu.classList.remove('active');
-            });
-        }
-        
-        // Delete button
-        const deleteBtn = card.querySelector('.delete-booking');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', function() {
-                const bookingType = card.querySelector('.editable-text[data-field="type"]').textContent;
-                showDeleteModal(bookingId, bookingType);
-                menu.classList.remove('active');
-            });
-        }
-        
-        // Add hover effects
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-4px)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = '';
-        });
-    });
-    
-    // Close menus when clicking outside
-    document.addEventListener('click', closeAllMenus);
-}
-
-function initializeInlineEditing() {
-    const editableElements = document.querySelectorAll('.editable-text, .editable-textarea, .editable-number');
-    
-    editableElements.forEach(element => {
-        element.addEventListener('click', function() {
-            if (currentEditingElement && currentEditingElement !== this) {
-                cancelEdit();
-            }
-            startEdit(this);
-        });
-        
-        element.addEventListener('blur', function() {
-            if (this === currentEditingElement) {
-                setTimeout(() => {
-                    if (document.activeElement !== this) {
-                        saveEdit();
-                    }
-                }, 100);
-            }
-        });
-        
-        element.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey && !this.classList.contains('editable-textarea')) {
-                e.preventDefault();
-                saveEdit();
-            } else if (e.key === 'Escape') {
-                cancelEdit();
-            }
-        });
-        
-        // Add hover effects
-        element.addEventListener('mouseenter', function() {
-            if (!this.classList.contains('editing')) {
-                this.style.background = 'rgba(212, 175, 55, 0.1)';
-            }
-        });
-        
-        element.addEventListener('mouseleave', function() {
-            if (!this.classList.contains('editing')) {
-                this.style.background = '';
-            }
-        });
-    });
-}
-
-function startEdit(element) {
-    if (currentEditingElement) return;
-    
-    currentEditingElement = element;
-    originalValue = element.textContent.trim();
-    
-    element.classList.add('editing');
-    element.style.background = '';
-    
-    if (element.classList.contains('editable-textarea')) {
-        element.contentEditable = true;
-        element.style.minHeight = '80px';
-    } else {
-        element.contentEditable = true;
+// Flight Map with Leaflet - FIXED
+function setupFlightMap() {
+    // Check if map container exists
+    const mapContainer = document.getElementById('flight-map');
+    if (!mapContainer) {
+        console.log('No map container found');
+        return;
     }
-    
-    element.focus();
-    
-    // Select all text
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    
-    // Add edit indicator
-    showEditIndicator(element);
-}
 
-function saveEdit() {
-    if (!currentEditingElement) return;
-    
-    const newValue = currentEditingElement.textContent.trim();
-    const field = currentEditingElement.dataset.field;
-    const bookingCard = currentEditingElement.closest('.travel-booking-card');
-    const bookingId = bookingCard.dataset.bookingId;
-    
-    if (newValue !== originalValue) {
-        // Validate input
-        if (field === 'cost') {
-            const numValue = parseFloat(newValue);
-            if (isNaN(numValue) || numValue < 0) {
-                utils.showNotification('Please enter a valid cost amount', 'error');
-                cancelEdit();
-                return;
+    // Initialize Leaflet map
+    try {
+        const map = L.map('flight-map', {
+            center: [45.0, -100.0], // Center of North America
+            zoom: 4,
+            zoomControl: true,
+            scrollWheelZoom: true
+        });
+
+        // Add tile layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18
+        }).addTo(map);
+
+        // Flight route coordinates
+        const airports = {
+            'IAD': [38.9445, -77.4558], // Washington Dulles
+            'DEN': [39.8617, -104.6737], // Denver
+            'YYC': [51.1315, -114.0106], // Calgary
+            'YYZ': [43.6777, -79.6248], // Toronto
+            'DCA': [38.8521, -77.0377]  // Washington Reagan
+        };
+
+        // Define flight path
+        const flightPath = [
+            airports.IAD, // Washington
+            airports.DEN, // Denver
+            airports.YYC, // Calgary
+            airports.YYZ, // Toronto
+            airports.DCA  // Washington (return)
+        ];
+
+        // Add airport markers
+        Object.entries(airports).forEach(([code, coords]) => {
+            const marker = L.marker(coords).addTo(map);
+
+            let airportName = '';
+            switch(code) {
+                case 'IAD': airportName = 'Washington Dulles (IAD)'; break;
+                case 'DEN': airportName = 'Denver (DEN)'; break;
+                case 'YYC': airportName = 'Calgary (YYC)'; break;
+                case 'YYZ': airportName = 'Toronto (YYZ)'; break;
+                case 'DCA': airportName = 'Washington Reagan (DCA)'; break;
             }
-        }
-        
-        if (field === 'type' && !newValue) {
-            utils.showNotification('Booking type cannot be empty', 'error');
-            cancelEdit();
-            return;
-        }
-        
-        // Show loading state
-        bookingCard.classList.add('saving');
-        showLoadingIndicator(currentEditingElement);
-        
-        // Prepare update data
-        const updateData = {};
-        if (field === 'cost') {
-            updateData[field] = parseFloat(newValue);
-        } else {
-            updateData[field] = newValue;
-        }
-        
-        // Send update to server
-        updateTravelBooking(bookingId, updateData)
-            .then(() => {
-                bookingCard.classList.remove('saving');
-                bookingCard.classList.add('saved');
-                hideLoadingIndicator(currentEditingElement);
-                showSuccessIndicator(currentEditingElement);
-                
-                setTimeout(() => bookingCard.classList.remove('saved'), 2000);
-                
-                // Update local data
-                const booking = travelBookings.find(b => b.id === bookingId);
-                if (booking && field === 'type') {
-                    booking.type = newValue;
-                }
-                
-                updateTravelInsights();
-                utils.showNotification('Travel booking updated successfully', 'success');
-            })
-            .catch(error => {
-                bookingCard.classList.remove('saving');
-                bookingCard.classList.add('error');
-                hideLoadingIndicator(currentEditingElement);
-                showErrorIndicator(currentEditingElement);
-                
-                setTimeout(() => bookingCard.classList.remove('error'), 2000);
-                
-                currentEditingElement.textContent = originalValue;
-                utils.showNotification('Failed to update travel booking', 'error');
-            });
-    }
-    
-    endEdit();
-}
 
-function cancelEdit() {
-    if (!currentEditingElement) return;
-    
-    currentEditingElement.textContent = originalValue;
-    endEdit();
-}
+            marker.bindPopup(`<strong>${airportName}</strong>`);
 
-function endEdit() {
-    if (currentEditingElement) {
-        currentEditingElement.classList.remove('editing');
-        currentEditingElement.contentEditable = false;
-        currentEditingElement.style.minHeight = '';
-        
-        hideEditIndicator(currentEditingElement);
-        
-        currentEditingElement = null;
-        originalValue = null;
+            // Style markers differently for origin/destination vs connections
+            if (code === 'IAD' || code === 'DCA') {
+                marker.setIcon(L.divIcon({
+                    className: 'airport-marker origin',
+                    html: '<i class="fas fa-plane-departure"></i>',
+                    iconSize: [24, 24]
+                }));
+            } else if (code === 'YYC') {
+                marker.setIcon(L.divIcon({
+                    className: 'airport-marker destination',
+                    html: '<i class="fas fa-heart"></i>',
+                    iconSize: [24, 24]
+                }));
+            } else {
+                marker.setIcon(L.divIcon({
+                    className: 'airport-marker connection',
+                    html: '<i class="fas fa-plane"></i>',
+                    iconSize: [20, 20]
+                }));
+            }
+        });
+
+        // Add flight path polylines
+        const pathSegments = [
+            [airports.IAD, airports.DEN], // Outbound 1
+            [airports.DEN, airports.YYC], // Outbound 2
+            [airports.YYC, airports.YYZ], // Return 1
+            [airports.YYZ, airports.DCA]  // Return 2
+        ];
+
+        pathSegments.forEach((segment, index) => {
+            const isReturn = index >= 2;
+
+            L.polyline(segment, {
+                color: isReturn ? '#ff6b6b' : '#4ecdc4',
+                weight: 3,
+                opacity: 0.8,
+                dashArray: isReturn ? '10, 5' : null
+            }).addTo(map);
+        });
+
+        // Fit map to show all points
+        const group = new L.featureGroup(Object.values(airports).map(coords => L.marker(coords)));
+        map.fitBounds(group.getBounds().pad(0.1));
+
+        console.log('Flight map initialized successfully');
+
+    } catch (error) {
+        console.error('Error initializing map:', error);
+        // Fallback: Show static route text
+        mapContainer.innerHTML = `
+            <div class="map-fallback">
+                <div class="route-display">
+                    <div class="route-item">
+                        <i class="fas fa-plane-departure"></i>
+                        <span>Washington (IAD)</span>
+                    </div>
+                    <div class="route-arrow">→</div>
+                    <div class="route-item">
+                        <i class="fas fa-plane"></i>
+                        <span>Denver (DEN)</span>
+                    </div>
+                    <div class="route-arrow">→</div>
+                    <div class="route-item">
+                        <i class="fas fa-heart"></i>
+                        <span>Calgary (YYC)</span>
+                    </div>
+                    <div class="route-arrow">→</div>
+                    <div class="route-item">
+                        <i class="fas fa-plane"></i>
+                        <span>Toronto (YYZ)</span>
+                    </div>
+                    <div class="route-arrow">→</div>
+                    <div class="route-item">
+                        <i class="fas fa-plane-arrival"></i>
+                        <span>Washington (DCA)</span>
+                    </div>
+                </div>
+                <p class="map-error">Interactive map unavailable - showing route overview</p>
+            </div>
+        `;
     }
 }
 
-function updateTravelBooking(bookingId, data) {
-    return utils.ajax(`/api/travel/${bookingId}`, {
-        method: 'PUT',
-        data: data
+// Travel Management - FIXED
+function setupTravelManagement() {
+    // Setup travel card interactions
+    const travelCards = document.querySelectorAll('.travel-card');
+    travelCards.forEach(card => {
+        setupTravelCardEvents(card);
     });
-}
 
-function enableEditMode(bookingCard) {
-    const editableElements = bookingCard.querySelectorAll('.editable-text, .editable-textarea, .editable-number');
-    editableElements.forEach(element => {
-        element.classList.add('edit-mode-highlight');
-    });
-    
-    setTimeout(() => {
-        editableElements.forEach(element => {
-            element.classList.remove('edit-mode-highlight');
-        });
-    }, 2000);
-    
-    utils.showNotification('Click any field to edit', 'info');
-}
-
-function updateCardAppearance(card, status) {
-    // Update card styling based on status
-    card.classList.remove('status-booked', 'status-pending', 'status-cancelled');
-    card.classList.add(`status-${status.toLowerCase()}`);
-    
-    // Add animation for status change
-    card.style.transform = 'scale(1.02)';
-    setTimeout(() => {
-        card.style.transform = '';
-    }, 200);
-}
-
-function initializeFiltering() {
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const bookingCards = document.querySelectorAll('.travel-booking-card');
-    
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Update active filter button
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            
-            const filter = this.dataset.filter;
-            
-            // Filter booking cards
-            bookingCards.forEach(card => {
-                const cardType = card.dataset.type;
-                
-                if (filter === 'all') {
-                    card.classList.remove('filtered-out');
-                } else if (filter === cardType) {
-                    card.classList.remove('filtered-out');
-                } else {
-                    card.classList.add('filtered-out');
-                }
-            });
-            
-            // Update count display
-            updateFilterCounts();
-        });
-    });
-}
-
-function updateFilterCounts() {
-    const visibleCards = document.querySelectorAll('.travel-booking-card:not(.filtered-out)');
-    const visibleCount = visibleCards.length;
-    
-    // Update filter button badges if needed
-    // This could show counts like "Flights (3)", "Hotels (2)", etc.
-}
-
-function initializeModals() {
-    // Setup add travel booking modal
-    const addBtn = document.getElementById('add-travel-booking');
-    const addFirstBtn = document.getElementById('add-first-booking');
-    const addModal = document.getElementById('add-booking-modal');
-    const addForm = document.getElementById('add-booking-form');
-    
-    if (addBtn && addModal && addForm) {
-        addBtn.addEventListener('click', function() {
-            addModal.classList.add('active');
-            addForm.reset();
-            
-            // Focus on first input
-            const firstInput = addForm.querySelector('select[name="type"]');
-            if (firstInput) {
-                setTimeout(() => firstInput.focus(), 100);
-            }
-        });
-        
-        if (addFirstBtn) {
-            addFirstBtn.addEventListener('click', function() {
-                addModal.classList.add('active');
-                addForm.reset();
-            });
-        }
-        
-        addForm.addEventListener('submit', function(e) {
+    // Setup add travel buttons
+    const addButtons = document.querySelectorAll('.add-btn[onclick*="Flight"], .add-btn[onclick*="Hotel"], .add-btn[onclick*="Transport"]');
+    addButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
             e.preventDefault();
-            addTravelBooking();
+            const type = this.getAttribute('onclick').match(/\('(\w+)'\)/)?.[1] || 'flight';
+            openAddTravelModal(type);
         });
-    }
-    
-    // Setup delete confirmation modal
-    setupDeleteModal();
-    
-    // Setup modal close handlers
-    setupModalCloseHandlers();
+    });
 }
 
-function addTravelBooking() {
-    const form = document.getElementById('add-booking-form');
-    const formData = new FormData(form);
-    
-    const data = {
-        type: formData.get('type'),
-        provider: formData.get('provider') || '',
-        details: formData.get('details') || '',
-        date: formData.get('date') || null,
-        time: formData.get('time') || null,
-        confirmation: formData.get('confirmation') || '',
-        cost: parseFloat(formData.get('cost')) || 0,
-        status: formData.get('status') || 'Booked',
-        notes: formData.get('notes') || ''
-    };
-    
-    // Validate data
-    if (!data.type.trim()) {
-        utils.showNotification('Booking type is required', 'error');
-        return;
+function setupTravelCardEvents(card) {
+    // Edit button
+    const editBtn = card.querySelector('.edit-btn');
+    if (editBtn) {
+        editBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openEditTravelModal(card);
+        });
     }
-    
-    if (data.cost < 0) {
-        utils.showNotification('Cost must be positive', 'error');
-        return;
+
+    // Status toggle
+    const statusBadge = card.querySelector('.status-badge');
+    if (statusBadge) {
+        statusBadge.addEventListener('click', function(e) {
+            e.stopPropagation();
+            toggleTravelStatus(card);
+        });
     }
-    
-    // Show loading state
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-    submitBtn.disabled = true;
-    
-    // Add new travel booking
-    utils.ajax('/api/travel', {
+
+    // Confirmation number editing
+    const confirmationField = card.querySelector('[data-editable="confirmation"]');
+    if (confirmationField) {
+        confirmationField.addEventListener('click', function() {
+            startInlineEdit(this, 'text');
+        });
+    }
+
+    // Price editing
+    const priceField = card.querySelector('[data-editable="price"]');
+    if (priceField) {
+        priceField.addEventListener('click', function() {
+            startInlineEdit(this, 'number');
+        });
+    }
+}
+
+// Flight Tracking - FIXED
+function setupFlightTracking() {
+    // Setup flight status updates
+    const flightCards = document.querySelectorAll('.flight-card');
+    flightCards.forEach(card => {
+        const flightNumber = card.querySelector('.flight-number')?.textContent;
+        if (flightNumber) {
+            // You could integrate with a flight tracking API here
+            checkFlightStatus(flightNumber, card);
+        }
+    });
+
+    // Setup departure/arrival time editing
+    const timeFields = document.querySelectorAll('.flight-time[data-editable]');
+    timeFields.forEach(field => {
+        field.addEventListener('click', function() {
+            startTimeEdit(this);
+        });
+    });
+}
+
+function checkFlightStatus(flightNumber, card) {
+    // Placeholder for flight status checking
+    // In a real app, you'd call a flight tracking API
+    const statusElement = card.querySelector('.flight-status');
+    if (statusElement) {
+        // Simulate status check
+        setTimeout(() => {
+            const statuses = ['On Time', 'Delayed', 'Boarding', 'Departed'];
+            const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+            if (randomStatus !== statusElement.textContent.trim()) {
+                statusElement.textContent = randomStatus;
+                statusElement.className = `flight-status ${randomStatus.toLowerCase().replace(' ', '-')}`;
+
+                // Show notification for status changes
+                showTravelNotification(`Flight ${flightNumber} status updated: ${randomStatus}`, 'info');
+            }
+        }, 2000);
+    }
+}
+
+// Booking Management - FIXED
+function setupBookingManagement() {
+    // Setup booking confirmation tracking
+    const bookingFields = document.querySelectorAll('[data-booking-field]');
+    bookingFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            saveTravelField(this);
+        });
+    });
+
+    // Setup file upload for booking confirmations
+    setupBookingFileUpload();
+}
+
+function setupBookingFileUpload() {
+    const uploadButtons = document.querySelectorAll('.upload-confirmation-btn');
+    uploadButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.pdf,.jpg,.jpeg,.png';
+            input.onchange = function(e) {
+                uploadBookingConfirmation(e.target.files[0], btn.closest('.travel-card'));
+            };
+            input.click();
+        });
+    });
+}
+
+function uploadBookingConfirmation(file, travelCard) {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('confirmation', file);
+    formData.append('travel_id', travelCard.dataset.travelId);
+
+    const progressIndicator = showUploadProgress(file.name);
+
+    fetch('/api/travel/upload-confirmation', {
         method: 'POST',
-        data: data
+        body: formData
     })
-    .then(response => {
-        if (response.success) {
-            addTravelBookingToDOM(response.item);
-            updateTravelInsights();
-            document.getElementById('add-booking-modal').classList.remove('active');
-            utils.showNotification('Travel booking added successfully', 'success');
+    .then(response => response.json())
+    .then(data => {
+        hideUploadProgress(progressIndicator);
+
+        if (data.success) {
+            showTravelNotification('Confirmation uploaded successfully!', 'success');
+
+            // Add download link to card
+            addConfirmationLink(travelCard, data.filename, data.url);
         } else {
-            throw new Error(response.error || 'Failed to add travel booking');
+            showTravelNotification(data.error || 'Upload failed', 'error');
         }
     })
     .catch(error => {
-        utils.showNotification('Failed to add travel booking', 'error');
-    })
-    .finally(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        hideUploadProgress(progressIndicator);
+        console.error('Upload error:', error);
+        showTravelNotification('Upload failed. Please try again.', 'error');
     });
 }
 
-function addTravelBookingToDOM(booking) {
-    const bookingsGrid = document.getElementById('travel-bookings-grid');
-    const emptyState = bookingsGrid.querySelector('.empty-state');
-    
-    // Remove empty state if it exists
-    if (emptyState) {
-        emptyState.remove();
+// Editable Fields - FIXED
+function setupEditableTravelItems() {
+    const editableFields = document.querySelectorAll('[data-editable]');
+    editableFields.forEach(field => {
+        field.addEventListener('click', function() {
+            if (!this.classList.contains('editing')) {
+                const fieldType = this.dataset.editable;
+                let inputType = 'text';
+
+                if (fieldType === 'price') inputType = 'number';
+                if (fieldType === 'time') inputType = 'time';
+                if (fieldType === 'date') inputType = 'date';
+
+                startInlineEdit(this, inputType);
+            }
+        });
+    });
+}
+
+function startInlineEdit(element, inputType = 'text') {
+    const currentValue = element.textContent.trim().replace('$', '').replace(',', '');
+
+    element.classList.add('editing');
+
+    const input = document.createElement('input');
+    input.type = inputType;
+    input.value = currentValue;
+    input.className = 'inline-edit-input';
+
+    // Style the input
+    input.style.cssText = `
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid #d4af37;
+        border-radius: 4px;
+        padding: 4px 8px;
+        color: white;
+        font-size: inherit;
+        width: 100%;
+        max-width: 150px;
+    `;
+
+    element.innerHTML = '';
+    element.appendChild(input);
+    input.focus();
+    input.select();
+
+    function saveEdit() {
+        const newValue = input.value.trim();
+        element.classList.remove('editing');
+
+        // Format value based on type
+        let displayValue = newValue;
+        if (element.dataset.editable === 'price') {
+            displayValue = `$${parseFloat(newValue || 0).toLocaleString()}`;
+        }
+
+        element.textContent = displayValue;
+
+        // Save to backend
+        saveTravelField(element, newValue);
     }
-    
-    const newBookingHTML = createTravelBookingHTML(booking);
-    
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = newBookingHTML;
-    const newBookingCard = tempDiv.firstChild;
-    
-    newBookingCard.classList.add('new-travel-booking');
-    bookingsGrid.appendChild(newBookingCard);
-    
-    // Add to travel bookings array
-    travelBookings.push({
-        id: booking.id,
-        type: booking.type,
-        status: booking.status,
-        element: newBookingCard
+
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            saveEdit();
+        } else if (e.key === 'Escape') {
+            element.classList.remove('editing');
+            element.textContent = currentValue;
+        }
     });
-    
-    // Setup event listeners for new booking
-    setupBookingCards();
-    initializeInlineEditing();
-    
-    // Scroll to new booking
-    newBookingCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    
-    // Remove new booking class after animation
-    setTimeout(() => {
-        newBookingCard.classList.remove('new-travel-booking');
-    }, 1000);
 }
 
-function createTravelBookingHTML(booking) {
-    const typeIcon = getTypeIcon(booking.type);
-    const date = booking.date || '';
-    const time = booking.time || '';
-    const provider = booking.provider || '';
-    const details = booking.details || '';
-    const confirmation = booking.confirmation || '';
-    const notes = booking.notes || '';
-    
-    return `
-        <div class="travel-booking-card" data-booking-id="${booking.id}" data-type="${booking.type.toLowerCase()}">
-            <div class="booking-header">
-                <div class="booking-type-icon">
-                    <i class="fas fa-${typeIcon}"></i>
-                </div>
-                
-                <div class="booking-info">
-                    <h3 class="booking-type">
-                        <span class="editable-text" data-field="type">${booking.type}</span>
-                    </h3>
-                    <div class="booking-provider">
-                        <span class="editable-text" data-field="provider" data-placeholder="Provider name">${provider}</span>
-                    </div>
-                </div>
-                
-                <div class="booking-actions">
-                    <div class="action-menu">
-                        <button class="menu-toggle">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                        <div class="menu-dropdown">
-                            <button class="menu-item edit-booking">
-                                <i class="fas fa-edit"></i>
-                                Edit Details
-                            </button>
-                            <button class="menu-item delete-booking">
-                                <i class="fas fa-trash"></i>
-                                Remove
-                            </button>
-                        </div>
-                    </div>
-                </div>
+function startTimeEdit(element) {
+    const currentTime = element.textContent.trim();
+
+    element.classList.add('editing');
+
+    const input = document.createElement('input');
+    input.type = 'time';
+    input.value = convertTo24Hour(currentTime);
+    input.className = 'inline-edit-input';
+
+    input.style.cssText = `
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid #d4af37;
+        border-radius: 4px;
+        padding: 4px 8px;
+        color: white;
+        font-size: inherit;
+    `;
+
+    element.innerHTML = '';
+    element.appendChild(input);
+    input.focus();
+
+    function saveTimeEdit() {
+        const newTime = input.value;
+        element.classList.remove('editing');
+        element.textContent = convertTo12Hour(newTime);
+
+        saveTravelField(element, newTime);
+    }
+
+    input.addEventListener('blur', saveTimeEdit);
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            saveTimeEdit();
+        }
+    });
+}
+
+// Modal Management - FIXED
+function openAddTravelModal(type) {
+    let modal = document.getElementById(`add-${type}-modal`);
+
+    if (!modal) {
+        modal = createTravelModal(type, 'add');
+        document.body.appendChild(modal);
+    }
+
+    modal.style.display = 'flex';
+    modal.classList.add('modal-show');
+
+    // Focus first input
+    const firstInput = modal.querySelector('input, select');
+    if (firstInput) {
+        setTimeout(() => firstInput.focus(), 100);
+    }
+}
+
+function openEditTravelModal(travelCard) {
+    const travelType = getTravelType(travelCard);
+    let modal = document.getElementById(`edit-${travelType}-modal`);
+
+    if (!modal) {
+        modal = createTravelModal(travelType, 'edit');
+        document.body.appendChild(modal);
+    }
+
+    // Populate with current data
+    populateTravelModal(modal, travelCard);
+
+    modal.style.display = 'flex';
+    modal.classList.add('modal-show');
+}
+
+function createTravelModal(type, mode) {
+    const modal = document.createElement('div');
+    modal.id = `${mode}-${type}-modal`;
+    modal.className = 'modal-overlay';
+
+    const title = mode === 'add' ? `Add ${type}` : `Edit ${type}`;
+
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>${title}</h3>
+                <button class="modal-close" onclick="closeTravelModal('${modal.id}')">&times;</button>
             </div>
 
-            <div class="booking-content">
-                <div class="booking-details-section">
-                    <div class="details-header">
-                        <h4 class="details-title">
-                            <i class="fas fa-info-circle"></i>
-                            Booking Details
-                        </h4>
-                    </div>
-                    
-                    <div class="details-content">
-                        <div class="detail-field">
-                            <label class="field-label">Details:</label>
-                            <div class="editable-textarea" data-field="details" data-placeholder="Flight details, hotel room info, etc.">${details}</div>
-                        </div>
-                        
-                        <div class="detail-row">
-                            <div class="detail-field">
-                                <label class="field-label">Date:</label>
-                                <input type="date" class="date-input" data-field="date" value="${date}">
-                            </div>
-                            <div class="detail-field">
-                                <label class="field-label">Time:</label>
-                                <input type="time" class="time-input" data-field="time" value="${time}">
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <form class="modal-form" id="${mode}-${type}-form">
+                <input type="hidden" id="${mode}-${type}-id">
+                ${getTravelFormFields(type, mode)}
 
-                <div class="confirmation-section">
-                    <div class="confirmation-header">
-                        <h4 class="confirmation-title">
-                            <i class="fas fa-ticket-alt"></i>
-                            Confirmation
-                        </h4>
-                    </div>
-                    <div class="confirmation-content">
-                        <div class="confirmation-field">
-                            <label class="field-label">Confirmation #:</label>
-                            <div class="editable-text" data-field="confirmation" data-placeholder="Booking confirmation number">${confirmation}</div>
-                        </div>
-                    </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeTravelModal('${modal.id}')">Cancel</button>
+                    <button type="submit" class="btn-primary">${mode === 'add' ? 'Add' : 'Save'} ${type}</button>
                 </div>
-            </div>
+            </form>
+        </div>
+    `;
 
-            <div class="booking-footer">
-                <div class="cost-section">
-                    <div class="cost-label">Cost:</div>
-                    <div class="cost-amount">
-                        <span class="currency-symbol">$</span>
-                        <span class="editable-number" data-field="cost">${booking.cost.toFixed(2)}</span>
+    // Setup form submission
+    modal.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        handleTravelFormSubmit(e, type, mode);
+    });
+
+    return modal;
+}
+
+function getTravelFormFields(type, mode) {
+    const prefix = `${mode}-${type}`;
+
+    switch (type) {
+        case 'flight':
+            return `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Flight Number</label>
+                        <input type="text" id="${prefix}-number" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Route</label>
+                        <input type="text" id="${prefix}-route" placeholder="e.g., IAD - DEN" required>
                     </div>
                 </div>
-                
-                <div class="status-section">
-                    <select class="status-select" data-field="status">
-                        <option value="Booked" ${booking.status === 'Booked' ? 'selected' : ''}>✅ Booked</option>
-                        <option value="Pending" ${booking.status === 'Pending' ? 'selected' : ''}>⏳ Pending</option>
-                        <option value="Cancelled" ${booking.status === 'Cancelled' ? 'selected' : ''}>❌ Cancelled</option>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Departure</label>
+                        <input type="datetime-local" id="${prefix}-departure" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Arrival</label>
+                        <input type="datetime-local" id="${prefix}-arrival" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price</label>
+                        <input type="number" id="${prefix}-price" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="${prefix}-status">
+                            <option value="Booked">Booked</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Checked In">Checked In</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Confirmation Number</label>
+                    <input type="text" id="${prefix}-confirmation">
+                </div>
+            `;
+
+        case 'hotel':
+            return `
+                <div class="form-group">
+                    <label>Hotel Name</label>
+                    <input type="text" id="${prefix}-name" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Check-in</label>
+                        <input type="date" id="${prefix}-checkin" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Check-out</label>
+                        <input type="date" id="${prefix}-checkout" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price per Night</label>
+                        <input type="number" id="${prefix}-price" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="${prefix}-status">
+                            <option value="Reserved">Reserved</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Checked In">Checked In</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Confirmation Number</label>
+                    <input type="text" id="${prefix}-confirmation">
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea id="${prefix}-address" rows="2"></textarea>
+                </div>
+            `;
+
+        case 'transport':
+            return `
+                <div class="form-group">
+                    <label>Transport Type</label>
+                    <select id="${prefix}-type" required>
+                        <option value="Rental Car">Rental Car</option>
+                        <option value="Taxi">Taxi</option>
+                        <option value="Shuttle">Shuttle</option>
+                        <option value="Train">Train</option>
+                        <option value="Bus">Bus</option>
                     </select>
                 </div>
-                
-                <div class="last-updated">
-                    <i class="fas fa-clock"></i>
-                    <span>Just added</span>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Pickup Date</label>
+                        <input type="datetime-local" id="${prefix}-pickup" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Return Date</label>
+                        <input type="datetime-local" id="${prefix}-return">
+                    </div>
                 </div>
-            </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Price</label>
+                        <input type="number" id="${prefix}-price" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select id="${prefix}-status">
+                            <option value="Reserved">Reserved</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Picked Up">Picked Up</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Confirmation Number</label>
+                    <input type="text" id="${prefix}-confirmation">
+                </div>
+            `;
 
-            <div class="notes-section">
-                <div class="notes-header">
-                    <h4 class="notes-title">
-                        <i class="fas fa-sticky-note"></i>
-                        Notes
-                    </h4>
-                </div>
-                <div class="notes-content">
-                    <div class="editable-textarea" data-field="notes" data-placeholder="Add any additional notes about this booking...">${notes}</div>
-                </div>
-            </div>
+        default:
+            return '';
+    }
+}
+
+// Utility Functions - FIXED
+function getTravelType(card) {
+    if (card.classList.contains('flight-card')) return 'flight';
+    if (card.classList.contains('hotel-card')) return 'hotel';
+    if (card.classList.contains('transport-card')) return 'transport';
+    return 'flight';
+}
+
+function convertTo24Hour(time12h) {
+    const [time, modifier] = time12h.split(' ');
+    let [hours, minutes] = time.split(':');
+
+    if (hours === '12') {
+        hours = '00';
+    }
+
+    if (modifier === 'PM') {
+        hours = parseInt(hours, 10) + 12;
+    }
+
+    return `${hours}:${minutes}`;
+}
+
+function convertTo12Hour(time24h) {
+    const [hours, minutes] = time24h.split(':');
+    const hour = parseInt(hours, 10);
+    const modifier = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+
+    return `${displayHour}:${minutes} ${modifier}`;
+}
+
+function toggleTravelStatus(card) {
+    const statusBadge = card.querySelector('.status-badge');
+    const currentStatus = statusBadge.textContent.trim();
+
+    // Define status progression
+    const statusFlow = {
+        'Pending': 'Booked',
+        'Booked': 'Confirmed',
+        'Confirmed': 'Complete',
+        'Complete': 'Pending'
+    };
+
+    const newStatus = statusFlow[currentStatus] || 'Booked';
+
+    statusBadge.textContent = newStatus;
+    statusBadge.className = `status-badge ${newStatus.toLowerCase()}`;
+
+    // Save to backend
+    const travelId = card.dataset.travelId;
+    if (travelId) {
+        saveTravelField(statusBadge, newStatus);
+    }
+}
+
+function saveTravelField(element, value) {
+    const card = element.closest('.travel-card');
+    const travelId = card?.dataset.travelId;
+    const field = element.dataset.editable || 'status';
+
+    if (!travelId) return;
+
+    fetch(`/api/travel/${travelId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ field, value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to save travel field:', data.error);
+            showTravelNotification('Failed to save changes', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving travel field:', error);
+        showTravelNotification('Error saving changes', 'error');
+    });
+}
+
+function showTravelNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `travel-notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
         </div>
     `;
+
+    document.body.appendChild(notification);
+
+    setTimeout(() => notification.classList.add('show'), 10);
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
 }
 
-function getTypeIcon(type) {
-    switch (type.toLowerCase()) {
-        case 'flight': return 'plane';
-        case 'hotel': return 'bed';
-        case 'car rental': return 'car';
-        case 'train': return 'train';
-        default: return 'map-marker-alt';
-    }
-}
-
-function setupDeleteModal() {
-    const deleteModal = document.getElementById('delete-booking-modal');
-    const confirmBtn = document.getElementById('confirm-delete-booking');
-    
-    let bookingToDelete = null;
-    
-    window.showDeleteModal = function(bookingId, bookingType) {
-        bookingToDelete = bookingId;
-        deleteModal.classList.add('active');
-        
-        // Update modal content if needed
-        const modalBody = deleteModal.querySelector('.modal-body p');
-        if (modalBody) {
-            modalBody.textContent = `Are you sure you want to delete this ${bookingType} booking? This action cannot be undone.`;
-        }
-    };
-    
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function() {
-            if (bookingToDelete) {
-                deleteTravelBooking(bookingToDelete);
-            }
-        });
-    }
-}
-
-function deleteTravelBooking(bookingId) {
-    const bookingCard = document.querySelector(`[data-booking-id="${bookingId}"]`);
-    
-    if (bookingCard) {
-        bookingCard.classList.add('loading');
-        
-        utils.ajax(`/api/travel/${bookingId}`, {
-            method: 'DELETE'
-        })
-        .then(response => {
-            if (response.success) {
-                // Animate removal
-                bookingCard.style.transform = 'translateX(-100%)';
-                bookingCard.style.opacity = '0';
-                
-                setTimeout(() => {
-                    bookingCard.remove();
-                    
-                    // Remove from travel bookings array
-                    travelBookings = travelBookings.filter(b => b.id !== bookingId);
-                    
-                    updateTravelInsights();
-                    
-                    // Show empty state if no bookings left
-                    const remainingCards = document.querySelectorAll('.travel-booking-card');
-                    if (remainingCards.length === 0) {
-                        showEmptyState();
-                    }
-                }, 300);
-                
-                document.getElementById('delete-booking-modal').classList.remove('active');
-                utils.showNotification('Travel booking deleted successfully', 'success');
-            } else {
-                throw new Error(response.error || 'Failed to delete travel booking');
-            }
-        })
-        .catch(error => {
-            bookingCard.classList.remove('loading');
-            utils.showNotification('Failed to delete travel booking', 'error');
-        });
-    }
-}
-
-function showEmptyState() {
-    const bookingsGrid = document.getElementById('travel-bookings-grid');
-    const emptyStateHTML = `
-        <div class="empty-state">
-            <div class="empty-icon">
-                <i class="fas fa-plane"></i>
+function showUploadProgress(filename) {
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'upload-progress';
+    progressDiv.innerHTML = `
+        <div class="upload-item">
+            <span class="upload-filename">${filename}</span>
+            <div class="upload-progress-bar">
+                <div class="upload-progress-fill"></div>
             </div>
-            <h3>No Travel Bookings Yet</h3>
-            <p>Add your first travel booking to start planning your journey</p>
-            <button class="btn btn-primary" id="add-first-booking">
-                <i class="fas fa-plus"></i>
-                Add First Booking
-            </button>
+            <span class="upload-status">Uploading...</span>
         </div>
     `;
-    bookingsGrid.innerHTML = emptyStateHTML;
-    
-    // Re-initialize the add first booking button
-    initializeModals();
+
+    document.body.appendChild(progressDiv);
+    return progressDiv;
 }
 
-function updateTravelInsights() {
-    const bookingCards = document.querySelectorAll('.travel-booking-card');
-    
-    // Count different types of bookings
-    const insights = {
-        flights: 0,
-        hotels: 0,
-        transport: 0,
-        totalCost: 0
-    };
-    
-    bookingCards.forEach(card => {
-        const type = card.dataset.type;
-        const costElement = card.querySelector('.editable-number[data-field="cost"]');
-        const cost = costElement ? parseFloat(costElement.textContent) || 0 : 0;
-        
-        insights.totalCost += cost;
-        
-        switch (type) {
-            case 'flight':
-                insights.flights++;
-                break;
-            case 'hotel':
-                insights.hotels++;
-                break;
-            case 'car':
-            case 'train':
-                insights.transport++;
-                break;
-        }
-    });
-    
-    // Update insight displays
-    const insightNumbers = document.querySelectorAll('.insight-number');
-    if (insightNumbers.length >= 4) {
-        insightNumbers[0].textContent = insights.flights;
-        insightNumbers[1].textContent = insights.hotels;
-        insightNumbers[2].textContent = insights.transport;
-        insightNumbers[3].textContent = `$${insights.totalCost.toFixed(0)}`;
+function hideUploadProgress(progressIndicator) {
+    if (progressIndicator) {
+        const progressFill = progressIndicator.querySelector('.upload-progress-fill');
+        const statusText = progressIndicator.querySelector('.upload-status');
+
+        progressFill.style.width = '100%';
+        statusText.textContent = 'Complete!';
+
+        setTimeout(() => {
+            progressIndicator.remove();
+        }, 1500);
     }
 }
 
-function setupModalCloseHandlers() {
-    // Setup modal close buttons
-    const modalCloses = document.querySelectorAll('.modal-close, [data-modal]');
-    modalCloses.forEach(button => {
-        button.addEventListener('click', function() {
-            const modalId = this.dataset.modal;
-            if (modalId) {
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            }
-        });
-    });
-    
-    // Close modals on overlay click
-    const overlays = document.querySelectorAll('.glass-overlay');
-    overlays.forEach(overlay => {
-        overlay.addEventListener('click', function(e) {
-            if (e.target === overlay) {
-                overlay.classList.remove('active');
-            }
-        });
-    });
-    
-    // ESC key to close modals
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const activeModal = document.querySelector('.glass-overlay.active');
-            if (activeModal) {
-                activeModal.classList.remove('active');
-            }
-        }
-    });
-}
-
-function initializeDragAndDrop() {
-    // Add drag and drop functionality for reordering travel bookings
-    const bookingsGrid = document.getElementById('travel-bookings-grid');
-    
-    if (bookingsGrid) {
-        let draggedElement = null;
-        
-        bookingsGrid.addEventListener('dragstart', function(e) {
-            if (e.target.classList.contains('travel-booking-card')) {
-                draggedElement = e.target;
-                e.target.style.opacity = '0.5';
-            }
-        });
-        
-        bookingsGrid.addEventListener('dragend', function(e) {
-            if (e.target.classList.contains('travel-booking-card')) {
-                e.target.style.opacity = '';
-                draggedElement = null;
-            }
-        });
-        
-        bookingsGrid.addEventListener('dragover', function(e) {
-            e.preventDefault();
-        });
-        
-        bookingsGrid.addEventListener('drop', function(e) {
-            e.preventDefault();
-            
-            if (draggedElement && e.target.closest('.travel-booking-card')) {
-                const targetElement = e.target.closest('.travel-booking-card');
-                if (targetElement !== draggedElement) {
-                    const rect = targetElement.getBoundingClientRect();
-                    const midY = rect.top + rect.height / 2;
-                    
-                    if (e.clientY < midY) {
-                        bookingsGrid.insertBefore(draggedElement, targetElement);
-                    } else {
-                        bookingsGrid.insertBefore(draggedElement, targetElement.nextSibling);
-                    }
-                }
-            }
-        });
-        
-        // Make cards draggable
-        const bookingCards = bookingsGrid.querySelectorAll('.travel-booking-card');
-        bookingCards.forEach(card => {
-            card.draggable = true;
-        });
+function closeTravelModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.style.display = 'none';
+        modal.classList.remove('modal-show');
     }
 }
 
-function setupTravelAnimations() {
-    // Add entrance animations to booking cards
-    const bookingCards = document.querySelectorAll('.travel-booking-card');
-    bookingCards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
-    });
-    
-    // Add hover effects to insight cards
-    const insightItems = document.querySelectorAll('.insight-item');
-    insightItems.forEach(item => {
-        item.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-4px) scale(1.05)';
-        });
-        
-        item.addEventListener('mouseleave', function() {
-            this.style.transform = '';
-        });
-    });
-}
+// Global functions for onclick handlers
+window.openAddFlightModal = (type) => openAddTravelModal(type || 'flight');
+window.openAddHotelModal = () => openAddTravelModal('hotel');
+window.openAddTransportModal = () => openAddTravelModal('transport');
 
-function setupAutoSave() {
-    let autoSaveTimeout;
-    
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('editable-text') || 
-            e.target.classList.contains('editable-textarea') ||
-            e.target.classList.contains('editable-number')) {
-            
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = setTimeout(() => {
-                if (currentEditingElement === e.target) {
-                    saveEdit();
-                }
-            }, 3000); // Auto-save after 3 seconds of inactivity
-        }
-    });
-}
-
-function closeAllMenus() {
-    const activeMenus = document.querySelectorAll('.action-menu.active');
-    activeMenus.forEach(menu => {
-        menu.classList.remove('active');
-    });
-}
-
-function showEditIndicator(element) {
-    const indicator = document.createElement('div');
-    indicator.className = 'edit-indicator';
-    indicator.innerHTML = '<i class="fas fa-edit"></i>';
-    indicator.style.cssText = `
-        position: absolute;
-        top: -10px;
-        right: -10px;
-        background: var(--accent-gold);
-        color: var(--primary-dark);
-        border-radius: 50%;
-        width: 20px;
-        height: 20px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.7rem;
-        z-index: 10;
-    `;
-    element.style.position = 'relative';
-    element.appendChild(indicator);
-}
-
-function hideEditIndicator(element) {
-    const indicator = element.querySelector('.edit-indicator');
-    if (indicator) {
-        indicator.remove();
-    }
-}
-
-function showLoadingIndicator(element) {
-    element.classList.add('loading');
-    const indicator = document.createElement('div');
-    indicator.className = 'loading-indicator';
-    indicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    indicator.style.cssText = `
-        position: absolute;
-        top: 50%;
-        right: -25px;
-        transform: translateY(-50%);
-        color: var(--accent-gold);
-        z-index: 10;
-    `;
-    element.style.position = 'relative';
-    element.appendChild(indicator);
-}
-
-function hideLoadingIndicator(element) {
-    element.classList.remove('loading');
-    const indicator = element.querySelector('.loading-indicator');
-    if (indicator) {
-        indicator.remove();
-    }
-}
-
-function showSuccessIndicator(element) {
-    element.classList.add('success');
-    const indicator = document.createElement('div');
-    indicator.className = 'success-indicator';
-    indicator.innerHTML = '<i class="fas fa-check"></i>';
-    indicator.style.cssText = `
-        position: absolute;
-        top: 50%;
-        right: -25px;
-        transform: translateY(-50%);
-        color: var(--success);
-        z-index: 10;
-    `;
-    element.style.position = 'relative';
-    element.appendChild(indicator);
-    
-    setTimeout(() => {
-        element.classList.remove('success');
-        if (indicator.parentNode) {
-            indicator.remove();
-        }
-    }, 2000);
-}
-
-function showErrorIndicator(element) {
-    element.classList.add('error');
-    setTimeout(() => {
-        element.classList.remove('error');
-    }, 2000);
-}
-
-// Export functions for external use
-window.travelPageUtils = {
-    updateTravelInsights,
-    addTravelBookingToDOM,
-    deleteTravelBooking,
-    showDeleteModal
+// Export functions for global access
+window.TravelManager = {
+    initializeMap: setupFlightMap,
+    toggleStatus: toggleTravelStatus,
+    uploadConfirmation: uploadBookingConfirmation,
+    refreshData: initializeTravelPage
 };

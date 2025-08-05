@@ -1,688 +1,818 @@
-// Ring Page JavaScript with Photo Management and Inline Editing
+// Ring JavaScript functionality - FIXED VERSION
+// Photo management, gallery features, and ring details editing
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeRingPage();
-    initializeInlineEditing();
-    initializePhotoManagement();
-    initializeLightbox();
-    setupAutoSave();
+    setupPhotoManagement();
+    setupRingDetails();
+    setupGallery();
 });
 
-let currentEditingElement = null;
-let originalValue = null;
-let uploadedPhotos = [];
-let currentPhotoIndex = 0;
-
 function initializeRingPage() {
-    // Initialize ring-specific features
-    setupRingAnimations();
-    loadExistingPhotos();
-    setupEditModeHighlights();
-    
-    // Add sparkle effects to ring elements
-    addSparkleEffects();
+    console.log('Initializing ring page...');
+
+    // Setup all ring functionality
+    setupFileUpload();
+    setupPhotoGrid();
+    setupEditableFields();
+    setupProgressTracking();
+
+    console.log('Ring page initialized successfully');
 }
 
-function initializeInlineEditing() {
-    const editableElements = document.querySelectorAll('.editable-text, .editable-textarea');
-    
-    editableElements.forEach(element => {
-        element.addEventListener('click', function() {
-            if (currentEditingElement && currentEditingElement !== this) {
-                cancelEdit();
-            }
-            startEdit(this);
-        });
-        
-        element.addEventListener('blur', function() {
-            if (this === currentEditingElement) {
-                setTimeout(() => {
-                    if (document.activeElement !== this) {
-                        saveEdit();
-                    }
-                }, 100);
-            }
-        });
-        
-        element.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey && !this.classList.contains('editable-textarea')) {
-                e.preventDefault();
-                saveEdit();
-            } else if (e.key === 'Escape') {
-                cancelEdit();
-            }
-        });
-        
-        // Add hover effects
-        element.addEventListener('mouseenter', function() {
-            if (!this.classList.contains('editing')) {
-                this.style.background = 'rgba(212, 175, 55, 0.1)';
-            }
-        });
-        
-        element.addEventListener('mouseleave', function() {
-            if (!this.classList.contains('editing')) {
-                this.style.background = '';
-            }
-        });
-    });
-}
+// Photo Upload System - FIXED
+function setupPhotoManagement() {
+    // Setup drag and drop
+    setupDragAndDrop();
 
-function startEdit(element) {
-    if (currentEditingElement) return;
-    
-    currentEditingElement = element;
-    originalValue = element.textContent.trim();
-    
-    element.classList.add('editing');
-    element.style.background = '';
-    
-    if (element.classList.contains('editable-textarea')) {
-        // For textarea elements, make them editable
-        element.contentEditable = true;
-        element.style.minHeight = '100px';
-    } else {
-        // For text elements
-        element.contentEditable = true;
-    }
-    
-    element.focus();
-    
-    // Select all text
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    
-    // Add edit indicator
-    showEditIndicator(element);
-}
+    // Setup file input
+    const fileInput = document.getElementById('photo-upload-input');
+    const uploadBtn = document.querySelector('.upload-photo-btn');
 
-function saveEdit() {
-    if (!currentEditingElement) return;
-    
-    const newValue = currentEditingElement.textContent.trim();
-    const field = currentEditingElement.dataset.field;
-    
-    if (newValue !== originalValue) {
-        // Validate input
-        if (!newValue && !currentEditingElement.dataset.placeholder) {
-            utils.showNotification('Field cannot be empty', 'error');
-            cancelEdit();
-            return;
-        }
-        
-        // Show loading indicator
-        showLoadingIndicator(currentEditingElement);
-        
-        // Prepare update data
-        const updateData = { [field]: newValue };
-        
-        // Send update to server
-        updateRing(updateData)
-            .then(() => {
-                hideLoadingIndicator(currentEditingElement);
-                showSuccessIndicator(currentEditingElement);
-                utils.showNotification('Ring details updated successfully', 'success');
-            })
-            .catch(error => {
-                hideLoadingIndicator(currentEditingElement);
-                showErrorIndicator(currentEditingElement);
-                currentEditingElement.textContent = originalValue;
-                utils.showNotification('Failed to update ring details', 'error');
-            });
-    }
-    
-    endEdit();
-}
-
-function cancelEdit() {
-    if (!currentEditingElement) return;
-    
-    currentEditingElement.textContent = originalValue;
-    endEdit();
-}
-
-function endEdit() {
-    if (currentEditingElement) {
-        currentEditingElement.classList.remove('editing');
-        currentEditingElement.contentEditable = false;
-        currentEditingElement.style.minHeight = '';
-        
-        hideEditIndicator(currentEditingElement);
-        
-        currentEditingElement = null;
-        originalValue = null;
-    }
-}
-
-function updateRing(data) {
-    return utils.ajax('/api/ring', {
-        method: 'PUT',
-        data: data
-    });
-}
-
-function initializePhotoManagement() {
-    const uploadBtn = document.getElementById('upload-photo-btn');
-    const photoInput = document.getElementById('photo-upload');
-    const photoGallery = document.getElementById('photo-gallery');
-    
-    if (uploadBtn && photoInput) {
+    if (uploadBtn && fileInput) {
         uploadBtn.addEventListener('click', function() {
-            photoInput.click();
+            fileInput.click();
         });
-        
-        photoInput.addEventListener('change', function(e) {
-            const files = Array.from(e.target.files);
-            if (files.length > 0) {
-                uploadPhotos(files);
-            }
-        });
-    }
-    
-    // Setup drag and drop for photo upload
-    if (photoGallery) {
-        setupDragAndDrop(photoGallery);
-    }
-}
 
-function setupDragAndDrop(element) {
-    element.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        element.classList.add('drag-over');
-    });
-    
-    element.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        if (!element.contains(e.relatedTarget)) {
-            element.classList.remove('drag-over');
-        }
-    });
-    
-    element.addEventListener('drop', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        element.classList.remove('drag-over');
-        
-        const files = Array.from(e.dataTransfer.files).filter(file => 
-            file.type.startsWith('image/')
-        );
-        
-        if (files.length > 0) {
-            uploadPhotos(files);
-        }
-    });
-}
-
-function uploadPhotos(files) {
-    const progressModal = document.getElementById('upload-progress');
-    const progressBar = document.getElementById('upload-progress-fill');
-    const statusText = document.getElementById('upload-status');
-    
-    if (progressModal) {
-        progressModal.classList.add('active');
+        fileInput.addEventListener('change', handleFileUpload);
     }
-    
-    const totalFiles = files.length;
-    let uploadedCount = 0;
-    
-    // Upload files one by one
-    files.forEach((file, index) => {
-        const formData = new FormData();
-        formData.append('photo', file);
-        
-        if (statusText) {
-            statusText.textContent = `Uploading ${index + 1} of ${totalFiles}...`;
-        }
-        
-        fetch('/api/ring/upload', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                addPhotoToGallery(data.photo_url, data.filename);
-                uploadedCount++;
-                
-                // Update progress
-                const progress = (uploadedCount / totalFiles) * 100;
-                if (progressBar) {
-                    progressBar.style.width = `${progress}%`;
-                }
-                
-                if (uploadedCount === totalFiles) {
-                    if (statusText) {
-                        statusText.textContent = 'Upload complete!';
-                    }
-                    
-                    setTimeout(() => {
-                        if (progressModal) {
-                            progressModal.classList.remove('active');
-                        }
-                        utils.showNotification(`${totalFiles} photo(s) uploaded successfully`, 'success');
-                    }, 1000);
-                }
+
+    // Setup add photo buttons
+    const addPhotoButtons = document.querySelectorAll('.add-photo-btn, .upload-btn');
+    addPhotoButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            if (fileInput) {
+                fileInput.click();
             } else {
-                throw new Error(data.error || 'Upload failed');
-            }
-        })
-        .catch(error => {
-            console.error('Upload error:', error);
-            utils.showNotification(`Failed to upload ${file.name}`, 'error');
-            
-            uploadedCount++;
-            if (uploadedCount === totalFiles && progressModal) {
-                progressModal.classList.remove('active');
+                openPhotoUploadModal();
             }
         });
     });
 }
 
-function addPhotoToGallery(photoUrl, filename) {
-    const photoGallery = document.getElementById('photo-gallery');
-    const placeholder = photoGallery.querySelector('.photo-placeholder');
-    
-    // Remove placeholder if it exists
-    if (placeholder) {
-        placeholder.remove();
+function setupDragAndDrop() {
+    const dropZones = document.querySelectorAll('.photo-grid, .upload-area, .ring-photos');
+
+    dropZones.forEach(zone => {
+        zone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.add('drag-over');
+        });
+
+        zone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('drag-over');
+        });
+
+        zone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.classList.remove('drag-over');
+
+            const files = Array.from(e.dataTransfer.files);
+            const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+            if (imageFiles.length > 0) {
+                handleMultipleFiles(imageFiles);
+            }
+        });
+    });
+}
+
+function handleFileUpload(e) {
+    const files = Array.from(e.target.files);
+    const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+    if (imageFiles.length > 0) {
+        handleMultipleFiles(imageFiles);
     }
-    
-    // Create photo grid if it doesn't exist
-    let photoGrid = photoGallery.querySelector('.photo-grid');
-    if (!photoGrid) {
-        photoGrid = document.createElement('div');
-        photoGrid.className = 'photo-grid';
-        photoGallery.appendChild(photoGrid);
+
+    // Reset input
+    e.target.value = '';
+}
+
+function handleMultipleFiles(files) {
+    files.forEach(file => {
+        uploadPhoto(file);
+    });
+}
+
+// Photo Upload Function - FIXED
+function uploadPhoto(file) {
+    if (!file.type.startsWith('image/')) {
+        showNotification('Please upload only image files', 'error');
+        return;
     }
-    
-    // Create photo item
+
+    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        showNotification('File size must be less than 10MB', 'error');
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('photo', file);
+    formData.append('category', getCurrentPhotoCategory());
+
+    // Show upload progress
+    const progressIndicator = showUploadProgress(file.name);
+
+    fetch('/api/ring/upload-photo', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        hideUploadProgress(progressIndicator);
+
+        if (data.success) {
+            addPhotoToGrid(data.photo);
+            showNotification('Photo uploaded successfully!', 'success');
+        } else {
+            showNotification(data.error || 'Upload failed', 'error');
+        }
+    })
+    .catch(error => {
+        hideUploadProgress(progressIndicator);
+        console.error('Upload error:', error);
+        showNotification('Upload failed. Please try again.', 'error');
+    });
+}
+
+function getCurrentPhotoCategory() {
+    const activeTab = document.querySelector('.category-tab.active');
+    return activeTab ? activeTab.dataset.category : 'general';
+}
+
+function showUploadProgress(filename) {
+    const progressDiv = document.createElement('div');
+    progressDiv.className = 'upload-progress';
+    progressDiv.innerHTML = `
+        <div class="upload-item">
+            <span class="upload-filename">${filename}</span>
+            <div class="upload-progress-bar">
+                <div class="upload-progress-fill"></div>
+            </div>
+            <span class="upload-status">Uploading...</span>
+        </div>
+    `;
+
+    const container = document.querySelector('.ring-container') || document.body;
+    container.appendChild(progressDiv);
+
+    // Animate progress
+    const progressFill = progressDiv.querySelector('.upload-progress-fill');
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 30;
+        if (progress > 90) progress = 90;
+        progressFill.style.width = `${progress}%`;
+    }, 200);
+
+    progressDiv.interval = interval;
+    return progressDiv;
+}
+
+function hideUploadProgress(progressIndicator) {
+    if (progressIndicator) {
+        clearInterval(progressIndicator.interval);
+
+        const progressFill = progressIndicator.querySelector('.upload-progress-fill');
+        const statusText = progressIndicator.querySelector('.upload-status');
+
+        progressFill.style.width = '100%';
+        statusText.textContent = 'Complete!';
+
+        setTimeout(() => {
+            progressIndicator.remove();
+        }, 1500);
+    }
+}
+
+// Photo Grid Management - FIXED
+function setupPhotoGrid() {
+    // Setup category tabs
+    const categoryTabs = document.querySelectorAll('.category-tab');
+    categoryTabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            switchCategory(this.dataset.category);
+        });
+    });
+
+    // Setup existing photo interactions
+    const photos = document.querySelectorAll('.photo-item');
+    photos.forEach(photo => {
+        setupPhotoInteractions(photo);
+    });
+}
+
+function switchCategory(category) {
+    // Update active tab
+    document.querySelectorAll('.category-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    const activeTab = document.querySelector(`[data-category="${category}"]`);
+    if (activeTab) {
+        activeTab.classList.add('active');
+    }
+
+    // Filter photos
+    const photos = document.querySelectorAll('.photo-item');
+    photos.forEach(photo => {
+        const photoCategory = photo.dataset.category || 'general';
+        photo.style.display = (category === 'all' || photoCategory === category) ? 'block' : 'none';
+    });
+
+    // Update upload category
+    const uploadAreas = document.querySelectorAll('.upload-area');
+    uploadAreas.forEach(area => {
+        area.dataset.category = category;
+    });
+}
+
+function addPhotoToGrid(photoData) {
+    const photoGrid = document.querySelector('.photo-grid');
+    if (!photoGrid) return;
+
     const photoItem = document.createElement('div');
     photoItem.className = 'photo-item';
+    photoItem.dataset.category = photoData.category || 'general';
+    photoItem.dataset.photoId = photoData.id;
+
     photoItem.innerHTML = `
-        <img src="${photoUrl}" alt="Ring Photo" loading="lazy">
-        <div class="photo-overlay">
-            <div class="photo-actions">
-                <button class="photo-action" onclick="viewPhoto('${photoUrl}', ${uploadedPhotos.length})">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="photo-action" onclick="setPrimaryPhoto('${photoUrl}')">
-                    <i class="fas fa-star"></i>
-                </button>
-                <button class="photo-action" onclick="deletePhoto('${filename}', this)">
-                    <i class="fas fa-trash"></i>
-                </button>
+        <div class="photo-container">
+            <img src="${photoData.url}" alt="${photoData.filename}" loading="lazy">
+            <div class="photo-overlay">
+                <div class="photo-actions">
+                    <button class="photo-action-btn view-btn" title="View Full Size">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button class="photo-action-btn edit-btn" title="Edit Details">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="photo-action-btn star-btn" title="Set as Primary">
+                        <i class="fas fa-star"></i>
+                    </button>
+                    <button class="photo-action-btn delete-btn" title="Delete Photo">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="photo-info">
+            <span class="photo-filename">${photoData.filename}</span>
+            <span class="photo-category">${photoData.category}</span>
+        </div>
+    `;
+
+    // Insert before upload areas
+    const uploadArea = photoGrid.querySelector('.upload-area');
+    if (uploadArea) {
+        photoGrid.insertBefore(photoItem, uploadArea);
+    } else {
+        photoGrid.appendChild(photoItem);
+    }
+
+    // Setup interactions for new photo
+    setupPhotoInteractions(photoItem);
+}
+
+function setupPhotoInteractions(photoItem) {
+    const viewBtn = photoItem.querySelector('.view-btn');
+    const editBtn = photoItem.querySelector('.edit-btn');
+    const starBtn = photoItem.querySelector('.star-btn');
+    const deleteBtn = photoItem.querySelector('.delete-btn');
+
+    if (viewBtn) {
+        viewBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openPhotoLightbox(photoItem);
+        });
+    }
+
+    if (editBtn) {
+        editBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            openPhotoEditModal(photoItem);
+        });
+    }
+
+    if (starBtn) {
+        starBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            setPrimaryPhoto(photoItem);
+        });
+    }
+
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            deletePhoto(photoItem);
+        });
+    }
+
+    // Click to view
+    photoItem.addEventListener('click', function() {
+        openPhotoLightbox(this);
+    });
+}
+
+// Photo Actions - FIXED
+function openPhotoLightbox(photoItem) {
+    const img = photoItem.querySelector('img');
+    if (!img) return;
+
+    const lightbox = document.createElement('div');
+    lightbox.className = 'photo-lightbox';
+    lightbox.innerHTML = `
+        <div class="lightbox-overlay">
+            <div class="lightbox-content">
+                <button class="lightbox-close">&times;</button>
+                <img src="${img.src}" alt="${img.alt}">
+                <div class="lightbox-info">
+                    <h4>${photoItem.querySelector('.photo-filename').textContent}</h4>
+                    <span class="lightbox-category">${photoItem.querySelector('.photo-category').textContent}</span>
+                </div>
+                <div class="lightbox-actions">
+                    <button class="lightbox-action-btn" onclick="setPrimaryPhoto(this.closest('.photo-lightbox').photoItem)">
+                        <i class="fas fa-star"></i> Set as Primary
+                    </button>
+                    <button class="lightbox-action-btn" onclick="downloadPhoto('${img.src}', '${img.alt}')">
+                        <i class="fas fa-download"></i> Download
+                    </button>
+                    <button class="lightbox-action-btn delete" onclick="deletePhoto(this.closest('.photo-lightbox').photoItem)">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
             </div>
         </div>
     `;
-    
-    // Add entrance animation
-    photoItem.style.opacity = '0';
-    photoItem.style.transform = 'scale(0.9)';
-    photoGrid.appendChild(photoItem);
-    
-    // Animate in
-    requestAnimationFrame(() => {
-        photoItem.style.transition = 'all 0.3s ease';
-        photoItem.style.opacity = '1';
-        photoItem.style.transform = 'scale(1)';
-    });
-    
-    // Add to uploaded photos array
-    uploadedPhotos.push({
-        url: photoUrl,
-        filename: filename,
-        isPrimary: uploadedPhotos.length === 0
-    });
-    
-    // Add click handler for lightbox
-    photoItem.addEventListener('click', function() {
-        viewPhoto(photoUrl, uploadedPhotos.length - 1);
-    });
-}
 
-function loadExistingPhotos() {
-    // This would typically load existing photos from the server
-    // For now, we'll check if there are any existing photos in the gallery
-    const existingPhotos = document.querySelectorAll('.photo-item img');
-    existingPhotos.forEach((img, index) => {
-        uploadedPhotos.push({
-            url: img.src,
-            filename: img.alt,
-            isPrimary: index === 0
-        });
-    });
-}
+    lightbox.photoItem = photoItem;
+    document.body.appendChild(lightbox);
 
-function initializeLightbox() {
-    const lightbox = document.getElementById('photo-lightbox');
-    const lightboxImage = document.getElementById('lightbox-image');
-    const prevBtn = document.getElementById('prev-photo');
-    const nextBtn = document.getElementById('next-photo');
-    const deleteBtn = document.getElementById('delete-photo');
-    const setPrimaryBtn = document.getElementById('set-primary');
-    const closeBtn = lightbox.querySelector('.lightbox-close');
-    
-    if (prevBtn) {
-        prevBtn.addEventListener('click', function() {
-            currentPhotoIndex = (currentPhotoIndex - 1 + uploadedPhotos.length) % uploadedPhotos.length;
-            updateLightboxImage();
-        });
-    }
-    
-    if (nextBtn) {
-        nextBtn.addEventListener('click', function() {
-            currentPhotoIndex = (currentPhotoIndex + 1) % uploadedPhotos.length;
-            updateLightboxImage();
-        });
-    }
-    
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', function() {
-            const currentPhoto = uploadedPhotos[currentPhotoIndex];
-            if (currentPhoto) {
-                deletePhoto(currentPhoto.filename);
-            }
-        });
-    }
-    
-    if (setPrimaryBtn) {
-        setPrimaryBtn.addEventListener('click', function() {
-            const currentPhoto = uploadedPhotos[currentPhotoIndex];
-            if (currentPhoto) {
-                setPrimaryPhoto(currentPhoto.url);
-            }
-        });
-    }
-    
-    if (closeBtn) {
-        closeBtn.addEventListener('click', function() {
-            lightbox.classList.remove('active');
-        });
-    }
-    
+    // Close handlers
+    lightbox.querySelector('.lightbox-close').addEventListener('click', function() {
+        closeLightbox(lightbox);
+    });
+
+    lightbox.querySelector('.lightbox-overlay').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeLightbox(lightbox);
+        }
+    });
+
     // Keyboard navigation
     document.addEventListener('keydown', function(e) {
-        if (lightbox.classList.contains('active')) {
-            if (e.key === 'ArrowLeft') {
-                prevBtn && prevBtn.click();
+        if (lightbox.parentNode) {
+            if (e.key === 'Escape') {
+                closeLightbox(lightbox);
+            } else if (e.key === 'ArrowLeft') {
+                navigatePhoto(photoItem, -1);
+                closeLightbox(lightbox);
             } else if (e.key === 'ArrowRight') {
-                nextBtn && nextBtn.click();
-            } else if (e.key === 'Escape') {
-                closeBtn && closeBtn.click();
+                navigatePhoto(photoItem, 1);
+                closeLightbox(lightbox);
             }
         }
     });
+
+    // Show lightbox
+    setTimeout(() => lightbox.classList.add('show'), 10);
 }
 
-function viewPhoto(photoUrl, index) {
-    const lightbox = document.getElementById('photo-lightbox');
-    currentPhotoIndex = index;
-    
-    updateLightboxImage();
-    lightbox.classList.add('active');
+function closeLightbox(lightbox) {
+    lightbox.classList.remove('show');
+    setTimeout(() => lightbox.remove(), 300);
 }
 
-function updateLightboxImage() {
-    const lightboxImage = document.getElementById('lightbox-image');
-    const currentPhoto = uploadedPhotos[currentPhotoIndex];
-    
-    if (lightboxImage && currentPhoto) {
-        lightboxImage.src = currentPhoto.url;
-        
-        // Update navigation buttons
-        const prevBtn = document.getElementById('prev-photo');
-        const nextBtn = document.getElementById('next-photo');
-        
-        if (prevBtn) prevBtn.disabled = uploadedPhotos.length <= 1;
-        if (nextBtn) nextBtn.disabled = uploadedPhotos.length <= 1;
+function navigatePhoto(currentPhoto, direction) {
+    const photos = Array.from(document.querySelectorAll('.photo-item:not([style*="display: none"])'));
+    const currentIndex = photos.indexOf(currentPhoto);
+    const nextIndex = currentIndex + direction;
+
+    if (nextIndex >= 0 && nextIndex < photos.length) {
+        openPhotoLightbox(photos[nextIndex]);
     }
 }
 
-function setPrimaryPhoto(photoUrl) {
-    // Update primary photo status
-    uploadedPhotos.forEach(photo => {
-        photo.isPrimary = photo.url === photoUrl;
+function setPrimaryPhoto(photoItem) {
+    const photoId = photoItem.dataset.photoId;
+
+    // Update UI immediately
+    document.querySelectorAll('.photo-item').forEach(item => {
+        item.classList.remove('primary');
+        const starBtn = item.querySelector('.star-btn i');
+        if (starBtn) {
+            starBtn.className = 'fas fa-star';
+        }
     });
-    
-    // Update UI to show primary photo
-    const photoItems = document.querySelectorAll('.photo-item');
-    photoItems.forEach(item => {
-        const img = item.querySelector('img');
-        if (img && img.src === photoUrl) {
-            item.classList.add('primary-photo');
-            // Add primary indicator
-            if (!item.querySelector('.primary-indicator')) {
-                const indicator = document.createElement('div');
-                indicator.className = 'primary-indicator';
-                indicator.innerHTML = '<i class="fas fa-star"></i>';
-                item.appendChild(indicator);
-            }
+
+    photoItem.classList.add('primary');
+    const starBtn = photoItem.querySelector('.star-btn i');
+    if (starBtn) {
+        starBtn.className = 'fas fa-star filled';
+    }
+
+    // Update dashboard primary photo
+    updateDashboardPhoto(photoItem.querySelector('img').src);
+
+    // Save to backend
+    fetch(`/api/ring/set-primary/${photoId}`, {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Primary photo updated!', 'success');
         } else {
-            item.classList.remove('primary-photo');
-            const indicator = item.querySelector('.primary-indicator');
-            if (indicator) {
-                indicator.remove();
+            showNotification('Failed to update primary photo', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error setting primary photo:', error);
+        showNotification('Error updating primary photo', 'error');
+    });
+}
+
+function deletePhoto(photoItem) {
+    if (!confirm('Are you sure you want to delete this photo?')) {
+        return;
+    }
+
+    const photoId = photoItem.dataset.photoId;
+
+    // Fade out
+    photoItem.style.opacity = '0.5';
+
+    fetch(`/api/ring/delete-photo/${photoId}`, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            photoItem.remove();
+            showNotification('Photo deleted successfully', 'success');
+        } else {
+            photoItem.style.opacity = '1';
+            showNotification('Failed to delete photo', 'error');
+        }
+    })
+    .catch(error => {
+        photoItem.style.opacity = '1';
+        console.error('Error deleting photo:', error);
+        showNotification('Error deleting photo', 'error');
+    });
+}
+
+function downloadPhoto(src, filename) {
+    const a = document.createElement('a');
+    a.href = src;
+    a.download = filename || 'ring-photo.jpg';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Ring Details Editing - FIXED
+function setupRingDetails() {
+    // Setup editable fields
+    const editableFields = document.querySelectorAll('[data-editable]');
+    editableFields.forEach(field => {
+        field.addEventListener('click', function() {
+            if (!this.classList.contains('editing')) {
+                startRingDetailEdit(this);
             }
+        });
+    });
+
+    // Setup status updates
+    const statusSelect = document.getElementById('ring-status');
+    if (statusSelect) {
+        statusSelect.addEventListener('change', function() {
+            updateRingStatus(this.value);
+        });
+    }
+}
+
+function startRingDetailEdit(element) {
+    const currentValue = element.textContent.trim();
+    const fieldType = element.dataset.editable;
+
+    element.classList.add('editing');
+
+    let input;
+    if (fieldType === 'textarea') {
+        input = document.createElement('textarea');
+        input.rows = 3;
+    } else {
+        input = document.createElement('input');
+        input.type = 'text';
+    }
+
+    input.value = currentValue;
+    input.className = 'inline-edit-input';
+
+    // Style the input
+    input.style.cssText = `
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid #d4af37;
+        border-radius: 4px;
+        padding: 8px 12px;
+        color: white;
+        font-size: inherit;
+        font-family: inherit;
+        width: 100%;
+        resize: vertical;
+    `;
+
+    element.innerHTML = '';
+    element.appendChild(input);
+    input.focus();
+    input.select();
+
+    function saveEdit() {
+        const newValue = input.value.trim();
+        element.classList.remove('editing');
+        element.textContent = newValue;
+
+        // Save to backend
+        saveRingDetail(element.dataset.field, newValue);
+    }
+
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            saveEdit();
+        } else if (e.key === 'Escape') {
+            element.classList.remove('editing');
+            element.textContent = currentValue;
         }
     });
-    
-    utils.showNotification('Primary photo updated', 'success');
 }
 
-function deletePhoto(filename, buttonElement) {
-    if (confirm('Are you sure you want to delete this photo?')) {
-        const photoItem = buttonElement ? buttonElement.closest('.photo-item') : null;
-        
-        if (photoItem) {
-            photoItem.style.opacity = '0';
-            photoItem.style.transform = 'scale(0.9)';
-            
-            setTimeout(() => {
-                photoItem.remove();
-                
-                // Remove from uploaded photos array
-                uploadedPhotos = uploadedPhotos.filter(photo => photo.filename !== filename);
-                
-                // If no photos left, show placeholder
-                const photoGrid = document.querySelector('.photo-grid');
-                if (photoGrid && photoGrid.children.length === 0) {
-                    showPhotoPlaceholder();
-                }
-                
-                utils.showNotification('Photo deleted', 'success');
-            }, 300);
+function saveRingDetail(field, value) {
+    fetch('/api/ring/update-detail', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ field, value })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Detail updated successfully', 'success');
+        } else {
+            showNotification('Failed to update detail', 'error');
         }
+    })
+    .catch(error => {
+        console.error('Error saving ring detail:', error);
+        showNotification('Error saving detail', 'error');
+    });
+}
+
+// Gallery Setup - FIXED
+function setupGallery() {
+    // Setup category filtering
+    const categoryButtons = document.querySelectorAll('.gallery-category-btn');
+    categoryButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const category = this.dataset.category;
+            filterGallery(category);
+
+            // Update active button
+            categoryButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Setup photo sorting
+    const sortSelect = document.getElementById('photo-sort');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            sortPhotos(this.value);
+        });
     }
 }
 
-function showPhotoPlaceholder() {
-    const photoGallery = document.getElementById('photo-gallery');
-    const photoGrid = photoGallery.querySelector('.photo-grid');
-    
-    if (photoGrid) {
-        photoGrid.remove();
+function filterGallery(category) {
+    const photos = document.querySelectorAll('.photo-item');
+    photos.forEach(photo => {
+        const photoCategory = photo.dataset.category || 'general';
+        const shouldShow = category === 'all' || photoCategory === category;
+
+        photo.style.display = shouldShow ? 'block' : 'none';
+
+        if (shouldShow) {
+            photo.classList.add('fade-in');
+        }
+    });
+}
+
+function sortPhotos(sortBy) {
+    const photoGrid = document.querySelector('.photo-grid');
+    const photos = Array.from(photoGrid.querySelectorAll('.photo-item'));
+    const uploadAreas = Array.from(photoGrid.querySelectorAll('.upload-area'));
+
+    photos.sort((a, b) => {
+        switch (sortBy) {
+            case 'date-new':
+                return new Date(b.dataset.date || 0) - new Date(a.dataset.date || 0);
+            case 'date-old':
+                return new Date(a.dataset.date || 0) - new Date(b.dataset.date || 0);
+            case 'name':
+                return a.querySelector('.photo-filename').textContent.localeCompare(
+                    b.querySelector('.photo-filename').textContent
+                );
+            case 'category':
+                return (a.dataset.category || '').localeCompare(b.dataset.category || '');
+            default:
+                return 0;
+        }
+    });
+
+    // Clear and re-add in sorted order
+    photoGrid.innerHTML = '';
+    photos.forEach(photo => photoGrid.appendChild(photo));
+    uploadAreas.forEach(area => photoGrid.appendChild(area));
+}
+
+// Utility Functions - FIXED
+function updateDashboardPhoto(photoSrc) {
+    // Update ring photo on dashboard if it exists
+    const dashboardRingPhoto = document.querySelector('.dashboard-ring-photo');
+    if (dashboardRingPhoto) {
+        dashboardRingPhoto.src = photoSrc;
     }
-    
-    const placeholder = document.createElement('div');
-    placeholder.className = 'photo-placeholder';
-    placeholder.innerHTML = `
-        <div class="placeholder-content">
-            <i class="fas fa-camera"></i>
-            <h3>No Photos Yet</h3>
-            <p>Upload photos of your ring to create a beautiful gallery</p>
-            <button class="btn btn-primary" onclick="document.getElementById('photo-upload').click()">
-                <i class="fas fa-plus"></i>
-                Add First Photo
-            </button>
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
         </div>
     `;
-    
-    photoGallery.appendChild(placeholder);
-}
 
-function setupRingAnimations() {
-    // Add sparkle animation to ring title
-    const ringTitle = document.querySelector('.ring-title i');
-    if (ringTitle) {
-        setInterval(() => {
-            ringTitle.style.transform = 'scale(1.1) rotate(10deg)';
-            ringTitle.style.filter = 'brightness(1.3)';
-            
-            setTimeout(() => {
-                ringTitle.style.transform = 'scale(1) rotate(0deg)';
-                ringTitle.style.filter = 'brightness(1)';
-            }, 300);
-        }, 3000);
-    }
-    
-    // Add hover effects to spec cards
-    const specCards = document.querySelectorAll('.spec-card');
-    specCards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
-        
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-6px) scale(1.02)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(-4px) scale(1)';
-        });
-    });
-}
+    document.body.appendChild(notification);
 
-function addSparkleEffects() {
-    const ringHero = document.querySelector('.ring-hero');
-    
-    if (ringHero) {
-        setInterval(() => {
-            createSparkle(ringHero);
-        }, 2000);
-    }
-}
-
-function createSparkle(container) {
-    const sparkle = document.createElement('div');
-    sparkle.innerHTML = '✨';
-    sparkle.style.cssText = `
-        position: absolute;
-        font-size: ${Math.random() * 12 + 8}px;
-        left: ${Math.random() * 100}%;
-        top: ${Math.random() * 100}%;
-        animation: sparkle 2s ease-out forwards;
-        pointer-events: none;
-        z-index: 3;
-    `;
-    
-    container.appendChild(sparkle);
-    
+    setTimeout(() => notification.classList.add('show'), 10);
     setTimeout(() => {
-        if (sparkle.parentNode) {
-            sparkle.remove();
-        }
-    }, 2000);
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
 }
 
-function setupEditModeHighlights() {
-    const editableElements = document.querySelectorAll('.editable-text, .editable-textarea');
-    
-    // Add edit mode toggle
-    const toggleEditMode = () => {
-        const isEditMode = document.body.classList.contains('edit-mode');
-        
-        if (isEditMode) {
-            document.body.classList.remove('edit-mode');
-            editableElements.forEach(el => el.classList.remove('edit-highlight'));
-            utils.showNotification('Edit mode disabled', 'info');
-        } else {
-            document.body.classList.add('edit-mode');
-            editableElements.forEach(el => el.classList.add('edit-highlight'));
-            utils.showNotification('Edit mode enabled - click any field to edit', 'info');
-        }
-    };
-    
-    // Add keyboard shortcut for edit mode
-    document.addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 'e') {
+function openPhotoUploadModal() {
+    let modal = document.getElementById('photo-upload-modal');
+
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'photo-upload-modal';
+        modal.className = 'modal-overlay';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Upload Ring Photos</h3>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="upload-drop-zone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag & drop photos here or click to browse</p>
+                        <input type="file" id="modal-file-input" multiple accept="image/*" style="display: none;">
+                        <button type="button" class="btn-primary" onclick="document.getElementById('modal-file-input').click()">
+                            Choose Photos
+                        </button>
+                    </div>
+                    <div class="upload-options">
+                        <label>Category:</label>
+                        <select id="upload-category">
+                            <option value="general">General</option>
+                            <option value="inspiration">Inspiration</option>
+                            <option value="progress">Progress</option>
+                            <option value="final">Final Ring</option>
+                            <option value="packaging">Packaging</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Setup modal events
+        modal.querySelector('.modal-close').addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+
+        modal.querySelector('#modal-file-input').addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            handleMultipleFiles(files);
+            modal.style.display = 'none';
+        });
+
+        // Setup drag and drop for modal
+        const dropZone = modal.querySelector('.upload-drop-zone');
+        dropZone.addEventListener('dragover', function(e) {
             e.preventDefault();
-            toggleEditMode();
+            this.classList.add('drag-over');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+
+            const files = Array.from(e.dataTransfer.files);
+            const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+            if (imageFiles.length > 0) {
+                handleMultipleFiles(imageFiles);
+                modal.style.display = 'none';
+            }
+        });
+    }
+
+    modal.style.display = 'flex';
+}
+
+// Progress Tracking - FIXED
+function setupProgressTracking() {
+    const progressItems = document.querySelectorAll('.progress-item');
+    progressItems.forEach(item => {
+        const checkbox = item.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+            checkbox.addEventListener('change', function() {
+                updateProgressItem(item, this.checked);
+            });
         }
     });
 }
 
-function showEditIndicator(element) {
-    const indicator = document.createElement('div');
-    indicator.className = 'edit-indicator';
-    indicator.innerHTML = '<i class="fas fa-edit"></i>';
-    element.appendChild(indicator);
-}
+function updateProgressItem(item, completed) {
+    const progressId = item.dataset.progressId;
 
-function hideEditIndicator(element) {
-    const indicator = element.querySelector('.edit-indicator');
-    if (indicator) {
-        indicator.remove();
+    item.classList.toggle('completed', completed);
+
+    // Update progress bar
+    updateOverallProgress();
+
+    // Save to backend
+    if (progressId) {
+        fetch(`/api/ring/update-progress/${progressId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ completed })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Failed to update progress:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error updating progress:', error);
+        });
     }
 }
 
-function showLoadingIndicator(element) {
-    element.classList.add('loading');
-    const indicator = document.createElement('div');
-    indicator.className = 'loading-indicator';
-    indicator.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-    element.appendChild(indicator);
-}
+function updateOverallProgress() {
+    const progressItems = document.querySelectorAll('.progress-item');
+    const completedItems = document.querySelectorAll('.progress-item.completed');
 
-function hideLoadingIndicator(element) {
-    element.classList.remove('loading');
-    const indicator = element.querySelector('.loading-indicator');
-    if (indicator) {
-        indicator.remove();
+    const progress = progressItems.length > 0 ? (completedItems.length / progressItems.length) * 100 : 0;
+
+    const progressBar = document.querySelector('.ring-progress-fill');
+    const progressText = document.querySelector('.ring-progress-text');
+
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+    }
+
+    if (progressText) {
+        progressText.textContent = `${Math.round(progress)}% Complete`;
     }
 }
 
-function showSuccessIndicator(element) {
-    element.classList.add('success');
-    setTimeout(() => {
-        element.classList.remove('success');
-    }, 2000);
-}
-
-function showErrorIndicator(element) {
-    element.classList.add('error');
-    setTimeout(() => {
-        element.classList.remove('error');
-    }, 2000);
-}
-
-function setupAutoSave() {
-    let autoSaveTimeout;
-    
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('editable-text') || 
-            e.target.classList.contains('editable-textarea')) {
-            
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = setTimeout(() => {
-                if (currentEditingElement === e.target) {
-                    saveEdit();
-                }
-            }, 3000); // Auto-save after 3 seconds of inactivity
-        }
-    });
-}
-
-// Export functions for external use
-window.ringPageUtils = {
-    viewPhoto,
-    setPrimaryPhoto,
-    deletePhoto,
-    uploadPhotos,
-    updateRing
+// Export functions for global access
+window.RingManager = {
+    uploadPhoto: uploadPhoto,
+    setPrimary: setPrimaryPhoto,
+    deletePhoto: deletePhoto,
+    openUploadModal: openPhotoUploadModal,
+    refreshGallery: setupPhotoGrid
 };

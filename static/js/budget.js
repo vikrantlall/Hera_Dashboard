@@ -1,718 +1,562 @@
-// Budget Page JavaScript with Complete AJAX Editing
+// Budget JavaScript functionality - FIXED VERSION
+// Budget management, inline editing, and summary calculations
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeBudgetPage();
-    initializeInlineEditing();
-    initializeModals();
-    initializeDragAndDrop();
+    initializeBudget();
+    setupBudgetCards();
+    setupBudgetModals();
     updateBudgetSummary();
 });
 
-let currentEditingElement = null;
-let originalValue = null;
+function initializeBudget() {
+    console.log('Initializing budget page...');
 
-function initializeBudgetPage() {
-    // Add event listeners for budget items
-    setupBudgetItemListeners();
+    // Setup event listeners for all budget interactions
+    setupInlineEditing();
+    setupStatusToggling();
     setupAddBudgetForm();
-    setupDeleteConfirmation();
-    
-    // Initialize tooltips and animations
-    initializeBudgetAnimations();
-    
-    // Auto-save functionality
-    setupAutoSave();
+
+    // Calculate and display summary
+    updateBudgetSummary();
+    updateBudgetProgress();
 }
 
-function setupBudgetItemListeners() {
-    const budgetItems = document.querySelectorAll('.budget-item');
-    
-    budgetItems.forEach(item => {
-        const itemId = item.dataset.itemId;
-        
-        // Status select change
-        const statusSelect = item.querySelector('.status-select');
-        if (statusSelect) {
-            statusSelect.addEventListener('change', function() {
-                updateBudgetItem(itemId, { status: this.value });
-                updateProgressBar(item, this.value);
-            });
+// Budget Summary Calculations - FIXED
+function updateBudgetSummary() {
+    const budgetItems = document.querySelectorAll('.budget-card');
+    let totalBudget = 0;
+    let totalSaved = 0;
+    let totalRemaining = 0;
+
+    budgetItems.forEach(card => {
+        const budgetAmount = parseFloat(card.dataset.budget || '0');
+        const savedAmount = parseFloat(card.dataset.saved || '0');
+
+        totalBudget += budgetAmount;
+        totalSaved += savedAmount;
+    });
+
+    totalRemaining = totalBudget - totalSaved;
+    const progress = totalBudget > 0 ? (totalSaved / totalBudget) * 100 : 0;
+
+    // Update summary cards
+    updateSummaryCard('total-budget', totalBudget);
+    updateSummaryCard('total-saved', totalSaved);
+    updateSummaryCard('total-remaining', totalRemaining);
+
+    // Update progress bar
+    const progressBar = document.querySelector('.budget-progress-fill');
+    const progressText = document.querySelector('.progress-percentage');
+
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+    }
+
+    if (progressText) {
+        progressText.textContent = `${Math.round(progress)}%`;
+    }
+
+    console.log(`Budget Summary - Total: $${totalBudget}, Saved: $${totalSaved}, Remaining: $${totalRemaining}`);
+}
+
+function updateSummaryCard(cardId, amount) {
+    const card = document.getElementById(cardId);
+    if (card) {
+        const amountElement = card.querySelector('.summary-amount');
+        if (amountElement) {
+            amountElement.textContent = `$${amount.toLocaleString()}`;
         }
-        
-        // Menu toggle
-        const menuToggle = item.querySelector('.menu-toggle');
-        const menu = item.querySelector('.item-menu');
-        if (menuToggle && menu) {
-            menuToggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                closeAllMenus();
-                menu.classList.toggle('active');
-            });
-        }
-        
-        // Edit button
-        const editBtn = item.querySelector('.edit-item');
+    }
+}
+
+// Budget Cards Setup - FIXED
+function setupBudgetCards() {
+    const budgetCards = document.querySelectorAll('.budget-card');
+
+    budgetCards.forEach(card => {
+        // Add hover effects for edit buttons
+        card.addEventListener('mouseenter', function() {
+            const editBtn = this.querySelector('.edit-btn');
+            if (editBtn) {
+                editBtn.style.opacity = '1';
+            }
+        });
+
+        card.addEventListener('mouseleave', function() {
+            const editBtn = this.querySelector('.edit-btn');
+            if (editBtn) {
+                editBtn.style.opacity = '0';
+            }
+        });
+
+        // Setup edit button click
+        const editBtn = card.querySelector('.edit-btn');
         if (editBtn) {
-            editBtn.addEventListener('click', function() {
-                enableEditMode(item);
-                menu.classList.remove('active');
+            editBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                openEditBudgetModal(card);
             });
         }
-        
-        // Delete button
-        const deleteBtn = item.querySelector('.delete-item');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', function() {
-                showDeleteModal(itemId, item.querySelector('.item-category .editable-text').textContent);
-                menu.classList.remove('active');
+
+        // Setup status toggle
+        const statusBadge = card.querySelector('.status-badge');
+        if (statusBadge) {
+            statusBadge.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleBudgetStatus(card);
             });
         }
     });
-    
-    // Close menus when clicking outside
-    document.addEventListener('click', closeAllMenus);
 }
 
-function initializeInlineEditing() {
-    const editableElements = document.querySelectorAll('.editable-text, .editable-number, .editable-emoji');
-    
+// Inline Editing Setup - FIXED
+function setupInlineEditing() {
+    const editableElements = document.querySelectorAll('[data-editable]');
+
     editableElements.forEach(element => {
         element.addEventListener('click', function() {
-            if (currentEditingElement && currentEditingElement !== this) {
-                cancelEdit();
-            }
-            startEdit(this);
-        });
-        
-        element.addEventListener('blur', function() {
-            if (this === currentEditingElement) {
-                saveEdit();
-            }
-        });
-        
-        element.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveEdit();
-            } else if (e.key === 'Escape') {
-                cancelEdit();
+            if (!this.classList.contains('editing')) {
+                startInlineEdit(this);
             }
         });
     });
 }
 
-function startEdit(element) {
-    if (currentEditingElement) return;
-    
-    currentEditingElement = element;
-    originalValue = element.textContent.trim();
-    
+function startInlineEdit(element) {
+    const currentValue = element.textContent.replace('$', '').replace(',', '');
+    const fieldType = element.dataset.editable;
+
     element.classList.add('editing');
-    element.contentEditable = true;
-    element.focus();
-    
-    // Select all text
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-    
-    // Show edit controls
-    const budgetItem = element.closest('.budget-item');
-    const editControls = budgetItem.querySelector('.edit-controls');
-    if (editControls) {
-        editControls.style.display = 'flex';
-        
-        // Setup save/cancel buttons
-        const saveBtn = editControls.querySelector('.save-btn');
-        const cancelBtn = editControls.querySelector('.cancel-btn');
-        
-        saveBtn.onclick = saveEdit;
-        cancelBtn.onclick = cancelEdit;
-    }
-}
 
-function saveEdit() {
-    if (!currentEditingElement) return;
-    
-    const newValue = currentEditingElement.textContent.trim();
-    const field = currentEditingElement.dataset.field;
-    const budgetItem = currentEditingElement.closest('.budget-item');
-    const itemId = budgetItem.dataset.itemId;
-    
-    if (newValue !== originalValue && newValue !== '') {
-        // Validate input
-        if (field === 'amount') {
-            const numValue = parseFloat(newValue);
-            if (isNaN(numValue) || numValue < 0) {
-                utils.showNotification('Please enter a valid amount', 'error');
-                cancelEdit();
-                return;
-            }
-        }
-        
-        // Show loading state
-        budgetItem.classList.add('saving');
-        
-        // Prepare update data
-        const updateData = {};
-        if (field === 'amount') {
-            updateData[field] = parseFloat(newValue);
-        } else {
-            updateData[field] = newValue;
-        }
-        
-        // Send update to server
-        updateBudgetItem(itemId, updateData)
-            .then(() => {
-                budgetItem.classList.remove('saving');
-                budgetItem.classList.add('saved');
-                setTimeout(() => budgetItem.classList.remove('saved'), 2000);
-                
-                // Update summary if amount changed
-                if (field === 'amount') {
-                    updateBudgetSummary();
-                }
-                
-                utils.showNotification('Budget item updated successfully', 'success');
-            })
-            .catch(error => {
-                budgetItem.classList.remove('saving');
-                budgetItem.classList.add('error');
-                setTimeout(() => budgetItem.classList.remove('error'), 2000);
-                
-                currentEditingElement.textContent = originalValue;
-                utils.showNotification('Failed to update budget item', 'error');
-            });
-    }
-    
-    endEdit();
-}
+    const input = document.createElement('input');
+    input.type = fieldType === 'amount' ? 'number' : 'text';
+    input.value = currentValue;
+    input.className = 'inline-edit-input';
 
-function cancelEdit() {
-    if (!currentEditingElement) return;
-    
-    currentEditingElement.textContent = originalValue;
-    endEdit();
-}
-
-function endEdit() {
-    if (currentEditingElement) {
-        currentEditingElement.classList.remove('editing');
-        currentEditingElement.contentEditable = false;
-        
-        const budgetItem = currentEditingElement.closest('.budget-item');
-        const editControls = budgetItem.querySelector('.edit-controls');
-        if (editControls) {
-            editControls.style.display = 'none';
-        }
-        
-        currentEditingElement = null;
-        originalValue = null;
-    }
-}
-
-function updateBudgetItem(itemId, data) {
-    return utils.ajax(`/api/budget/${itemId}`, {
-        method: 'PUT',
-        data: data
-    });
-}
-
-function enableEditMode(budgetItem) {
-    const editableElements = budgetItem.querySelectorAll('.editable-text, .editable-number, .editable-emoji');
-    editableElements.forEach(element => {
-        element.classList.add('edit-mode-highlight');
-    });
-    
-    setTimeout(() => {
-        editableElements.forEach(element => {
-            element.classList.remove('edit-mode-highlight');
-        });
-    }, 2000);
-    
-    utils.showNotification('Click any field to edit', 'info');
-}
-
-function updateProgressBar(budgetItem, status) {
-    const progressBar = budgetItem.querySelector('.progress-fill');
-    if (progressBar) {
-        progressBar.className = 'progress-fill';
-        
-        if (status === 'Paid') {
-            progressBar.classList.add('completed');
-            progressBar.style.width = '100%';
-        } else if (status === 'Partial') {
-            progressBar.classList.add('partial');
-            progressBar.style.width = '50%';
-        } else {
-            progressBar.classList.add('outstanding');
-            progressBar.style.width = '10%';
-        }
-    }
-}
-
-function setupAddBudgetForm() {
-    const addBtn = document.getElementById('add-budget-item');
-    const modal = document.getElementById('add-item-modal');
-    const form = document.getElementById('add-item-form');
-    
-    if (addBtn && modal && form) {
-        addBtn.addEventListener('click', function() {
-            modal.classList.add('active');
-            form.reset();
-            
-            // Focus on first input
-            const firstInput = form.querySelector('input[name="category"]');
-            if (firstInput) {
-                setTimeout(() => firstInput.focus(), 100);
-            }
-        });
-        
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(form);
-            const data = {
-                category: formData.get('category'),
-                amount: parseFloat(formData.get('amount')) || 0,
-                status: formData.get('status'),
-                emoji: formData.get('emoji') || '💰',
-                notes: formData.get('notes') || ''
-            };
-            
-            // Validate data
-            if (!data.category.trim()) {
-                utils.showNotification('Category name is required', 'error');
-                return;
-            }
-            
-            if (data.amount < 0) {
-                utils.showNotification('Amount must be positive', 'error');
-                return;
-            }
-            
-            // Show loading state
-            const submitBtn = form.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
-            submitBtn.disabled = true;
-            
-            // Add new budget item
-            utils.ajax('/api/budget', {
-                method: 'POST',
-                data: data
-            })
-            .then(response => {
-                if (response.success) {
-                    addBudgetItemToDOM(response.item);
-                    updateBudgetSummary();
-                    modal.classList.remove('active');
-                    utils.showNotification('Budget category added successfully', 'success');
-                } else {
-                    throw new Error(response.error || 'Failed to add budget item');
-                }
-            })
-            .catch(error => {
-                utils.showNotification('Failed to add budget category', 'error');
-            })
-            .finally(() => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            });
-        });
-    }
-}
-
-function addBudgetItemToDOM(item) {
-    const budgetList = document.getElementById('budget-items-list');
-    const newItemHTML = createBudgetItemHTML(item);
-    
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = newItemHTML;
-    const newItem = tempDiv.firstChild;
-    
-    newItem.classList.add('new-budget-item');
-    budgetList.appendChild(newItem);
-    
-    // Setup event listeners for new item
-    setupBudgetItemListeners();
-    
-    // Scroll to new item
-    newItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    
-    // Remove new item class after animation
-    setTimeout(() => {
-        newItem.classList.remove('new-budget-item');
-    }, 1000);
-}
-
-function createBudgetItemHTML(item) {
-    return `
-        <div class="budget-item" data-item-id="${item.id}">
-            <div class="budget-item-content">
-                <div class="item-emoji">
-                    <span class="editable-emoji" data-field="emoji">${item.emoji}</span>
-                </div>
-                
-                <div class="item-details">
-                    <div class="item-header">
-                        <h3 class="item-category">
-                            <span class="editable-text" data-field="category">${item.category}</span>
-                        </h3>
-                        <div class="item-status">
-                            <select class="status-select" data-field="status">
-                                <option value="Outstanding" ${item.status === 'Outstanding' ? 'selected' : ''}>Outstanding</option>
-                                <option value="Paid" ${item.status === 'Paid' ? 'selected' : ''}>Paid</option>
-                                <option value="Partial" ${item.status === 'Partial' ? 'selected' : ''}>Partial</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="item-amount">
-                        <span class="currency-symbol">$</span>
-                        <span class="editable-number" data-field="amount">${item.amount.toFixed(2)}</span>
-                    </div>
-                    
-                    <div class="item-notes">
-                        <span class="editable-text" data-field="notes" data-placeholder="Add notes...">${item.notes}</span>
-                    </div>
-                </div>
-                
-                <div class="item-actions">
-                    <div class="edit-controls" style="display: none;">
-                        <button class="btn btn-sm btn-success save-btn">
-                            <i class="fas fa-check"></i>
-                        </button>
-                        <button class="btn btn-sm btn-secondary cancel-btn">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="item-menu">
-                        <button class="menu-toggle">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                        <div class="menu-dropdown">
-                            <button class="menu-item edit-item">
-                                <i class="fas fa-edit"></i>
-                                Edit
-                            </button>
-                            <button class="menu-item delete-item">
-                                <i class="fas fa-trash"></i>
-                                Delete
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="budget-item-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill ${getProgressClass(item.status)}" 
-                         style="width: ${getProgressWidth(item.status)}%;"></div>
-                </div>
-            </div>
-        </div>
+    // Style the input
+    input.style.cssText = `
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid #d4af37;
+        border-radius: 4px;
+        padding: 4px 8px;
+        color: white;
+        font-size: inherit;
+        width: 100%;
+        max-width: 120px;
     `;
-}
 
-function getProgressClass(status) {
-    switch (status) {
-        case 'Paid': return 'completed';
-        case 'Partial': return 'partial';
-        default: return 'outstanding';
-    }
-}
+    element.innerHTML = '';
+    element.appendChild(input);
+    input.focus();
+    input.select();
 
-function getProgressWidth(status) {
-    switch (status) {
-        case 'Paid': return 100;
-        case 'Partial': return 50;
-        default: return 10;
-    }
-}
+    // Save on Enter or blur
+    function saveEdit() {
+        const newValue = input.value;
+        element.classList.remove('editing');
 
-function setupDeleteConfirmation() {
-    const deleteModal = document.getElementById('delete-modal');
-    const confirmBtn = document.getElementById('confirm-delete');
-    
-    let itemToDelete = null;
-    
-    window.showDeleteModal = function(itemId, categoryName) {
-        itemToDelete = itemId;
-        deleteModal.classList.add('active');
-        
-        // Update modal content
-        const modalContent = deleteModal.querySelector('.modal-content p');
-        if (modalContent) {
-            modalContent.innerHTML = `Are you sure you want to delete the <strong>${categoryName}</strong> budget category? This action cannot be undone.`;
-        }
-    };
-    
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function() {
-            if (itemToDelete) {
-                deleteBudgetItem(itemToDelete);
+        if (fieldType === 'amount') {
+            element.textContent = `$${parseFloat(newValue || 0).toLocaleString()}`;
+            // Update data attribute for calculations
+            const card = element.closest('.budget-card');
+            if (element.dataset.editable === 'budget') {
+                card.dataset.budget = newValue;
+            } else if (element.dataset.editable === 'saved') {
+                card.dataset.saved = newValue;
             }
-        });
+        } else {
+            element.textContent = newValue;
+        }
+
+        // Save to backend
+        saveBudgetEdit(element, newValue);
+
+        // Update summary
+        updateBudgetSummary();
     }
+
+    input.addEventListener('blur', saveEdit);
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            saveEdit();
+        } else if (e.key === 'Escape') {
+            element.classList.remove('editing');
+            element.textContent = fieldType === 'amount' ? `$${currentValue}` : currentValue;
+        }
+    });
 }
 
-function deleteBudgetItem(itemId) {
-    const budgetItem = document.querySelector(`[data-item-id="${itemId}"]`);
-    
-    if (budgetItem) {
-        budgetItem.classList.add('loading');
-        
-        utils.ajax(`/api/budget/${itemId}`, {
-            method: 'DELETE'
+// Status Toggling - FIXED
+function toggleBudgetStatus(card) {
+    const statusBadge = card.querySelector('.status-badge');
+    const currentStatus = statusBadge.textContent.trim();
+    const newStatus = currentStatus === 'Paid' ? 'Outstanding' : 'Paid';
+
+    statusBadge.textContent = newStatus;
+    statusBadge.className = `status-badge ${newStatus.toLowerCase()}`;
+
+    // If marking as paid, auto-update saved amount to budget amount
+    if (newStatus === 'Paid') {
+        const budgetAmount = card.dataset.budget || '0';
+        const savedElement = card.querySelector('[data-editable="saved"]');
+        if (savedElement) {
+            savedElement.textContent = `$${parseFloat(budgetAmount).toLocaleString()}`;
+            card.dataset.saved = budgetAmount;
+        }
+    }
+
+    // Save to backend
+    const itemId = card.dataset.itemId;
+    if (itemId) {
+        fetch(`/api/budget/${itemId}/toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
         })
-        .then(response => {
-            if (response.success) {
-                // Animate removal
-                budgetItem.style.transform = 'translateX(-100%)';
-                budgetItem.style.opacity = '0';
-                
-                setTimeout(() => {
-                    budgetItem.remove();
-                    updateBudgetSummary();
-                }, 300);
-                
-                document.getElementById('delete-modal').classList.remove('active');
-                utils.showNotification('Budget category deleted successfully', 'success');
-            } else {
-                throw new Error(response.error || 'Failed to delete budget item');
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Failed to toggle status:', data.error);
+                // Revert on error
+                statusBadge.textContent = currentStatus;
+                statusBadge.className = `status-badge ${currentStatus.toLowerCase()}`;
             }
         })
         .catch(error => {
-            budgetItem.classList.remove('loading');
-            utils.showNotification('Failed to delete budget category', 'error');
+            console.error('Error toggling status:', error);
         });
     }
+
+    updateBudgetSummary();
 }
 
-function updateBudgetSummary() {
-    const budgetItems = document.querySelectorAll('.budget-item');
-    let total = 0;
-    let paid = 0;
-    let remaining = 0;
-    
-    budgetItems.forEach(item => {
-        const amountElement = item.querySelector('.editable-number[data-field="amount"]');
-        const statusSelect = item.querySelector('.status-select');
-        
-        if (amountElement && statusSelect) {
-            const amount = parseFloat(amountElement.textContent) || 0;
-            total += amount;
-            
-            if (statusSelect.value === 'Paid') {
-                paid += amount;
-            } else {
-                remaining += amount;
-            }
-        }
-    });
-    
-    // Update summary displays
-    const totalDisplay = document.getElementById('total-budget');
-    const paidDisplay = document.getElementById('total-paid');
-    const remainingDisplay = document.getElementById('total-remaining');
-    const progressDisplay = document.getElementById('budget-progress');
-    
-    if (totalDisplay) totalDisplay.textContent = `$${total.toFixed(2)}`;
-    if (paidDisplay) paidDisplay.textContent = `$${paid.toFixed(2)}`;
-    if (remainingDisplay) remainingDisplay.textContent = `$${remaining.toFixed(2)}`;
-    if (progressDisplay) {
-        const progress = total > 0 ? (paid / total * 100) : 0;
-        progressDisplay.textContent = `${progress.toFixed(1)}%`;
+// Modal Management - FIXED
+function setupBudgetModals() {
+    // Add Budget Modal
+    const addBudgetBtn = document.querySelector('.add-budget-btn');
+    if (addBudgetBtn) {
+        addBudgetBtn.addEventListener('click', openAddBudgetModal);
     }
-    
-    // Update breakdown section
-    updateCategoryBreakdown();
-}
 
-function updateCategoryBreakdown() {
-    const breakdown = document.getElementById('category-breakdown');
-    if (!breakdown) return;
-    
-    const budgetItems = document.querySelectorAll('.budget-item');
-    let total = 0;
-    
-    // Calculate total first
-    budgetItems.forEach(item => {
-        const amountElement = item.querySelector('.editable-number[data-field="amount"]');
-        if (amountElement) {
-            total += parseFloat(amountElement.textContent) || 0;
+    // Close modal handlers
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal-overlay')) {
+            closeAllModals();
         }
     });
-    
-    // Clear and rebuild breakdown
-    breakdown.innerHTML = '';
-    
-    budgetItems.forEach(item => {
-        const categoryElement = item.querySelector('.editable-text[data-field="category"]');
-        const amountElement = item.querySelector('.editable-number[data-field="amount"]');
-        const emojiElement = item.querySelector('.editable-emoji[data-field="emoji"]');
-        
-        if (categoryElement && amountElement) {
-            const category = categoryElement.textContent;
-            const amount = parseFloat(amountElement.textContent) || 0;
-            const emoji = emojiElement ? emojiElement.textContent : '💰';
-            const percentage = total > 0 ? (amount / total * 100) : 0;
-            
-            const breakdownItem = document.createElement('div');
-            breakdownItem.className = 'breakdown-item';
-            breakdownItem.innerHTML = `
-                <div class="breakdown-info">
-                    <span class="breakdown-emoji">${emoji}</span>
-                    <span class="breakdown-category">${category}</span>
-                </div>
-                <div class="breakdown-amount">$${amount.toFixed(2)}</div>
-                <div class="breakdown-percentage">${percentage.toFixed(1)}%</div>
-            `;
-            
-            breakdown.appendChild(breakdownItem);
-        }
-    });
-}
 
-function initializeModals() {
-    // Setup modal close buttons
-    const modalCloses = document.querySelectorAll('.modal-close, [data-modal]');
-    modalCloses.forEach(button => {
-        button.addEventListener('click', function() {
-            const modalId = this.dataset.modal;
-            if (modalId) {
-                const modal = document.getElementById(modalId);
-                if (modal) {
-                    modal.classList.remove('active');
-                }
-            }
-        });
-    });
-    
-    // Close modals on overlay click
-    const overlays = document.querySelectorAll('.glass-overlay');
-    overlays.forEach(overlay => {
-        overlay.addEventListener('click', function(e) {
-            if (e.target === overlay) {
-                overlay.classList.remove('active');
-            }
-        });
-    });
-    
-    // ESC key to close modals
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            const activeModal = document.querySelector('.glass-overlay.active');
-            if (activeModal) {
-                activeModal.classList.remove('active');
-            }
+            closeAllModals();
         }
     });
 }
 
-function initializeDragAndDrop() {
-    // Add drag and drop functionality for reordering budget items
-    const budgetList = document.getElementById('budget-items-list');
-    
-    if (budgetList) {
-        let draggedElement = null;
-        
-        budgetList.addEventListener('dragstart', function(e) {
-            if (e.target.classList.contains('budget-item')) {
-                draggedElement = e.target;
-                e.target.style.opacity = '0.5';
-            }
-        });
-        
-        budgetList.addEventListener('dragend', function(e) {
-            if (e.target.classList.contains('budget-item')) {
-                e.target.style.opacity = '';
-                draggedElement = null;
-            }
-        });
-        
-        budgetList.addEventListener('dragover', function(e) {
-            e.preventDefault();
-        });
-        
-        budgetList.addEventListener('drop', function(e) {
-            e.preventDefault();
-            
-            if (draggedElement && e.target.closest('.budget-item')) {
-                const targetElement = e.target.closest('.budget-item');
-                if (targetElement !== draggedElement) {
-                    const rect = targetElement.getBoundingClientRect();
-                    const midY = rect.top + rect.height / 2;
-                    
-                    if (e.clientY < midY) {
-                        budgetList.insertBefore(draggedElement, targetElement);
-                    } else {
-                        budgetList.insertBefore(draggedElement, targetElement.nextSibling);
-                    }
-                }
-            }
-        });
-        
-        // Make items draggable
-        const budgetItems = budgetList.querySelectorAll('.budget-item');
-        budgetItems.forEach(item => {
-            item.draggable = true;
-        });
+function openAddBudgetModal() {
+    const modal = document.getElementById('add-budget-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.classList.add('modal-show');
+
+        // Focus first input
+        const firstInput = modal.querySelector('input');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+        }
     }
 }
 
-function setupAutoSave() {
-    let autoSaveTimeout;
-    
-    document.addEventListener('input', function(e) {
-        if (e.target.classList.contains('editable-text') || 
-            e.target.classList.contains('editable-number') || 
-            e.target.classList.contains('editable-emoji')) {
-            
-            clearTimeout(autoSaveTimeout);
-            autoSaveTimeout = setTimeout(() => {
-                if (currentEditingElement === e.target) {
-                    saveEdit();
-                }
-            }, 2000); // Auto-save after 2 seconds of inactivity
+function openEditBudgetModal(card) {
+    // Create or show edit modal
+    let modal = document.getElementById('edit-budget-modal');
+
+    if (!modal) {
+        modal = createEditBudgetModal();
+        document.body.appendChild(modal);
+    }
+
+    // Populate with current data
+    const category = card.querySelector('.budget-category').textContent;
+    const amount = card.dataset.budget || '0';
+    const saved = card.dataset.saved || '0';
+    const status = card.querySelector('.status-badge').textContent;
+
+    modal.querySelector('#edit-budget-category').value = category;
+    modal.querySelector('#edit-budget-amount').value = amount;
+    modal.querySelector('#edit-budget-saved').value = saved;
+    modal.querySelector('#edit-budget-status').value = status;
+
+    modal.dataset.editingCard = card.dataset.itemId || '';
+    modal.style.display = 'flex';
+    modal.classList.add('modal-show');
+}
+
+function createEditBudgetModal() {
+    const modal = document.createElement('div');
+    modal.id = 'edit-budget-modal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Budget Item</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form class="modal-form" id="edit-budget-form">
+                <div class="form-group">
+                    <label>Category</label>
+                    <input type="text" id="edit-budget-category" required>
+                </div>
+                <div class="form-group">
+                    <label>Budget Amount</label>
+                    <input type="number" id="edit-budget-amount" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label>Saved Amount</label>
+                    <input type="number" id="edit-budget-saved" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="edit-budget-status">
+                        <option value="Outstanding">Outstanding</option>
+                        <option value="Paid">Paid</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAllModals()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    `;
+
+    // Setup form submission
+    modal.querySelector('#edit-budget-form').addEventListener('submit', handleEditBudgetSubmit);
+    modal.querySelector('.modal-close').addEventListener('click', closeAllModals);
+
+    return modal;
+}
+
+function closeAllModals() {
+    const modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(modal => {
+        modal.style.display = 'none';
+        modal.classList.remove('modal-show');
+    });
+}
+
+// Form Handlers - FIXED
+function setupAddBudgetForm() {
+    const form = document.getElementById('add-budget-form');
+    if (form) {
+        form.addEventListener('submit', handleAddBudgetSubmit);
+    }
+}
+
+function handleAddBudgetSubmit(e) {
+    e.preventDefault();
+
+    const formData = new FormData(e.target);
+    const budgetData = {
+        category: formData.get('category'),
+        amount: parseFloat(formData.get('amount')),
+        saved: parseFloat(formData.get('saved') || '0'),
+        status: formData.get('status') || 'Outstanding'
+    };
+
+    // Add to UI immediately
+    addBudgetCardToUI(budgetData);
+    closeAllModals();
+    updateBudgetSummary();
+
+    // Save to backend
+    fetch('/api/budget/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(budgetData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log('Budget item added successfully');
+            // Update the card with the new ID
+            const newCard = document.querySelector('.budget-card:last-child');
+            if (newCard && data.id) {
+                newCard.dataset.itemId = data.id;
+            }
+        } else {
+            console.error('Failed to add budget item:', data.error);
         }
+    })
+    .catch(error => {
+        console.error('Error adding budget item:', error);
+    });
+
+    // Reset form
+    e.target.reset();
+}
+
+function handleEditBudgetSubmit(e) {
+    e.preventDefault();
+
+    const modal = e.target.closest('.modal-overlay');
+    const itemId = modal.dataset.editingCard;
+
+    const formData = new FormData(e.target);
+    const budgetData = {
+        category: formData.get('category'),
+        amount: parseFloat(formData.get('amount')),
+        saved: parseFloat(formData.get('saved') || '0'),
+        status: formData.get('status')
+    };
+
+    // Update UI
+    updateBudgetCardInUI(itemId, budgetData);
+    closeAllModals();
+    updateBudgetSummary();
+
+    // Save to backend
+    fetch(`/api/budget/${itemId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(budgetData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to update budget item:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error updating budget item:', error);
     });
 }
 
-function initializeBudgetAnimations() {
-    // Add entrance animations to budget items
-    const budgetItems = document.querySelectorAll('.budget-item');
-    budgetItems.forEach((item, index) => {
-        item.style.animationDelay = `${index * 0.1}s`;
-    });
-    
-    // Add hover effects to summary cards
-    const summaryCards = document.querySelectorAll('.summary-card');
-    summaryCards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-4px) scale(1.02)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = '';
-        });
+// UI Updates - FIXED
+function addBudgetCardToUI(budgetData) {
+    const container = document.querySelector('.budget-grid');
+    if (!container) return;
+
+    const card = document.createElement('div');
+    card.className = 'budget-card';
+    card.dataset.budget = budgetData.amount;
+    card.dataset.saved = budgetData.saved;
+    card.dataset.itemId = Date.now(); // Temporary ID
+
+    card.innerHTML = `
+        <div class="budget-card-header">
+            <h4 class="budget-category">${budgetData.category}</h4>
+            <button class="edit-btn" style="opacity: 0;">
+                <i class="fas fa-edit"></i>
+            </button>
+        </div>
+        <div class="budget-amounts">
+            <div class="amount-item">
+                <span class="amount-label">Budget</span>
+                <span class="amount-value" data-editable="budget">$${budgetData.amount.toLocaleString()}</span>
+            </div>
+            <div class="amount-item">
+                <span class="amount-label">Saved</span>
+                <span class="amount-value" data-editable="saved">$${budgetData.saved.toLocaleString()}</span>
+            </div>
+            <div class="amount-item">
+                <span class="amount-label">Remaining</span>
+                <span class="amount-value">$${(budgetData.amount - budgetData.saved).toLocaleString()}</span>
+            </div>
+        </div>
+        <div class="budget-status">
+            <span class="status-badge ${budgetData.status.toLowerCase()}">${budgetData.status}</span>
+        </div>
+    `;
+
+    container.appendChild(card);
+
+    // Setup events for new card
+    setupBudgetCards();
+    setupInlineEditing();
+}
+
+function updateBudgetCardInUI(itemId, budgetData) {
+    const card = document.querySelector(`[data-item-id="${itemId}"]`);
+    if (!card) return;
+
+    card.dataset.budget = budgetData.amount;
+    card.dataset.saved = budgetData.saved;
+
+    card.querySelector('.budget-category').textContent = budgetData.category;
+    card.querySelector('[data-editable="budget"]').textContent = `$${budgetData.amount.toLocaleString()}`;
+    card.querySelector('[data-editable="saved"]').textContent = `$${budgetData.saved.toLocaleString()}`;
+
+    const remainingElement = card.querySelector('.amount-value:last-child');
+    remainingElement.textContent = `$${(budgetData.amount - budgetData.saved).toLocaleString()}`;
+
+    const statusBadge = card.querySelector('.status-badge');
+    statusBadge.textContent = budgetData.status;
+    statusBadge.className = `status-badge ${budgetData.status.toLowerCase()}`;
+}
+
+// Backend Communication - FIXED
+function saveBudgetEdit(element, newValue) {
+    const card = element.closest('.budget-card');
+    const itemId = card.dataset.itemId;
+    const field = element.dataset.editable;
+
+    if (!itemId) return;
+
+    fetch(`/api/budget/${itemId}/update-field`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ field, value: newValue })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            console.error('Failed to save edit:', data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error saving edit:', error);
     });
 }
 
-function closeAllMenus() {
-    const activeMenus = document.querySelectorAll('.item-menu.active');
-    activeMenus.forEach(menu => {
-        menu.classList.remove('active');
+// Progress Updates - FIXED
+function updateBudgetProgress() {
+    const progressContainer = document.querySelector('.budget-progress');
+    if (!progressContainer) return;
+
+    const budgetItems = document.querySelectorAll('.budget-card');
+    let totalBudget = 0;
+    let totalSaved = 0;
+
+    budgetItems.forEach(card => {
+        totalBudget += parseFloat(card.dataset.budget || '0');
+        totalSaved += parseFloat(card.dataset.saved || '0');
     });
+
+    const progress = totalBudget > 0 ? (totalSaved / totalBudget) * 100 : 0;
+
+    const progressBar = progressContainer.querySelector('.progress-fill');
+    const progressText = progressContainer.querySelector('.progress-text');
+
+    if (progressBar) {
+        progressBar.style.width = `${progress}%`;
+    }
+
+    if (progressText) {
+        progressText.textContent = `${Math.round(progress)}% Complete`;
+    }
 }
 
-// Export functions for external use
-window.budgetPageUtils = {
-    updateBudgetSummary,
-    addBudgetItemToDOM,
-    deleteBudgetItem,
-    showDeleteModal
+// Export functions for global access
+window.BudgetManager = {
+    updateSummary: updateBudgetSummary,
+    toggleStatus: toggleBudgetStatus,
+    openAddModal: openAddBudgetModal,
+    refreshData: initializeBudget
 };

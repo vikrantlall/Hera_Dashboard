@@ -1,8 +1,3 @@
-"""
-HERA Proposal Planning Dashboard - Final Flask App
-Your Excel data with selective enhancements, no unwanted fields
-"""
-
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -225,28 +220,20 @@ def dashboard():
     # Family approval stats
     approved_family = len([f for f in HERA_DATA['family'] if f['status'] == 'Approved'])
     total_family = len(HERA_DATA['family'])
-    family_progress = (approved_family / total_family) * 100 if total_family > 0 else 0
 
     # Packing progress
     packed_items = len([p for p in HERA_DATA['packing'] if p['packed']])
     total_items = len(HERA_DATA['packing'])
-    packing_progress = (packed_items / total_items) * 100 if total_items > 0 else 0
 
     return render_template('dashboard.html',
                          days_until=days_until,
                          budget_stats=budget_stats,
-                         # Individual budget variables for template compatibility
-                         budget_progress=budget_stats['budget_progress'],
-                         total_budget=budget_stats['total_budget'],
-                         total_saved=budget_stats['total_saved'],
-                         total_remaining=budget_stats['total_remaining'],
                          approved_family=approved_family,
                          total_family=total_family,
-                         family_progress=family_progress,
                          packed_items=packed_items,
                          total_items=total_items,
-                         packing_progress=packing_progress,
-                         top_budget_items=HERA_DATA['budget'][:5])
+                         top_budget_items=HERA_DATA['budget'][:5],
+                         HERA_DATA=HERA_DATA)  # Pass the full data object
 
 @app.route('/budget')
 @login_required
@@ -257,11 +244,22 @@ def budget():
                          budget_items=HERA_DATA['budget'],
                          budget_stats=budget_stats)
 
+
 @app.route('/ring')
 @login_required
 def ring():
     """Ring showcase page"""
-    return render_template('ring.html', ring=HERA_DATA['ring'])
+    # Check for ring images in uploads folder
+    ring_images = []
+    ring_upload_path = os.path.join('static', 'uploads', 'ring')
+    if os.path.exists(ring_upload_path):
+        ring_images = [f for f in os.listdir(ring_upload_path)
+                       if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+
+    return render_template('ring.html',
+                           ring=HERA_DATA['ring'],
+                           ring_images=ring_images)
+
 
 @app.route('/family')
 @login_required
@@ -273,11 +271,25 @@ def family():
                          approved_count=approved_count,
                          total_count=len(HERA_DATA['family']))
 
+
 @app.route('/travel')
 @login_required
 def travel():
-    """Travel details page"""
-    return render_template('travel.html', travel_data=HERA_DATA['travel'])
+    """Travel details page with organized data"""
+    # Separate travel data by type
+    outbound_flights = [t for t in HERA_DATA['travel'] if
+                        'IAD - DEN' in t.get('segment', '') or 'DEN - YYC' in t.get('segment', '')]
+    return_flights = [t for t in HERA_DATA['travel'] if
+                      'YYC - YYZ' in t.get('segment', '') or 'YYZ - DCA' in t.get('segment', '')]
+    hotels = [t for t in HERA_DATA['travel'] if 'Hotel' in t.get('segment', '')]
+    ground_transport = [t for t in HERA_DATA['travel'] if 'Rental Car' in t.get('segment', '')]
+
+    return render_template('travel.html',
+                           outbound_flights=outbound_flights,
+                           return_flights=return_flights,
+                           hotels=hotels,
+                           ground_transport=ground_transport,
+                           travel_data=HERA_DATA['travel'])
 
 @app.route('/itinerary')
 @login_required
@@ -287,15 +299,23 @@ def itinerary():
                          itinerary_items=HERA_DATA['itinerary'],
                          total_activities=len(HERA_DATA['itinerary']))
 
+
 @app.route('/packing')
 @login_required
 def packing():
-    """Packing list page"""
+    """Packing list page with categories"""
     packed_count = len([p for p in HERA_DATA['packing'] if p['packed']])
+
+    # Get unique categories
+    categories = list(set([item.get('category', 'General') for item in HERA_DATA['packing']]))
+    if not categories:
+        categories = ['General']
+
     return render_template('packing.html',
-                         packing_items=HERA_DATA['packing'],
-                         packed_count=packed_count,
-                         total_count=len(HERA_DATA['packing']))
+                           packing_items=HERA_DATA['packing'],
+                           packed_count=packed_count,
+                           total_count=len(HERA_DATA['packing']),
+                           categories=categories)
 
 # API Routes for CRUD operations
 @app.route('/api/budget/<int:item_id>/toggle', methods=['POST'])
@@ -383,6 +403,244 @@ def export_json():
 def export_csv_route():
     """Export data - redirects to JSON export"""
     return redirect(url_for('export_json'))
+
+
+@app.route('/api/budget/add', methods=['POST'])
+@login_required
+def add_budget_item():
+    """Add new budget item"""
+    try:
+        data = request.get_json()
+
+        # Generate new ID
+        max_id = max([item['id'] for item in HERA_DATA['budget']], default=0)
+        new_item = {
+            'id': max_id + 1,
+            'category': data['category'],
+            'budget': float(data['budget_amount']),
+            'saved': float(data['budget_saved']),
+            'remaining': float(data['budget_amount']) - float(data['budget_saved']),
+            'notes': data.get('notes', ''),
+            'status': data['status'],
+            'priority': data.get('priority', 'medium')
+        }
+
+        HERA_DATA['budget'].append(new_item)
+        save_data()
+
+        return jsonify({'success': True, 'budget_item': new_item})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/budget/update', methods=['POST'])
+@login_required
+def update_budget_item():
+    """Update existing budget item"""
+    try:
+        data = request.get_json()
+        item_id = int(data['id'])
+
+        item = next((item for item in HERA_DATA['budget'] if item['id'] == item_id), None)
+        if not item:
+            return jsonify({'success': False, 'error': 'Item not found'})
+
+        # Update item
+        item['category'] = data['category']
+        item['budget'] = float(data['budget_amount'])
+        item['saved'] = float(data['budget_saved'])
+        item['remaining'] = item['budget'] - item['saved']
+        item['notes'] = data.get('notes', '')
+        item['status'] = data['status']
+        item['priority'] = data.get('priority', 'medium')
+
+        save_data()
+        return jsonify({'success': True, 'budget_item': item})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/budget/delete/<int:item_id>', methods=['DELETE'])
+@login_required
+def delete_budget_item(item_id):
+    """Delete budget item"""
+    try:
+        HERA_DATA['budget'] = [item for item in HERA_DATA['budget'] if item['id'] != item_id]
+        save_data()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# FAMILY CRUD OPERATIONS
+@app.route('/api/family/update', methods=['POST'])
+@login_required
+def update_family_member():
+    """Update family member details"""
+    try:
+        data = request.get_json()
+        member_id = int(data['id'])
+        field = data['field']
+        value = data['value']
+
+        member = next((m for m in HERA_DATA['family'] if m['id'] == member_id), None)
+        if not member:
+            return jsonify({'success': False, 'error': 'Member not found'})
+
+        member[field] = value
+        save_data()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# PACKING CRUD OPERATIONS
+@app.route('/api/packing/add', methods=['POST'])
+@login_required
+def add_packing_item():
+    """Add new packing item"""
+    try:
+        data = request.get_json()
+
+        # Generate new ID
+        max_id = max([item['id'] for item in HERA_DATA['packing']], default=0)
+        new_item = {
+            'id': max_id + 1,
+            'item': data['item_name'],
+            'category': data.get('category', 'General'),
+            'packed': data.get('packed', False),
+            'notes': data.get('notes', ''),
+            'quantity': int(data.get('quantity', 1)),
+            'priority': data.get('priority', 'medium')
+        }
+
+        HERA_DATA['packing'].append(new_item)
+        save_data()
+
+        return jsonify({'success': True, 'packing_item': new_item})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/packing/update', methods=['POST'])
+@login_required
+def update_packing_item():
+    """Update packing item"""
+    try:
+        data = request.get_json()
+        item_id = int(data['id'])
+        field = data['field']
+        value = data['value']
+
+        item = next((item for item in HERA_DATA['packing'] if item['id'] == item_id), None)
+        if not item:
+            return jsonify({'success': False, 'error': 'Item not found'})
+
+        item[field] = value
+        save_data()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/packing/delete/<int:item_id>', methods=['DELETE'])
+@login_required
+def delete_packing_item(item_id):
+    """Delete packing item"""
+    try:
+        HERA_DATA['packing'] = [item for item in HERA_DATA['packing'] if item['id'] != item_id]
+        save_data()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# RING UPDATE OPERATIONS
+@app.route('/api/ring/update', methods=['POST'])
+@login_required
+def update_ring():
+    """Update ring details"""
+    try:
+        data = request.get_json()
+        field = data['field']
+        value = data['value']
+
+        # Map template field names to data keys
+        field_mapping = {
+            'jeweler': 'Jeweler',
+            'metal': 'Metal',
+            'stone': 'Stone(s)',
+            'delivered': 'Delivered',
+            'insured': 'Insured',
+            'insurance_details': 'Insurance Details'
+        }
+
+        actual_field = field_mapping.get(field, field)
+        HERA_DATA['ring'][actual_field] = value
+        save_data()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+# ITINERARY CRUD OPERATIONS
+@app.route('/api/itinerary/add', methods=['POST'])
+@login_required
+def add_itinerary_item():
+    """Add new itinerary activity"""
+    try:
+        data = request.get_json()
+
+        # Generate new ID
+        max_id = max([item['id'] for item in HERA_DATA['itinerary']], default=0)
+        new_item = {
+            'id': max_id + 1,
+            'time': data['time'],
+            'activity': data['activity'],
+            'location': data['location'],
+            'notes': data.get('notes', ''),
+            'isProposal': data.get('isProposal', False)
+        }
+
+        HERA_DATA['itinerary'].append(new_item)
+        save_data()
+
+        return jsonify({'success': True, 'itinerary_item': new_item})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/itinerary/update', methods=['POST'])
+@login_required
+def update_itinerary_item():
+    """Update itinerary activity"""
+    try:
+        data = request.get_json()
+        item_id = int(data['id'])
+        field = data['field']
+        value = data['value']
+
+        item = next((item for item in HERA_DATA['itinerary'] if item['id'] == item_id), None)
+        if not item:
+            return jsonify({'success': False, 'error': 'Item not found'})
+
+        item[field] = value
+        save_data()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/itinerary/delete/<int:item_id>', methods=['DELETE'])
+@login_required
+def delete_itinerary_item(item_id):
+    """Delete itinerary activity"""
+    try:
+        HERA_DATA['itinerary'] = [item for item in HERA_DATA['itinerary'] if item['id'] != item_id]
+        save_data()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     # Load existing data if available

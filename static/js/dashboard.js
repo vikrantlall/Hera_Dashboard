@@ -1,498 +1,595 @@
-// Dashboard specific JavaScript functionality
+// Dashboard JavaScript functionality
+// Budget management, task tracking, and overview widgets
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeDashboard();
-    initializeProgressAnimations();
-    initializeStatusCards();
-    initializeQuickActions();
-    initializeTimeline();
-    setupDashboardUpdates();
+    setupBudgetManagement();
+    setupTaskManagement();
 });
 
 function initializeDashboard() {
-    // Add entrance animations to dashboard elements
-    const dashboardGrid = document.querySelector('.dashboard-grid');
-    if (dashboardGrid) {
-        dashboardGrid.style.opacity = '0';
-        dashboardGrid.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-            dashboardGrid.style.transition = 'all 0.6s ease-out';
-            dashboardGrid.style.opacity = '1';
-            dashboardGrid.style.transform = 'translateY(0)';
-        }, 100);
-    }
-    
-    // Initialize dashboard widgets
-    updateDashboardStats();
-    startPeriodicUpdates();
+    updateBudgetProgress();
+    updateNavBadges();
+    setupQuickActions();
 }
 
-function initializeProgressAnimations() {
-    const progressBars = document.querySelectorAll('.progress-fill');
-    
-    progressBars.forEach((bar, index) => {
-        const targetWidth = bar.style.width;
-        
-        // Start from 0 and animate to target
-        bar.style.width = '0%';
-        bar.style.transition = 'none';
-        
-        setTimeout(() => {
-            bar.style.transition = 'width 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-            bar.style.width = targetWidth;
-            
-            // Add completion animation when progress reaches 100%
-            if (parseFloat(targetWidth) >= 100) {
-                setTimeout(() => {
-                    bar.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.6)';
-                    bar.style.animation = 'pulse 2s ease-in-out infinite';
-                }, 1500);
+// Budget Management
+function setupBudgetManagement() {
+    // Budget form submission
+    const budgetForm = document.getElementById('budget-form');
+    if (budgetForm) {
+        budgetForm.addEventListener('submit', handleBudgetSubmit);
+    }
+
+    // Add budget form submission
+    const addBudgetForm = document.getElementById('add-budget-form');
+    if (addBudgetForm) {
+        addBudgetForm.addEventListener('submit', handleAddBudgetSubmit);
+    }
+
+    // Auto-update saved amount when status changes to "Paid"
+    const budgetStatus = document.getElementById('budget-status');
+    if (budgetStatus) {
+        budgetStatus.addEventListener('change', function() {
+            if (this.value === 'Paid') {
+                const budgetAmount = document.getElementById('budget-amount').value;
+                document.getElementById('budget-saved').value = budgetAmount;
             }
-        }, 300 + (index * 200)); // Stagger animations
+        });
+    }
+}
+
+function handleBudgetSubmit(e) {
+    e.preventDefault();
+
+    if (!HERA.validateForm(e.target)) {
+        HERA.showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+
+    const formData = new FormData(e.target);
+    const budgetData = Object.fromEntries(formData.entries());
+    budgetData.id = document.getElementById('budget-item-id').value;
+
+    HERA.setLoadingState(e.target, true);
+
+    const endpoint = budgetData.id ? '/api/budget/update' : '/api/budget/add';
+
+    HERA.makeRequest(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(budgetData)
+    })
+    .then(data => {
+        if (data.success) {
+            HERA.showNotification('Budget updated successfully', 'success');
+            updateBudgetItem(data.budget_item);
+            updateBudgetProgress();
+            updateNavBadges();
+            closeBudgetModal();
+        } else {
+            HERA.showNotification('Error updating budget: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        HERA.showNotification('Error updating budget', 'error');
+    })
+    .finally(() => {
+        HERA.setLoadingState(e.target, false);
     });
 }
 
-function initializeStatusCards() {
-    const statusCards = document.querySelectorAll('.status-card');
-    
-    statusCards.forEach((card, index) => {
-        // Add hover effects
-        card.addEventListener('mouseenter', function() {
-            const icon = this.querySelector('.status-icon');
-            if (icon) {
-                icon.style.transform = 'scale(1.1) rotate(5deg)';
-                icon.style.boxShadow = '0 8px 25px rgba(0, 0, 0, 0.2)';
-            }
-            
-            // Add glow effect
-            this.style.boxShadow = '0 8px 30px rgba(212, 175, 55, 0.15)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            const icon = this.querySelector('.status-icon');
-            if (icon) {
-                icon.style.transform = 'scale(1) rotate(0deg)';
-                icon.style.boxShadow = '';
-            }
-            
-            this.style.boxShadow = '';
-        });
-        
-        // Add click animation
-        card.addEventListener('click', function() {
-            this.style.transform = 'scale(0.98)';
-            setTimeout(() => {
-                this.style.transform = '';
-            }, 150);
-        });
-        
-        // Staggered entrance animation
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(30px)';
-        
-        setTimeout(() => {
-            card.style.transition = 'all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        }, 200 + (index * 100));
-    });
-    
-    // Special ring card animations
-    const ringCard = document.querySelector('.ring-special');
-    if (ringCard) {
-        addRingCardEffects(ringCard);
-    }
-}
+function handleAddBudgetSubmit(e) {
+    e.preventDefault();
 
-function addRingCardEffects(ringCard) {
-    const ringIcon = ringCard.querySelector('.ring-icon');
-    const deliveredBadge = ringCard.querySelector('.ring-status-badge');
-    
-    if (ringIcon) {
-        // Add sparkle effect to ring icon
-        setInterval(() => {
-            ringIcon.style.transform = 'scale(1.05)';
-            ringIcon.style.filter = 'brightness(1.2)';
-            
-            setTimeout(() => {
-                ringIcon.style.transform = 'scale(1)';
-                ringIcon.style.filter = 'brightness(1)';
-            }, 300);
-        }, 3000);
+    if (!HERA.validateForm(e.target)) {
+        HERA.showNotification('Please fill in all required fields', 'error');
+        return;
     }
-    
-    if (deliveredBadge) {
-        // Add success pulse animation
-        deliveredBadge.addEventListener('mouseenter', function() {
-            this.style.animation = 'pulse 0.6s ease-in-out';
-        });
-        
-        deliveredBadge.addEventListener('animationend', function() {
-            this.style.animation = '';
-        });
-    }
-    
-    // Add diamond sparkle effect
-    createDiamondSparkles(ringCard);
-}
 
-function createDiamondSparkles(container) {
-    const sparkleContainer = document.createElement('div');
-    sparkleContainer.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        pointer-events: none;
-        overflow: hidden;
-        border-radius: inherit;
-    `;
-    container.style.position = 'relative';
-    container.appendChild(sparkleContainer);
-    
-    function createSparkle() {
-        const sparkle = document.createElement('div');
-        sparkle.innerHTML = '✨';
-        sparkle.style.cssText = `
-            position: absolute;
-            font-size: ${Math.random() * 12 + 8}px;
-            left: ${Math.random() * 100}%;
-            top: ${Math.random() * 100}%;
-            animation: sparkle 2s ease-out forwards;
-            z-index: 1;
-        `;
-        
-        sparkleContainer.appendChild(sparkle);
-        
-        setTimeout(() => {
-            if (sparkle.parentNode) {
-                sparkle.remove();
-            }
-        }, 2000);
-    }
-    
-    // Add sparkle animation styles
-    if (!document.querySelector('#sparkle-styles')) {
-        const sparkleStyles = document.createElement('style');
-        sparkleStyles.id = 'sparkle-styles';
-        sparkleStyles.textContent = `
-            @keyframes sparkle {
-                0% {
-                    opacity: 0;
-                    transform: scale(0) rotate(0deg);
-                }
-                50% {
-                    opacity: 1;
-                    transform: scale(1) rotate(180deg);
-                }
-                100% {
-                    opacity: 0;
-                    transform: scale(0) rotate(360deg);
-                }
-            }
-        `;
-        document.head.appendChild(sparkleStyles);
-    }
-    
-    // Create sparkles periodically
-    setInterval(createSparkle, 4000);
-}
+    const formData = new FormData(e.target);
+    const budgetData = Object.fromEntries(formData.entries());
 
-function initializeQuickActions() {
-    const actionItems = document.querySelectorAll('.action-item');
-    
-    actionItems.forEach((item, index) => {
-        // Add ripple effect on click
-        item.addEventListener('click', function(e) {
-            const ripple = document.createElement('div');
-            const rect = this.getBoundingClientRect();
-            const size = Math.max(rect.width, rect.height);
-            
-            ripple.style.cssText = `
-                position: absolute;
-                width: ${size}px;
-                height: ${size}px;
-                left: ${e.clientX - rect.left - size/2}px;
-                top: ${e.clientY - rect.top - size/2}px;
-                background: radial-gradient(circle, rgba(212, 175, 55, 0.3) 0%, transparent 70%);
-                border-radius: 50%;
-                transform: scale(0);
-                animation: ripple 0.6s ease-out;
-                pointer-events: none;
-                z-index: 1;
-            `;
-            
-            this.style.position = 'relative';
-            this.style.overflow = 'hidden';
-            this.appendChild(ripple);
-            
-            setTimeout(() => {
-                if (ripple.parentNode) {
-                    ripple.remove();
-                }
-            }, 600);
-        });
-        
-        // Staggered entrance animation
-        item.style.opacity = '0';
-        item.style.transform = 'translateX(-20px)';
-        
-        setTimeout(() => {
-            item.style.transition = 'all 0.4s ease-out';
-            item.style.opacity = '1';
-            item.style.transform = 'translateX(0)';
-        }, 400 + (index * 100));
-    });
-    
-    // Add ripple animation styles
-    if (!document.querySelector('#ripple-styles')) {
-        const rippleStyles = document.createElement('style');
-        rippleStyles.id = 'ripple-styles';
-        rippleStyles.textContent = `
-            @keyframes ripple {
-                0% {
-                    transform: scale(0);
-                    opacity: 1;
-                }
-                100% {
-                    transform: scale(1);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(rippleStyles);
-    }
-}
-
-function initializeTimeline() {
-    const timelineItems = document.querySelectorAll('.timeline-item');
-    
-    // Create intersection observer for timeline animations
-    const timelineObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.classList.add('animate-in');
-                timelineObserver.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.5,
-        rootMargin: '0px 0px -50px 0px'
-    });
-    
-    timelineItems.forEach((item, index) => {
-        // Add initial hidden state
-        item.style.opacity = '0';
-        item.style.transform = 'translateX(20px)';
-        
-        // Observe for intersection
-        timelineObserver.observe(item);
-        
-        // Add marker pulse animation for in-progress items
-        const marker = item.querySelector('.timeline-marker');
-        if (item.classList.contains('in-progress') && marker) {
-            marker.style.animation = 'pulse 2s ease-in-out infinite';
+    // Handle new category selection
+    if (budgetData.category === 'new') {
+        const newCategory = document.getElementById('new-category-name').value;
+        if (!newCategory) {
+            HERA.showNotification('Please enter a category name', 'error');
+            return;
         }
-    });
-    
-    // Add timeline animation styles
-    const timelineStyles = document.createElement('style');
-    timelineStyles.textContent = `
-        .timeline-item.animate-in {
-            opacity: 1 !important;
-            transform: translateX(0) !important;
-            transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        }
-        
-        @keyframes pulse {
-            0%, 100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.2);
-                opacity: 0.7;
-            }
-        }
-    `;
-    document.head.appendChild(timelineStyles);
-}
+        budgetData.category = newCategory;
+    }
 
-function setupDashboardUpdates() {
-    // Listen for real-time updates (if implementing WebSocket later)
-    window.addEventListener('dashboard-update', function(e) {
-        const { type, data } = e.detail;
-        
-        switch (type) {
-            case 'budget':
-                updateBudgetProgress(data);
-                break;
-            case 'family':
-                updateFamilyProgress(data);
-                break;
-            case 'packing':
-                updatePackingProgress(data);
-                break;
-            default:
-                console.log('Unknown update type:', type);
-        }
-    });
-    
-    // Auto-refresh dashboard data every 5 minutes
-    setInterval(() => {
-        if (!document.hidden) {
-            updateDashboardStats();
-        }
-    }, 5 * 60 * 1000);
-}
+    HERA.setLoadingState(e.target, true);
 
-function updateDashboardStats() {
-    // This would typically fetch fresh data from the server
-    // For now, we'll just add some visual feedback
-    const statusCards = document.querySelectorAll('.status-card');
-    
-    statusCards.forEach(card => {
-        card.style.opacity = '0.7';
-        setTimeout(() => {
-            card.style.opacity = '1';
-        }, 200);
+    HERA.makeRequest('/api/budget/add', {
+        method: 'POST',
+        body: JSON.stringify(budgetData)
+    })
+    .then(data => {
+        if (data.success) {
+            HERA.showNotification('Budget item added successfully', 'success');
+            addBudgetItemToDOM(data.budget_item);
+            updateBudgetProgress();
+            updateNavBadges();
+            closeAddBudgetModal();
+        } else {
+            HERA.showNotification('Error adding budget item: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        HERA.showNotification('Error adding budget item', 'error');
+    })
+    .finally(() => {
+        HERA.setLoadingState(e.target, false);
     });
 }
 
-function updateBudgetProgress(data) {
-    const budgetCard = document.querySelector('.status-card .budget-icon').closest('.status-card');
-    const progressBar = budgetCard.querySelector('.progress-fill');
-    const valueElement = budgetCard.querySelector('.status-value');
-    const percentageElement = budgetCard.querySelector('.status-percentage');
-    
-    if (progressBar && data.progress !== undefined) {
-        progressBar.style.width = `${data.progress}%`;
-        
-        // Add success animation if completed
-        if (data.progress >= 100) {
-            progressBar.style.boxShadow = '0 0 20px rgba(16, 185, 129, 0.6)';
-            progressBar.style.animation = 'pulse 2s ease-in-out infinite';
-        }
-    }
-    
-    if (valueElement && data.paid && data.total) {
-        valueElement.textContent = `$${data.paid.toFixed(2)} / $${data.total.toFixed(2)}`;
-    }
-    
-    if (percentageElement && data.progress !== undefined) {
-        percentageElement.textContent = `${data.progress.toFixed(1)}% Complete`;
-    }
-    
-    // Add update animation
-    budgetCard.style.transform = 'scale(1.02)';
-    setTimeout(() => {
-        budgetCard.style.transform = '';
-    }, 200);
+// Modal Functions
+function openBudgetModal(budgetId) {
+    const budgetItem = window.HERA_DATA.budget.find(item => item.id === budgetId);
+    if (!budgetItem) return;
+
+    document.getElementById('budget-modal-title').textContent = `Edit ${budgetItem.category}`;
+    document.getElementById('budget-item-id').value = budgetItem.id;
+    document.getElementById('budget-category').value = budgetItem.category;
+    document.getElementById('budget-amount').value = budgetItem.budget;
+    document.getElementById('budget-saved').value = budgetItem.saved;
+    document.getElementById('budget-status').value = budgetItem.status;
+    document.getElementById('budget-priority').value = budgetItem.priority || 'medium';
+    document.getElementById('budget-notes').value = budgetItem.notes || '';
+
+    HERA.openModal('budget-modal');
 }
 
-function updateFamilyProgress(data) {
-    const familyCard = document.querySelector('.status-card .family-icon').closest('.status-card');
-    const progressBar = familyCard.querySelector('.progress-fill');
-    const valueElement = familyCard.querySelector('.status-value');
-    const percentageElement = familyCard.querySelector('.status-percentage');
-    
-    if (progressBar && data.progress !== undefined) {
-        progressBar.style.width = `${data.progress}%`;
-    }
-    
-    if (valueElement && data.approved !== undefined && data.total !== undefined) {
-        valueElement.textContent = `${data.approved} / ${data.total} Approved`;
-    }
-    
-    if (percentageElement && data.progress !== undefined) {
-        percentageElement.textContent = `${data.progress.toFixed(1)}% Family Buy-in`;
-    }
-    
-    // Add update animation
-    familyCard.style.transform = 'scale(1.02)';
-    setTimeout(() => {
-        familyCard.style.transform = '';
-    }, 200);
+function closeBudgetModal() {
+    HERA.closeModal('budget-modal');
 }
 
-function updatePackingProgress(data) {
-    const packingCard = document.querySelector('.status-card .packing-icon').closest('.status-card');
-    const progressBar = packingCard.querySelector('.progress-fill');
-    const valueElement = packingCard.querySelector('.status-value');
-    const percentageElement = packingCard.querySelector('.status-percentage');
-    
-    if (progressBar && data.progress !== undefined) {
-        progressBar.style.width = `${data.progress}%`;
-    }
-    
-    if (valueElement && data.packed !== undefined && data.total !== undefined) {
-        valueElement.textContent = `${data.packed} / ${data.total} Packed`;
-    }
-    
-    if (percentageElement && data.progress !== undefined) {
-        percentageElement.textContent = `${data.progress.toFixed(1)}% Ready`;
-    }
-    
-    // Add update animation
-    packingCard.style.transform = 'scale(1.02)';
-    setTimeout(() => {
-        packingCard.style.transform = '';
-    }, 200);
+function openAddBudgetModal() {
+    document.getElementById('add-budget-form').reset();
+    HERA.openModal('add-budget-modal');
 }
 
-function startPeriodicUpdates() {
-    // Add some life to the dashboard with periodic animations
-    setInterval(() => {
-        if (!document.hidden) {
-            // Animate heart icons
-            const heartIcons = document.querySelectorAll('.fa-heart');
-            heartIcons.forEach(heart => {
-                heart.style.transform = 'scale(1.1)';
-                heart.style.color = '#ff6b6b';
-                
-                setTimeout(() => {
-                    heart.style.transform = '';
-                    heart.style.color = '';
-                }, 300);
-            });
-        }
-    }, 30000); // Every 30 seconds
-    
-    // Add subtle glow effects to important elements
-    setInterval(() => {
-        if (!document.hidden) {
-            const ringCard = document.querySelector('.ring-special');
-            if (ringCard) {
-                ringCard.style.boxShadow = '0 8px 30px rgba(236, 72, 153, 0.2)';
-                setTimeout(() => {
-                    ringCard.style.boxShadow = '';
-                }, 1000);
+function closeAddBudgetModal() {
+    HERA.closeModal('add-budget-modal');
+
+    // Hide new category field
+    const newCategoryGroup = document.getElementById('new-category-group');
+    if (newCategoryGroup) {
+        newCategoryGroup.style.display = 'none';
+    }
+}
+
+// Handle category selection change
+document.addEventListener('DOMContentLoaded', function() {
+    const categorySelect = document.getElementById('new-item-category');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            const newCategoryGroup = document.getElementById('new-category-group');
+            if (this.value === 'new') {
+                newCategoryGroup.style.display = 'block';
+                document.getElementById('new-category-name').required = true;
+            } else {
+                newCategoryGroup.style.display = 'none';
+                document.getElementById('new-category-name').required = false;
             }
-        }
-    }, 45000); // Every 45 seconds
-}
-
-// Handle visibility changes to pause animations when tab is hidden
-document.addEventListener('visibilitychange', function() {
-    const animations = document.querySelectorAll('[style*="animation"]');
-    
-    if (document.hidden) {
-        animations.forEach(el => {
-            el.style.animationPlayState = 'paused';
-        });
-    } else {
-        animations.forEach(el => {
-            el.style.animationPlayState = 'running';
         });
     }
 });
 
-// Export functions for external use
-window.dashboardUtils = {
+// Delete Budget Item
+function deleteBudgetItem(budgetId) {
+    HERA.confirmDelete('Are you sure you want to delete this budget item?', () => {
+        HERA.makeRequest(`/api/budget/delete/${budgetId}`, {
+            method: 'DELETE'
+        })
+        .then(data => {
+            if (data.success) {
+                HERA.showNotification('Budget item deleted successfully', 'success');
+                removeBudgetItemFromDOM(budgetId);
+                updateBudgetProgress();
+                updateNavBadges();
+            } else {
+                HERA.showNotification('Error deleting budget item: ' + data.error, 'error');
+            }
+        })
+        .catch(error => {
+            HERA.showNotification('Error deleting budget item', 'error');
+        });
+    });
+}
+
+// Task Management
+function setupTaskManagement() {
+    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+    taskCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('click', function() {
+            const taskId = this.closest('.task-item').dataset.taskId;
+            toggleTaskComplete(taskId);
+        });
+    });
+}
+
+function toggleTaskComplete(taskId) {
+    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+    const checkbox = taskElement.querySelector('.task-checkbox');
+    const taskName = taskElement.querySelector('.task-name');
+
+    // Optimistic update
+    const wasCompleted = checkbox.classList.contains('completed');
+
+    if (wasCompleted) {
+        checkbox.classList.remove('completed');
+        checkbox.innerHTML = '';
+        taskName.classList.remove('completed');
+    } else {
+        checkbox.classList.add('completed');
+        checkbox.innerHTML = '<i class="fas fa-check"></i>';
+        taskName.classList.add('completed');
+        taskElement.classList.add('completing');
+    }
+
+    // Send to server
+    HERA.makeRequest(`/api/tasks/toggle/${taskId}`, {
+        method: 'POST'
+    })
+    .then(data => {
+        if (data.success) {
+            if (!wasCompleted) {
+                HERA.showNotification('Task completed!', 'success');
+                setTimeout(() => {
+                    taskElement.classList.remove('completing');
+                }, 300);
+            }
+            updateNavBadges();
+        } else {
+            // Revert optimistic update
+            if (wasCompleted) {
+                checkbox.classList.add('completed');
+                checkbox.innerHTML = '<i class="fas fa-check"></i>';
+                taskName.classList.add('completed');
+            } else {
+                checkbox.classList.remove('completed');
+                checkbox.innerHTML = '';
+                taskName.classList.remove('completed');
+                taskElement.classList.remove('completing');
+            }
+            HERA.showNotification('Error updating task: ' + data.error, 'error');
+        }
+    })
+    .catch(error => {
+        // Revert optimistic update
+        if (wasCompleted) {
+            checkbox.classList.add('completed');
+            checkbox.innerHTML = '<i class="fas fa-check"></i>';
+            taskName.classList.add('completed');
+        } else {
+            checkbox.classList.remove('completed');
+            checkbox.innerHTML = '';
+            taskName.classList.remove('completed');
+            taskElement.classList.remove('completing');
+        }
+        HERA.showNotification('Error updating task', 'error');
+    });
+}
+
+// Update Functions
+function updateBudgetProgress() {
+    if (!window.HERA_DATA) return;
+
+    const totalBudget = window.HERA_DATA.budget.reduce((sum, item) => sum + parseFloat(item.budget || 0), 0);
+    const totalSaved = window.HERA_DATA.budget.reduce((sum, item) => sum + parseFloat(item.saved || 0), 0);
+
+    // Update stats
+    const budgetStatElement = document.querySelector('.stat-card:nth-child(2) .stat-number');
+    if (budgetStatElement) {
+        budgetStatElement.textContent = HERA.formatCurrency(totalSaved);
+    }
+
+    const budgetSubElement = document.querySelector('.stat-card:nth-child(2) .stat-sublabel');
+    if (budgetSubElement) {
+        budgetSubElement.textContent = `${HERA.formatCurrency(totalSaved)} of ${HERA.formatCurrency(totalBudget)}`;
+    }
+
+    // Update widget subtitle
+    const budgetSubtitle = document.querySelector('.widget-subtitle');
+    if (budgetSubtitle) {
+        budgetSubtitle.textContent = `${HERA.formatCurrency(totalSaved)} saved of ${HERA.formatCurrency(totalBudget)} total`;
+    }
+}
+
+function updateBudgetItem(budgetItem) {
+    const itemElement = document.querySelector(`[data-item-id="${budgetItem.id}"]`);
+    if (!itemElement) return;
+
+    // Update the item in the data
+    const dataIndex = window.HERA_DATA.budget.findIndex(item => item.id === budgetItem.id);
+    if (dataIndex !== -1) {
+        window.HERA_DATA.budget[dataIndex] = budgetItem;
+    }
+
+    // Update DOM elements
+    const nameElement = itemElement.querySelector('.budget-name');
+    const amountElement = itemElement.querySelector('.budget-amount');
+    const progressElement = itemElement.querySelector('.progress-fill');
+    const statusElement = itemElement.querySelector('.status-badge');
+
+    if (nameElement) nameElement.textContent = budgetItem.category;
+    if (amountElement) amountElement.textContent = `${HERA.formatCurrency(budgetItem.saved)} / ${HERA.formatCurrency(budgetItem.budget)}`;
+
+    if (progressElement) {
+        const progress = budgetItem.budget > 0 ? (budgetItem.saved / budgetItem.budget * 100) : 0;
+        progressElement.style.width = `${progress}%`;
+        progressElement.className = `progress-fill ${budgetItem.status === 'Paid' ? '' : 'pending'}`;
+    }
+
+    if (statusElement) {
+        statusElement.textContent = budgetItem.status;
+        statusElement.className = `status-badge ${budgetItem.status === 'Paid' ? 'paid' : 'outstanding'}`;
+    }
+
+    // Add success animation
+    itemElement.classList.add('success');
+    setTimeout(() => itemElement.classList.remove('success'), 1000);
+}
+
+function addBudgetItemToDOM(budgetItem) {
+    const budgetItems = document.querySelector('.budget-items');
+    if (!budgetItems) return;
+
+    const progress = budgetItem.budget > 0 ? (budgetItem.saved / budgetItem.budget * 100) : 0;
+    const statusClass = budgetItem.status === 'Paid' ? 'paid' : 'outstanding';
+    const progressClass = budgetItem.status === 'Paid' ? '' : 'pending';
+
+    const itemHTML = `
+        <div class="budget-item fade-in" data-item-id="${budgetItem.id}">
+            <div class="budget-info">
+                <div class="budget-name">${budgetItem.category}</div>
+                <div class="budget-amount">${HERA.formatCurrency(budgetItem.saved)} / ${HERA.formatCurrency(budgetItem.budget)}</div>
+            </div>
+            <div class="budget-progress">
+                <div class="progress-bar">
+                    <div class="progress-fill ${progressClass}" style="width: ${progress}%"></div>
+                </div>
+            </div>
+            <div class="budget-status">
+                <span class="status-badge ${statusClass}">${budgetItem.status}</span>
+            </div>
+            <div class="budget-actions">
+                <button class="action-btn edit-btn" onclick="openBudgetModal(${budgetItem.id})" data-tooltip="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn delete-btn" onclick="deleteBudgetItem(${budgetItem.id})" data-tooltip="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    budgetItems.insertAdjacentHTML('beforeend', itemHTML);
+
+    // Add to data
+    window.HERA_DATA.budget.push(budgetItem);
+}
+
+function removeBudgetItemFromDOM(budgetId) {
+    const itemElement = document.querySelector(`[data-item-id="${budgetId}"]`);
+    if (itemElement) {
+        HERA.animateElement(itemElement, 'fadeOut').then(() => {
+            itemElement.remove();
+        });
+    }
+
+    // Remove from data
+    window.HERA_DATA.budget = window.HERA_DATA.budget.filter(item => item.id !== budgetId);
+}
+
+function updateNavBadges() {
+    if (!window.HERA_DATA) return;
+
+    // Budget badge
+    const totalRemaining = window.HERA_DATA.budget.reduce((sum, item) => sum + (item.budget - item.saved), 0);
+    const budgetBadge = document.getElementById('nav-budget-badge');
+    if (budgetBadge) {
+        budgetBadge.textContent = HERA.formatCurrency(totalRemaining).replace(', '');
+    }
+
+    // Family badge (if data available)
+    if (window.HERA_DATA.family) {
+        const approvedFamily = window.HERA_DATA.family.filter(f => f.status === 'Approved').length;
+        const totalFamily = window.HERA_DATA.family.length;
+        const familyBadge = document.getElementById('nav-family-badge');
+        if (familyBadge) {
+            familyBadge.textContent = `${approvedFamily}/${totalFamily}`;
+        }
+    }
+
+    // Tasks badge (if data available)
+    if (window.HERA_DATA.tasks) {
+        const completedTasks = window.HERA_DATA.tasks.filter(t => t.status.includes('Complete')).length;
+        const totalTasks = window.HERA_DATA.tasks.length;
+        const tasksBadge = document.getElementById('nav-tasks-badge');
+        if (tasksBadge) {
+            tasksBadge.textContent = `${completedTasks}/${totalTasks}`;
+        }
+    }
+}
+
+// Quick Actions Setup
+function setupQuickActions() {
+    // Add click handlers for quick action cards
+    const actionCards = document.querySelectorAll('.action-card');
+    actionCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const action = this.dataset.action;
+            handleQuickAction(action);
+        });
+    });
+}
+
+function handleQuickAction(action) {
+    switch (action) {
+        case 'add-budget':
+            openAddBudgetModal();
+            break;
+        case 'view-ring':
+            window.location.href = '/ring';
+            break;
+        case 'check-family':
+            window.location.href = '/family';
+            break;
+        case 'view-itinerary':
+            window.location.href = '/itinerary';
+            break;
+        case 'manage-travel':
+            window.location.href = '/travel';
+            break;
+        case 'check-packing':
+            window.location.href = '/packing';
+            break;
+        default:
+            console.log('Unknown action:', action);
+    }
+}
+
+// Budget Analytics
+function getBudgetAnalytics() {
+    if (!window.HERA_DATA) return {};
+
+    const budget = window.HERA_DATA.budget;
+    const totalBudget = budget.reduce((sum, item) => sum + item.budget, 0);
+    const totalSaved = budget.reduce((sum, item) => sum + item.saved, 0);
+    const totalRemaining = totalBudget - totalSaved;
+
+    const paidItems = budget.filter(item => item.status === 'Paid').length;
+    const outstandingItems = budget.length - paidItems;
+
+    const criticalItems = budget.filter(item => item.priority === 'critical');
+    const highPriorityItems = budget.filter(item => item.priority === 'high');
+
+    return {
+        totalBudget,
+        totalSaved,
+        totalRemaining,
+        percentSaved: (totalSaved / totalBudget * 100).toFixed(1),
+        paidItems,
+        outstandingItems,
+        criticalItems: criticalItems.length,
+        highPriorityItems: highPriorityItems.length,
+        budgetOnTrack: totalSaved >= (totalBudget * 0.7) // 70% threshold
+    };
+}
+
+// Dashboard Refresh
+function refreshDashboard() {
+    updateBudgetProgress();
+    updateNavBadges();
+
+    // Refresh countdown
+    if (window.CountdownManager) {
+        window.CountdownManager.updateCountdown();
+    }
+
+    HERA.showNotification('Dashboard refreshed', 'info', 2000);
+}
+
+// Auto-save functionality
+let autoSaveTimeout;
+
+function scheduleAutoSave() {
+    clearTimeout(autoSaveTimeout);
+    autoSaveTimeout = setTimeout(() => {
+        saveDashboardState();
+    }, 5000); // Auto-save after 5 seconds of inactivity
+}
+
+function saveDashboardState() {
+    const dashboardState = {
+        lastUpdated: new Date().toISOString(),
+        budgetData: window.HERA_DATA.budget,
+        analytics: getBudgetAnalytics()
+    };
+
+    // Save to localStorage (for offline persistence)
+    try {
+        localStorage.setItem('hera-dashboard-state', JSON.stringify(dashboardState));
+    } catch (error) {
+        console.warn('Could not save dashboard state:', error);
+    }
+}
+
+// Export dashboard data
+function exportDashboardData() {
+    const analytics = getBudgetAnalytics();
+    const exportData = {
+        exportDate: new Date().toISOString(),
+        analytics,
+        budgetItems: window.HERA_DATA.budget,
+        tasks: window.HERA_DATA.tasks,
+        family: window.HERA_DATA.family
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(dataBlob);
+    link.download = `hera-dashboard-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+}
+
+// Keyboard shortcuts for dashboard
+document.addEventListener('keydown', function(e) {
+    // Alt + B for budget
+    if (e.altKey && e.key === 'b') {
+        e.preventDefault();
+        openAddBudgetModal();
+    }
+
+    // Alt + R for refresh
+    if (e.altKey && e.key === 'r') {
+        e.preventDefault();
+        refreshDashboard();
+    }
+
+    // Alt + E for export
+    if (e.altKey && e.key === 'e') {
+        e.preventDefault();
+        exportDashboardData();
+    }
+});
+
+// Initialize tooltips for keyboard shortcuts
+document.addEventListener('DOMContentLoaded', function() {
+    // Add keyboard shortcut hints to buttons
+    const addBudgetBtn = document.querySelector('[onclick="openAddBudgetModal()"]');
+    if (addBudgetBtn && !addBudgetBtn.dataset.tooltip) {
+        addBudgetBtn.dataset.tooltip = 'Add Budget Item (Alt+B)';
+    }
+});
+
+// Performance monitoring
+function logPerformanceMetrics() {
+    if (window.performance) {
+        const loadTime = window.performance.timing.loadEventEnd - window.performance.timing.navigationStart;
+        console.log(`Dashboard loaded in ${loadTime}ms`);
+
+        // Log to analytics if available
+        if (window.analytics) {
+            window.analytics.track('Dashboard Load Time', { loadTime });
+        }
+    }
+}
+
+// Call performance logging after load
+window.addEventListener('load', logPerformanceMetrics);
+
+// Export functions for global access
+window.DashboardManager = {
+    refreshDashboard,
     updateBudgetProgress,
-    updateFamilyProgress,
-    updatePackingProgress,
-    updateDashboardStats
+    updateNavBadges,
+    getBudgetAnalytics,
+    exportDashboardData,
+    saveDashboardState
 };
