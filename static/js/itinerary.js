@@ -1,73 +1,160 @@
-// HERA Itinerary JavaScript - Day Cards Layout
-// Handles day-based activity management, progress tracking, and editing
+// Complete HERA Itinerary JavaScript with Full CRUD Operations
+// Works with your existing API endpoints
 
 document.addEventListener('DOMContentLoaded', function() {
-    initializeItinerary();
+    initializeItineraryPage();
 });
 
-function initializeItinerary() {
-    console.log('🎯 Initializing HERA Day Cards Itinerary...');
-
-    // Core functionality
-    setupActivityManagement();
-    setupInlineEditing();
+function initializeItineraryPage() {
+    console.log('🎯 Initializing HERA Itinerary with Full CRUD...');
+    setupActivityEvents();
+    setupActivityForms();
     setupModals();
-
-    // Initial calculations
     updateAllProgress();
     updateActivityCounts();
-
-    console.log('✅ Day Cards Itinerary initialized successfully');
+    console.log('✅ Itinerary initialized successfully');
 }
 
 // =============================================================================
-// ACTIVITY MANAGEMENT
+// EVENT SETUP
 // =============================================================================
-function setupActivityManagement() {
-    // Setup existing activity items
-    const activityItems = document.querySelectorAll('.activity-item');
-    activityItems.forEach(setupActivityEvents);
-
-    // Setup forms
-    setupActivityForms();
-}
-
-function setupActivityEvents(item) {
-    // Complete checkbox
-    const checkbox = item.querySelector('.activity-checkbox input[type="checkbox"]');
-    if (checkbox) {
-        checkbox.addEventListener('change', (e) => {
-            e.stopPropagation();
+function setupActivityEvents(container = document) {
+    // Setup checkbox events for completion toggle
+    const checkboxes = container.querySelectorAll('.activity-item input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const item = this.closest('.activity-item');
             toggleActivityComplete(item);
         });
-    }
+    });
 
-    // Edit button
-    const editBtn = item.querySelector('.edit-btn');
-    if (editBtn) {
-        editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
+    // Setup editable text events for inline editing
+    const editableElements = container.querySelectorAll('.editable-text');
+    editableElements.forEach(element => {
+        element.addEventListener('click', function() {
+            makeElementEditable(this);
+        });
+    });
+
+    // Setup edit button events
+    const editButtons = container.querySelectorAll('.edit-btn');
+    editButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const item = this.closest('.activity-item');
             openEditActivityModal(item);
         });
-    }
+    });
 
-    // Delete button
-    const deleteBtn = item.querySelector('.delete-btn');
-    if (deleteBtn) {
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteActivity(item);
+    // Setup delete button events
+    const deleteButtons = container.querySelectorAll('.delete-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            deleteActivity(this);
         });
+    });
+}
+
+function setupModals() {
+    // Close modal when clicking backdrop
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            const modalId = e.target.id;
+            closeModal(modalId);
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const openModal = document.querySelector('.modal.show');
+            if (openModal) {
+                closeModal(openModal.id);
+            }
+        }
+    });
+}
+
+// =============================================================================
+// MODAL MANAGEMENT
+// =============================================================================
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+
+        // Focus first input after modal opens
+        setTimeout(() => {
+            const firstInput = modal.querySelector('input, select, textarea');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }, 300);
     }
 }
 
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}
+
+function openAddActivityModal() {
+    // Reset form
+    const form = document.getElementById('add-activity-form');
+    if (form) {
+        form.reset();
+    }
+    openModal('add-activity-modal');
+}
+
+function openEditActivityModal(activityItem) {
+    if (!activityItem) return;
+
+    const activityId = activityItem.dataset.activityId;
+    const day = activityItem.closest('.activities-list').dataset.day;
+
+    // Get current data from the DOM
+    const time = activityItem.querySelector('.activity-time')?.textContent || '';
+    const titleElement = activityItem.querySelector('.activity-title');
+    const title = titleElement ? titleElement.textContent.replace('💍', '').trim() : '';
+    const locationElement = activityItem.querySelector('.activity-location span');
+    const location = locationElement ? locationElement.textContent : '';
+    const notesElement = activityItem.querySelector('.activity-notes');
+    const notes = notesElement ? notesElement.textContent : '';
+    const isProposal = activityItem.classList.contains('proposal-activity');
+
+    // Populate edit form
+    document.getElementById('edit-activity-id').value = activityId;
+    document.getElementById('edit-activity-day').value = day;
+    document.getElementById('edit-activity-time').value = time;
+    document.getElementById('edit-activity-name').value = title;
+    document.getElementById('edit-activity-location').value = location;
+    document.getElementById('edit-activity-notes').value = notes;
+    document.getElementById('edit-is-proposal').checked = isProposal;
+
+    openModal('edit-activity-modal');
+}
+
+// =============================================================================
+// ACTIVITY COMPLETION TOGGLE
+// =============================================================================
 function toggleActivityComplete(item) {
     const activityId = item.dataset.activityId;
     const checkbox = item.querySelector('.activity-checkbox input[type="checkbox"]');
     const isCompleted = checkbox.checked;
 
-    // Update UI immediately
+    // Update UI immediately for better UX
     item.dataset.completed = isCompleted;
+    if (isCompleted) {
+        item.classList.add('completed');
+    } else {
+        item.classList.remove('completed');
+    }
+
+    updateAllProgress(); // Update progress immediately
 
     // Send to backend
     fetch(`/api/itinerary/${activityId}/complete`, {
@@ -80,24 +167,123 @@ function toggleActivityComplete(item) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            updateAllProgress();
             showNotification(`Activity ${isCompleted ? 'completed' : 'reopened'}`, 'success');
         } else {
             // Revert on error
             checkbox.checked = !isCompleted;
             item.dataset.completed = !isCompleted;
+            item.classList.toggle('completed', !isCompleted);
             showNotification(data.error || 'Failed to update activity', 'error');
+            updateAllProgress();
         }
     })
     .catch(error => {
         console.error('Error updating activity:', error);
         checkbox.checked = !isCompleted;
         item.dataset.completed = !isCompleted;
+        item.classList.toggle('completed', !isCompleted);
         showNotification('Error updating activity', 'error');
+        updateAllProgress();
     });
 }
 
-function deleteActivity(item) {
+// =============================================================================
+// INLINE EDITING
+// =============================================================================
+function makeElementEditable(element) {
+    if (element.classList.contains('editing')) return;
+
+    const originalValue = element.textContent.trim().replace('💍', '').trim();
+    const field = element.dataset.field;
+    const activityId = element.dataset.itemId;
+
+    element.classList.add('editing');
+    element.contentEditable = true;
+    element.textContent = originalValue; // Remove any icons temporarily
+    element.focus();
+
+    // Select all text
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    function finishEditing() {
+        const newValue = element.textContent.trim();
+        element.classList.remove('editing');
+        element.contentEditable = false;
+
+        if (newValue !== originalValue && newValue !== '') {
+            updateActivityField(activityId, field, newValue, element, originalValue);
+        } else {
+            // Restore original value and any icons
+            restoreElementContent(element, originalValue);
+        }
+    }
+
+    element.addEventListener('blur', finishEditing);
+    element.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            finishEditing();
+        }
+        if (e.key === 'Escape') {
+            element.textContent = originalValue;
+            finishEditing();
+        }
+    });
+}
+
+function restoreElementContent(element, value) {
+    const activityItem = element.closest('.activity-item');
+    const isProposal = activityItem && activityItem.classList.contains('proposal-activity');
+
+    if (element.classList.contains('activity-title') && isProposal) {
+        element.innerHTML = value + ' <span class="proposal-indicator">💍</span>';
+    } else {
+        element.textContent = value;
+    }
+}
+
+function updateActivityField(activityId, field, value, element, originalValue) {
+    const data = {
+        id: parseInt(activityId),
+        field: field,
+        value: value
+    };
+
+    fetch('/api/itinerary/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Activity updated', 'success');
+            restoreElementContent(element, value);
+        } else {
+            showNotification('Failed to update activity', 'error');
+            restoreElementContent(element, originalValue);
+        }
+    })
+    .catch(error => {
+        console.error('Update error:', error);
+        showNotification('Failed to update activity', 'error');
+        restoreElementContent(element, originalValue);
+    });
+}
+
+// =============================================================================
+// DELETE ACTIVITY
+// =============================================================================
+function deleteActivity(button) {
+    const item = button.closest('.activity-item');
+    if (!item) return;
+
     if (!confirm('Are you sure you want to delete this activity?')) {
         return;
     }
@@ -108,16 +294,22 @@ function deleteActivity(item) {
     item.style.opacity = '0.5';
     item.style.pointerEvents = 'none';
 
-    fetch(`/api/itinerary/${activityId}/delete`, {
+    fetch(`/api/itinerary/delete/${activityId}`, {
         method: 'DELETE'
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Remove from DOM
-            item.remove();
-            updateAllProgress();
-            updateActivityCounts();
+            // Remove from DOM with animation
+            item.style.transition = 'all 0.3s ease';
+            item.style.transform = 'translateX(-100%)';
+
+            setTimeout(() => {
+                item.remove();
+                updateAllProgress();
+                updateActivityCounts();
+            }, 300);
+
             showNotification('Activity deleted successfully', 'success');
         } else {
             // Revert visual feedback
@@ -154,7 +346,7 @@ function handleAddActivity(e) {
     e.preventDefault();
 
     const formData = new FormData(e.target);
-    const activityData = {
+    const data = {
         day: parseInt(formData.get('day')),
         time: formData.get('time'),
         activity: formData.get('activity'),
@@ -163,40 +355,42 @@ function handleAddActivity(e) {
         isProposal: formData.get('isProposal') === 'on'
     };
 
-    // Basic validation
-    if (!activityData.activity.trim()) {
-        showNotification('Activity name is required', 'error');
+    // Validate required fields
+    if (!data.time || !data.activity) {
+        showNotification('Time and activity name are required', 'error');
         return;
     }
 
-    // Send to backend
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Adding...';
+    submitBtn.disabled = true;
+
     fetch('/api/itinerary/add', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(activityData)
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Add to UI
-            addActivityToDay(data.activity);
-            updateAllProgress();
-            updateActivityCounts();
-
-            // Close modal and reset form
+    .then(response => {
+        if (response.success) {
+            addActivityToDay(response.itinerary_item);
             closeModal('add-activity-modal');
             e.target.reset();
-
             showNotification('Activity added successfully', 'success');
         } else {
-            showNotification(data.error || 'Failed to add activity', 'error');
+            showNotification(response.error || 'Failed to add activity', 'error');
         }
     })
     .catch(error => {
         console.error('Error adding activity:', error);
         showNotification('Error adding activity', 'error');
+    })
+    .finally(() => {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     });
 }
 
@@ -204,7 +398,7 @@ function handleEditActivity(e) {
     e.preventDefault();
 
     const formData = new FormData(e.target);
-    const activityData = {
+    const data = {
         id: parseInt(formData.get('id')),
         day: parseInt(formData.get('day')),
         time: formData.get('time'),
@@ -214,62 +408,73 @@ function handleEditActivity(e) {
         isProposal: formData.get('isProposal') === 'on'
     };
 
-    // Send to backend
+    // Validate required fields
+    if (!data.time || !data.activity) {
+        showNotification('Time and activity name are required', 'error');
+        return;
+    }
+
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Saving...';
+    submitBtn.disabled = true;
+
     fetch('/api/itinerary/update', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(activityData)
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Update UI
-            updateActivityInDay(activityData);
-            updateAllProgress();
-            updateActivityCounts();
-
-            // Close modal
+    .then(response => {
+        if (response.success) {
+            updateActivityInDay(data);
             closeModal('edit-activity-modal');
-
             showNotification('Activity updated successfully', 'success');
         } else {
-            showNotification(data.error || 'Failed to update activity', 'error');
+            showNotification(response.error || 'Failed to update activity', 'error');
         }
     })
     .catch(error => {
         console.error('Error updating activity:', error);
         showNotification('Error updating activity', 'error');
+    })
+    .finally(() => {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
     });
 }
 
+// =============================================================================
+// DOM MANIPULATION
+// =============================================================================
 function addActivityToDay(activityData) {
-    // Find the correct day's activities list
-    const activitiesList = document.querySelector(`.activities-list[data-day="${activityData.day}"]`);
-    if (!activitiesList) return;
+    const dayList = document.querySelector(`.activities-list[data-day="${activityData.day}"]`);
+    if (!dayList) return;
 
-    // Create new activity item
     const activityItem = createActivityItem(activityData);
 
-    // Insert in chronological order
-    const existingItems = activitiesList.querySelectorAll('.activity-item');
+    // Insert in correct time order
+    const existingItems = dayList.querySelectorAll('.activity-item');
     let inserted = false;
 
     for (let item of existingItems) {
         const itemTime = item.querySelector('.activity-time')?.textContent || '00:00';
         if (activityData.time < itemTime) {
-            activitiesList.insertBefore(activityItem, item);
+            dayList.insertBefore(activityItem, item);
             inserted = true;
             break;
         }
     }
 
     if (!inserted) {
-        activitiesList.appendChild(activityItem);
+        dayList.appendChild(activityItem);
     }
 
     setupActivityEvents(activityItem);
+    updateAllProgress();
+    updateActivityCounts();
 }
 
 function updateActivityInDay(activityData) {
@@ -298,37 +503,44 @@ function updateActivityInDay(activityData) {
 
         activities.forEach(item => activitiesList.appendChild(item));
     }
+
+    updateAllProgress();
+    updateActivityCounts();
 }
 
 function createActivityItem(activity) {
     const item = document.createElement('div');
     item.className = `activity-item ${activity.isProposal ? 'proposal-activity' : ''}`;
     item.dataset.activityId = activity.id;
-    item.dataset.completed = 'false';
+    item.dataset.completed = activity.completed ? 'true' : 'false';
+
+    const proposalIndicator = activity.isProposal ? '<span class="proposal-indicator">💍</span>' : '';
+    const locationHtml = activity.location ? `
+        <div class="activity-location">
+            <i class="fas fa-map-marker-alt"></i>
+            <span class="editable-text" data-field="location" data-item-id="${activity.id}">${activity.location}</span>
+        </div>
+    ` : '';
+
+    const notesHtml = activity.notes ? `
+        <div class="activity-notes editable-text" data-field="notes" data-item-id="${activity.id}">
+            ${activity.notes}
+        </div>
+    ` : '';
 
     item.innerHTML = `
         <div class="activity-checkbox">
-            <input type="checkbox">
+            <input type="checkbox" ${activity.completed ? 'checked' : ''}>
         </div>
 
         <div class="activity-content">
             <div class="activity-time">${activity.time}</div>
             <div class="activity-details">
                 <h4 class="activity-title editable-text" data-field="activity" data-item-id="${activity.id}">
-                    ${activity.activity}
-                    ${activity.isProposal ? '<span class="proposal-indicator">💍</span>' : ''}
+                    ${activity.activity}${proposalIndicator}
                 </h4>
-                ${activity.location ? `
-                    <div class="activity-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span class="editable-text" data-field="location" data-item-id="${activity.id}">${activity.location}</span>
-                    </div>
-                ` : ''}
-                ${activity.notes ? `
-                    <div class="activity-notes">
-                        <p class="editable-text" data-field="notes" data-item-id="${activity.id}">${activity.notes}</p>
-                    </div>
-                ` : ''}
+                ${locationHtml}
+                ${notesHtml}
             </div>
         </div>
 
@@ -348,45 +560,61 @@ function createActivityItem(activity) {
 function updateActivityItem(item, activityData) {
     // Update time
     const timeElement = item.querySelector('.activity-time');
-    if (timeElement) timeElement.textContent = activityData.time;
+    if (timeElement) {
+        timeElement.textContent = activityData.time;
+    }
 
     // Update title
     const titleElement = item.querySelector('.activity-title');
     if (titleElement) {
-        titleElement.innerHTML = activityData.activity +
-            (activityData.isProposal ? '<span class="proposal-indicator">💍</span>' : '');
+        const proposalIndicator = activityData.isProposal ? '<span class="proposal-indicator">💍</span>' : '';
+        titleElement.innerHTML = activityData.activity + proposalIndicator;
+        titleElement.dataset.itemId = activityData.id;
     }
 
-    // Update location
-    const locationElement = item.querySelector('.activity-location span');
-    if (locationElement) {
-        locationElement.textContent = activityData.location;
-    } else if (activityData.location) {
-        // Add location if it didn't exist
-        const detailsElement = item.querySelector('.activity-details');
-        const locationDiv = document.createElement('div');
-        locationDiv.className = 'activity-location';
-        locationDiv.innerHTML = `
-            <i class="fas fa-map-marker-alt"></i>
-            <span class="editable-text" data-field="location" data-item-id="${activityData.id}">${activityData.location}</span>
-        `;
-        detailsElement.appendChild(locationDiv);
+    // Update or create location
+    let locationElement = item.querySelector('.activity-location span');
+    const locationContainer = item.querySelector('.activity-location');
+
+    if (activityData.location) {
+        if (locationElement) {
+            locationElement.textContent = activityData.location;
+        } else {
+            // Create location element
+            const detailsContainer = item.querySelector('.activity-details');
+            const locationDiv = document.createElement('div');
+            locationDiv.className = 'activity-location';
+            locationDiv.innerHTML = `
+                <i class="fas fa-map-marker-alt"></i>
+                <span class="editable-text" data-field="location" data-item-id="${activityData.id}">${activityData.location}</span>
+            `;
+            detailsContainer.appendChild(locationDiv);
+        }
+    } else if (locationContainer) {
+        locationContainer.remove();
     }
 
-    // Update notes
-    const notesElement = item.querySelector('.activity-notes p');
-    if (notesElement) {
-        notesElement.textContent = activityData.notes;
-    } else if (activityData.notes) {
-        // Add notes if they didn't exist
-        const detailsElement = item.querySelector('.activity-details');
-        const notesDiv = document.createElement('div');
-        notesDiv.className = 'activity-notes';
-        notesDiv.innerHTML = `<p class="editable-text" data-field="notes" data-item-id="${activityData.id}">${activityData.notes}</p>`;
-        detailsElement.appendChild(notesDiv);
+    // Update or create notes
+    let notesElement = item.querySelector('.activity-notes');
+
+    if (activityData.notes) {
+        if (notesElement) {
+            notesElement.textContent = activityData.notes;
+        } else {
+            // Create notes element
+            const detailsContainer = item.querySelector('.activity-details');
+            const notesDiv = document.createElement('div');
+            notesDiv.className = 'activity-notes editable-text';
+            notesDiv.dataset.field = 'notes';
+            notesDiv.dataset.itemId = activityData.id;
+            notesDiv.textContent = activityData.notes;
+            detailsContainer.appendChild(notesDiv);
+        }
+    } else if (notesElement) {
+        notesElement.remove();
     }
 
-    // Update proposal status
+    // Update proposal class
     if (activityData.isProposal) {
         item.classList.add('proposal-activity');
     } else {
@@ -395,292 +623,165 @@ function updateActivityItem(item, activityData) {
 }
 
 // =============================================================================
-// MODAL MANAGEMENT
-// =============================================================================
-function setupModals() {
-    // Close modal when clicking backdrop
-    document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
-        backdrop.addEventListener('click', function() {
-            const modal = this.closest('.modal');
-            if (modal) {
-                closeModal(modal.id);
-            }
-        });
-    });
-
-    // ESC key to close modals
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            const openModal = document.querySelector('.modal[style*="flex"]');
-            if (openModal) {
-                closeModal(openModal.id);
-            }
-        }
-    });
-}
-
-function openAddActivityModal() {
-    const modal = document.getElementById('add-activity-modal');
-    if (modal) {
-        modal.style.display = 'flex';
-
-        // Focus first input
-        setTimeout(() => {
-            const firstInput = modal.querySelector('select, input');
-            if (firstInput) firstInput.focus();
-        }, 100);
-    }
-}
-
-function openEditActivityModal(item) {
-    const modal = document.getElementById('edit-activity-modal');
-    if (!modal) return;
-
-    const activityId = item.dataset.activityId;
-    const dayCard = item.closest('.day-card');
-    const day = dayCard ? dayCard.dataset.day : '1';
-
-    // Extract data from DOM
-    const title = item.querySelector('.activity-title')?.textContent?.replace('💍', '').trim() || '';
-    const location = item.querySelector('.activity-location span')?.textContent?.trim() || '';
-    const notes = item.querySelector('.activity-notes p')?.textContent?.trim() || '';
-    const time = item.querySelector('.activity-time')?.textContent?.trim() || '';
-    const isProposal = item.classList.contains('proposal-activity');
-
-    // Populate form
-    document.getElementById('edit-activity-id').value = activityId;
-    document.getElementById('edit-activity-day').value = day;
-    document.getElementById('edit-activity-time').value = time;
-    document.getElementById('edit-activity-title').value = title;
-    document.getElementById('edit-activity-location').value = location;
-    document.getElementById('edit-activity-notes').value = notes;
-    document.getElementById('edit-is-proposal').checked = isProposal;
-
-    modal.style.display = 'flex';
-}
-
-function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-
-        // Reset form if it exists
-        const form = modal.querySelector('form');
-        if (form) {
-            form.reset();
-        }
-    }
-}
-
-// =============================================================================
-// INLINE EDITING
-// =============================================================================
-function setupInlineEditing() {
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('editable-text') && !e.target.classList.contains('editing')) {
-            startInlineEdit(e.target);
-        }
-    });
-}
-
-function startInlineEdit(element) {
-    if (element.classList.contains('editing')) return;
-
-    const originalText = element.textContent;
-    const field = element.dataset.field;
-    const itemId = element.dataset.itemId;
-
-    // Create input
-    const input = document.createElement(field === 'notes' ? 'textarea' : 'input');
-    input.type = 'text';
-    input.value = originalText;
-    input.className = 'inline-edit-input';
-
-    // Style the input
-    Object.assign(input.style, {
-        width: '100%',
-        border: '1px solid var(--accent-gold)',
-        borderRadius: '4px',
-        padding: '4px 8px',
-        font: 'inherit',
-        background: 'white',
-        resize: field === 'notes' ? 'vertical' : 'none'
-    });
-
-    if (field === 'notes') {
-        input.rows = 2;
-    }
-
-    element.classList.add('editing');
-    element.innerHTML = '';
-    element.appendChild(input);
-    input.focus();
-    input.select();
-
-    function saveChanges() {
-        const newValue = input.value.trim();
-
-        if (newValue !== originalText) {
-            // Send to backend
-            fetch('/api/itinerary/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id: parseInt(itemId),
-                    field: field,
-                    value: newValue
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    element.textContent = newValue;
-                    showNotification('Updated successfully', 'success');
-                } else {
-                    element.textContent = originalText;
-                    showNotification(data.error || 'Failed to update', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating:', error);
-                element.textContent = originalText;
-                showNotification('Error updating', 'error');
-            });
-        } else {
-            element.textContent = originalText;
-        }
-
-        element.classList.remove('editing');
-    }
-
-    function cancelEdit() {
-        element.textContent = originalText;
-        element.classList.remove('editing');
-    }
-
-    // Event listeners
-    input.addEventListener('blur', saveChanges);
-    input.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            saveChanges();
-        } else if (e.key === 'Escape') {
-            e.preventDefault();
-            cancelEdit();
-        }
-    });
-}
-
-// =============================================================================
-// PROGRESS TRACKING & STATISTICS
+// PROGRESS TRACKING
 // =============================================================================
 function updateAllProgress() {
-    updateTripProgress();
-    updateDayProgress();
+    const days = document.querySelectorAll('.day-card');
+
+    days.forEach(dayCard => {
+        const dayNumber = dayCard.dataset.day;
+        const activitiesInDay = dayCard.querySelectorAll('.activity-item');
+        const completedInDay = dayCard.querySelectorAll('.activity-item[data-completed="true"]');
+
+        const total = activitiesInDay.length;
+        const completed = completedInDay.length;
+        const percentage = total > 0 ? (completed / total) * 100 : 0;
+
+        // Update progress bar
+        const progressFill = dayCard.querySelector('.day-progress-fill');
+        if (progressFill) {
+            progressFill.style.width = `${percentage}%`;
+        }
+
+        // Update completion text
+        const completionText = dayCard.querySelector('.day-completion');
+        if (completionText) {
+            completionText.textContent = `${completed}/${total}`;
+        }
+    });
+
+    // Update overall progress
+    updateOverallProgress();
 }
 
-function updateTripProgress() {
+function updateOverallProgress() {
     const allActivities = document.querySelectorAll('.activity-item');
     const completedActivities = document.querySelectorAll('.activity-item[data-completed="true"]');
 
     const total = allActivities.length;
     const completed = completedActivities.length;
-    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const percentage = total > 0 ? (completed / total) * 100 : 0;
 
-    // Update UI
-    const progressFill = document.getElementById('trip-progress-fill');
-    const progressText = document.getElementById('trip-percentage');
-
-    if (progressFill) {
-        progressFill.style.width = `${percentage}%`;
+    // Update overall progress if element exists
+    const overallProgress = document.querySelector('.overall-progress-fill');
+    if (overallProgress) {
+        overallProgress.style.width = `${percentage}%`;
     }
 
-    if (progressText) {
-        progressText.textContent = `${percentage}%`;
-    }
-}
-
-function updateDayProgress() {
-    for (let day = 1; day <= 6; day++) {
-        const dayCard = document.querySelector(`.day-card[data-day="${day}"]`);
-        if (!dayCard) continue;
-
-        const dayActivities = dayCard.querySelectorAll('.activity-item');
-        const dayCompleted = dayCard.querySelectorAll('.activity-item[data-completed="true"]');
-
-        const total = dayActivities.length;
-        const completed = dayCompleted.length;
-        const percentage = total > 0 ? (completed / total) * 100 : 0;
-
-        // Update day progress bar
-        const dayProgressFill = dayCard.querySelector('.day-progress-fill');
-        if (dayProgressFill) {
-            dayProgressFill.style.width = `${percentage}%`;
-        }
-
-        // Update completion count
-        const dayCompletion = dayCard.querySelector('.day-completion');
-        if (dayCompletion) {
-            dayCompletion.textContent = `${completed}/${total}`;
-        }
+    const overallText = document.querySelector('.overall-completion');
+    if (overallText) {
+        overallText.textContent = `${completed}/${total} Activities Complete`;
     }
 }
 
 function updateActivityCounts() {
-    // This is handled by updateDayProgress now
-    updateDayProgress();
+    // Update any activity count displays
+    const totalActivities = document.querySelectorAll('.activity-item').length;
+    const countElements = document.querySelectorAll('.activity-count');
+
+    countElements.forEach(element => {
+        element.textContent = totalActivities;
+    });
 }
 
 // =============================================================================
-// UTILITY FUNCTIONS
+// NOTIFICATION SYSTEM
 // =============================================================================
 function showNotification(message, type = 'info') {
-    // Use global notification system if available
-    if (window.HERA && window.HERA.showNotification) {
-        window.HERA.showNotification(message, type);
-        return;
-    }
-
-    // Fallback notification
+    // Create notification element
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
-    notification.textContent = message;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-${getNotificationIcon(type)}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
 
-    Object.assign(notification.style, {
-        position: 'fixed',
-        top: '20px',
-        right: '20px',
-        padding: '12px 16px',
-        background: type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6',
-        color: 'white',
-        borderRadius: '8px',
-        zIndex: '10000',
-        animation: 'slideInRight 0.3s ease'
-    });
+    // Add styles if notification container doesn't exist
+    let container = document.querySelector('.notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.className = 'notification-container';
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        `;
+        document.body.appendChild(container);
 
-    document.body.appendChild(notification);
+        // Add notification styles to head
+        if (!document.getElementById('notification-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'notification-styles';
+            styles.textContent = `
+                .notification {
+                    background: white;
+                    border-radius: 8px;
+                    padding: 16px;
+                    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+                    border: 1px solid #e5e7eb;
+                    border-left: 4px solid;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    min-width: 300px;
+                    transform: translateX(400px);
+                    animation: slideInRight 0.3s ease-out forwards;
+                    pointer-events: all;
+                }
+                .notification-success { border-left-color: #10b981; }
+                .notification-error { border-left-color: #ef4444; }
+                .notification-warning { border-left-color: #f59e0b; }
+                .notification-info { border-left-color: #3b82f6; }
+                .notification-content { display: flex; align-items: center; gap: 8px; flex: 1; font-size: 14px; }
+                .notification-success .notification-content i { color: #10b981; }
+                .notification-error .notification-content i { color: #ef4444; }
+                .notification-warning .notification-content i { color: #f59e0b; }
+                .notification-info .notification-content i { color: #3b82f6; }
+                .notification-close {
+                    background: none; border: none; cursor: pointer; color: #9ca3af;
+                    padding: 4px; border-radius: 4px; transition: all 0.2s ease;
+                }
+                .notification-close:hover { background: rgba(0, 0, 0, 0.1); color: #374151; }
+                @keyframes slideInRight {
+                    from { transform: translateX(400px); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @keyframes slideOutRight {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(400px); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+    }
 
+    container.appendChild(notification);
+
+    // Auto remove after 5 seconds
     setTimeout(() => {
-        notification.remove();
-    }, 3000);
+        if (notification.parentElement) {
+            notification.style.animation = 'slideOutRight 0.3s ease-out forwards';
+            setTimeout(() => notification.remove(), 300);
+        }
+    }, 5000);
 }
 
-// =============================================================================
-// GLOBAL FUNCTIONS (called from HTML)
-// =============================================================================
-window.openAddActivityModal = openAddActivityModal;
-window.openEditActivityModal = openEditActivityModal;
-window.closeModal = closeModal;
-window.toggleActivityComplete = toggleActivityComplete;
-window.deleteActivity = deleteActivity;
-
-// Export for potential module use
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        initializeItinerary,
-        updateAllProgress,
-        updateActivityCounts
+function getNotificationIcon(type) {
+    const icons = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle',
+        info: 'info-circle'
     };
+    return icons[type] || 'info-circle';
 }

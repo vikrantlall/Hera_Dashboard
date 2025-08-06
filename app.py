@@ -602,7 +602,7 @@ def update_ring():
 @app.route('/api/itinerary/add', methods=['POST'])
 @login_required
 def add_itinerary_item():
-    """Add new itinerary activity"""
+    """Add new itinerary activity - ENHANCED"""
     try:
         data = request.get_json()
 
@@ -610,11 +610,13 @@ def add_itinerary_item():
         max_id = max([item['id'] for item in HERA_DATA['itinerary']], default=0)
         new_item = {
             'id': max_id + 1,
+            'day': int(data.get('day', 1)),  # ADD this line
             'time': data['time'],
             'activity': data['activity'],
-            'location': data['location'],
+            'location': data.get('location', ''),  # Make optional
             'notes': data.get('notes', ''),
-            'isProposal': data.get('isProposal', False)
+            'isProposal': data.get('isProposal', False),
+            'completed': False  # ADD this line
         }
 
         HERA_DATA['itinerary'].append(new_item)
@@ -628,18 +630,27 @@ def add_itinerary_item():
 @app.route('/api/itinerary/update', methods=['POST'])
 @login_required
 def update_itinerary_item():
-    """Update itinerary activity"""
+    """Update itinerary activity - ENHANCED"""
     try:
         data = request.get_json()
         item_id = int(data['id'])
-        field = data['field']
-        value = data['value']
 
         item = next((item for item in HERA_DATA['itinerary'] if item['id'] == item_id), None)
         if not item:
             return jsonify({'success': False, 'error': 'Item not found'})
 
-        item[field] = value
+        # Handle single field updates (inline editing)
+        if 'field' in data and 'value' in data:
+            field = data['field']
+            value = data['value']
+            item[field] = value
+        else:
+            # Handle full item updates (modal editing) - ADD this block
+            allowed_fields = ['day', 'time', 'activity', 'location', 'notes', 'isProposal']
+            for field in allowed_fields:
+                if field in data:
+                    item[field] = data[field]
+
         save_data()
         return jsonify({'success': True})
     except Exception as e:
@@ -656,6 +667,26 @@ def delete_itinerary_item(item_id):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/itinerary/<int:item_id>/complete', methods=['POST'])
+@login_required
+def toggle_itinerary_complete(item_id):
+    """Toggle itinerary activity completion status - MISSING ENDPOINT"""
+    try:
+        data = request.get_json()
+        completed = data.get('completed', False)
+
+        item = next((item for item in HERA_DATA['itinerary'] if item['id'] == item_id), None)
+        if not item:
+            return jsonify({'success': False, 'error': 'Item not found'})
+
+        item['completed'] = completed
+        save_data()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 
 if __name__ == '__main__':
     # Load existing data if available

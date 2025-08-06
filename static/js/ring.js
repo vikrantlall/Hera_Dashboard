@@ -1,4 +1,4 @@
-// Ring JavaScript functionality - FIXED VERSION
+// Ring JavaScript functionality - COMPACT VERSION - FIXED
 // This file should be saved as static/js/ring.js
 
 let selectedFiles = [];
@@ -15,14 +15,12 @@ function initializeRingPage() {
     setupImageGallery();
     setupModals();
     setupDragAndDrop();
-
     console.log('Ring page initialized successfully');
 }
 
 // Photo Upload System
 function setupPhotoUpload() {
     const fileInput = document.getElementById('photo-upload-input');
-
     if (fileInput) {
         fileInput.addEventListener('change', function(e) {
             handleFileSelection(e.target.files);
@@ -41,37 +39,36 @@ function setupPhotoUpload() {
 
 function setupDragAndDrop() {
     const dropZone = document.getElementById('upload-drop-zone');
+    if (!dropZone) return;
 
-    if (dropZone) {
-        dropZone.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.classList.add('drag-over');
-        });
+    dropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.add('drag-over');
+    });
 
-        dropZone.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.classList.remove('drag-over');
-        });
+    dropZone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('drag-over');
+    });
 
-        dropZone.addEventListener('drop', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            this.classList.remove('drag-over');
+    dropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        this.classList.remove('drag-over');
 
-            const files = Array.from(e.dataTransfer.files);
-            const imageFiles = files.filter(file => file.type.startsWith('image/'));
+        const files = Array.from(e.dataTransfer.files);
+        const imageFiles = files.filter(file => file.type.startsWith('image/'));
 
-            if (imageFiles.length > 0) {
-                handleFileSelection(imageFiles);
-            }
-        });
+        if (imageFiles.length > 0) {
+            handleFileSelection(imageFiles);
+        }
+    });
 
-        dropZone.addEventListener('click', function() {
-            document.getElementById('photo-upload-input').click();
-        });
-    }
+    dropZone.addEventListener('click', function() {
+        document.getElementById('photo-upload-input').click();
+    });
 }
 
 function openImageUpload() {
@@ -101,15 +98,13 @@ function handleFileSelection(files) {
         return;
     }
 
-    // Check file sizes
+    // Check file sizes (10MB limit)
     const oversizedFiles = imageFiles.filter(file => file.size > 10 * 1024 * 1024);
     if (oversizedFiles.length > 0) {
-        showNotification('Some files are larger than 10MB and will be skipped', 'warning');
+        showNotification('Some files are larger than 10MB and will be skipped', 'error');
     }
 
     const validFiles = imageFiles.filter(file => file.size <= 10 * 1024 * 1024);
-
-    // Add to selected files
     selectedFiles = [...selectedFiles, ...validFiles];
     updateUploadPreview();
 }
@@ -120,31 +115,33 @@ function updateUploadPreview() {
     const uploadBtn = document.getElementById('upload-photos-btn');
 
     if (selectedFiles.length === 0) {
-        previewSection.style.display = 'none';
-        uploadBtn.style.display = 'none';
+        if (previewSection) previewSection.style.display = 'none';
+        if (uploadBtn) uploadBtn.style.display = 'none';
         return;
     }
 
-    previewSection.style.display = 'block';
-    uploadBtn.style.display = 'inline-flex';
+    if (previewSection) previewSection.style.display = 'block';
+    if (uploadBtn) uploadBtn.style.display = 'inline-flex';
 
-    previewGrid.innerHTML = '';
+    if (previewGrid) {
+        previewGrid.innerHTML = '';
 
-    selectedFiles.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const previewItem = document.createElement('div');
-            previewItem.className = 'preview-item';
-            previewItem.innerHTML = `
-                <img src="${e.target.result}" alt="Preview">
-                <button class="preview-remove" onclick="removeSelectedFile(${index})">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            previewGrid.appendChild(previewItem);
-        };
-        reader.readAsDataURL(file);
-    });
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                previewItem.innerHTML = `
+                    <img src="${e.target.result}" alt="Preview ${index + 1}">
+                    <button class="preview-remove" onclick="removeSelectedFile(${index})">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                previewGrid.appendChild(previewItem);
+            };
+            reader.readAsDataURL(file);
+        });
+    }
 }
 
 function removeSelectedFile(index) {
@@ -158,65 +155,57 @@ function uploadSelectedPhotos() {
         return;
     }
 
+    const uploadBtn = document.getElementById('upload-photos-btn');
     const progressSection = document.getElementById('upload-progress');
     const progressFill = document.getElementById('progress-fill');
     const progressText = document.getElementById('progress-text');
-    const uploadBtn = document.getElementById('upload-photos-btn');
 
-    progressSection.style.display = 'block';
-    uploadBtn.style.display = 'none';
+    // Show progress
+    if (progressSection) progressSection.style.display = 'block';
+    if (uploadBtn) {
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+    }
 
-    let uploadedCount = 0;
-    const totalFiles = selectedFiles.length;
-
-    const uploadPromises = selectedFiles.map((file, index) => {
-        return uploadSinglePhoto(file)
-            .then(() => {
-                uploadedCount++;
-                const progress = (uploadedCount / totalFiles) * 100;
-                progressFill.style.width = `${progress}%`;
-                progressText.textContent = `Uploading... ${uploadedCount}/${totalFiles}`;
-            })
-            .catch(error => {
-                console.error('Upload failed for file:', file.name, error);
-            });
+    const formData = new FormData();
+    selectedFiles.forEach((file, index) => {
+        formData.append('photos', file);
     });
 
-    Promise.all(uploadPromises)
-        .then(() => {
-            progressText.textContent = 'Upload complete!';
-            showNotification(`${uploadedCount} photos uploaded successfully!`, 'success');
-
-            setTimeout(() => {
-                closePhotoUploadModal();
-                location.reload(); // Refresh to show new images
-            }, 1500);
-        })
-        .catch(error => {
-            console.error('Upload error:', error);
-            showNotification('Some uploads failed', 'error');
-        });
-}
-
-function uploadSinglePhoto(file) {
-    const formData = new FormData();
-    formData.append('photo', file);
-
-    return fetch('/api/ring/upload-photo', {
+    fetch('/api/ring/upload-photos', {
         method: 'POST',
         body: formData
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+            throw new Error(`Upload failed: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
-        if (!data.success) {
+        if (data.success) {
+            showNotification('Photos uploaded successfully!', 'success');
+            closePhotoUploadModal();
+            // Refresh the page to show new images
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
             throw new Error(data.error || 'Upload failed');
         }
-        return data;
+    })
+    .catch(error => {
+        console.error('Upload error:', error);
+        showNotification('Failed to upload photos', 'error');
+    })
+    .finally(() => {
+        // Reset UI
+        if (progressSection) progressSection.style.display = 'none';
+        if (uploadBtn) {
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Photos';
+        }
+        if (progressFill) progressFill.style.width = '0%';
     });
 }
 
@@ -225,14 +214,15 @@ function setupImageGallery() {
     // Setup thumbnail clicks
     const thumbnails = document.querySelectorAll('.ring-thumbnail');
     thumbnails.forEach(thumbnail => {
-        thumbnail.addEventListener('click', function() {
-            if (this.onclick) return; // Skip if onclick is already set
-
-            const img = this.querySelector('img');
-            if (img) {
-                changeMainImage(img.src.split('/').pop());
-            }
-        });
+        if (!thumbnail.onclick) {
+            thumbnail.addEventListener('click', function() {
+                const img = this.querySelector('img');
+                if (img) {
+                    const imageName = img.src.split('/').pop();
+                    changeMainImage(imageName);
+                }
+            });
+        }
     });
 
     // Setup main image click for lightbox
@@ -279,13 +269,14 @@ function deleteRingImage(imageName) {
     .then(data => {
         if (data.success) {
             showNotification('Image deleted successfully', 'success');
+
             // Remove from UI
             const thumbnail = document.querySelector(`[onclick*="${imageName}"]`);
             if (thumbnail) {
                 thumbnail.remove();
             }
 
-            // If this was the main image, switch to another one
+            // If this was the main image, switch to another one or show placeholder
             const mainImage = document.getElementById('main-ring-image');
             if (mainImage && mainImage.src.includes(imageName)) {
                 const remainingThumbnails = document.querySelectorAll('.ring-thumbnail');
@@ -293,11 +284,20 @@ function deleteRingImage(imageName) {
                     const firstThumbnail = remainingThumbnails[0];
                     const firstImg = firstThumbnail.querySelector('img');
                     if (firstImg) {
-                        changeMainImage(firstImg.src.split('/').pop());
+                        const newImageName = firstImg.src.split('/').pop();
+                        changeMainImage(newImageName);
                     }
                 } else {
-                    // No images left, show placeholder
-                    location.reload();
+                    // No images left, reload to show placeholder
+                    window.location.reload();
+                }
+            }
+
+            // Update RING_IMAGES array
+            if (window.RING_IMAGES) {
+                const index = window.RING_IMAGES.indexOf(imageName);
+                if (index > -1) {
+                    window.RING_IMAGES.splice(index, 1);
                 }
             }
         } else {
@@ -310,7 +310,7 @@ function deleteRingImage(imageName) {
     });
 }
 
-// Photo Lightbox
+// Photo Lightbox Functions
 function openPhotoLightbox(imageName) {
     const lightbox = document.getElementById('photo-lightbox');
     const lightboxImage = document.getElementById('lightbox-image');
@@ -319,7 +319,7 @@ function openPhotoLightbox(imageName) {
         lightboxImage.src = `/static/uploads/ring/${imageName}`;
         lightbox.classList.add('show');
 
-        // Set current index
+        // Set current index for navigation
         if (window.RING_IMAGES) {
             currentImageIndex = window.RING_IMAGES.indexOf(imageName);
         }
@@ -361,163 +361,158 @@ function nextPhoto() {
     }
 }
 
-// Editable Fields System
+// Ring Details Management
 function setupEditableFields() {
-    const editableElements = document.querySelectorAll('.editable-text, .editable-select');
-
+    const editableElements = document.querySelectorAll('.editable-text');
     editableElements.forEach(element => {
         element.addEventListener('click', function() {
-            if (!this.classList.contains('editing')) {
-                enableInlineEdit(this);
-            }
+            makeElementEditable(this);
         });
     });
 }
 
-function enableInlineEdit(element) {
+function makeElementEditable(element) {
+    if (element.classList.contains('editing')) return;
+
     const originalValue = element.textContent.trim();
-    element.setAttribute('data-original', originalValue);
+    const field = element.dataset.field;
+
     element.classList.add('editing');
+    element.contentEditable = true;
+    element.focus();
 
-    if (element.classList.contains('editable-select')) {
-        createSelectEditor(element);
-    } else {
-        createTextEditor(element);
+    // Select all text
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    function finishEditing() {
+        const newValue = element.textContent.trim();
+        element.classList.remove('editing');
+        element.contentEditable = false;
+
+        if (newValue !== originalValue && newValue !== '') {
+            updateRingField(field, newValue, element);
+        } else {
+            element.textContent = originalValue;
+        }
     }
-}
 
-function createTextEditor(element) {
-    const input = document.createElement('input');
-    input.type = 'text';
-    input.value = element.textContent.trim();
-    input.className = 'inline-editor';
-    input.style.cssText = `
-        background: transparent;
-        border: none;
-        outline: none;
-        font: inherit;
-        color: inherit;
-        width: 100%;
-        padding: 0;
-    `;
-
-    element.innerHTML = '';
-    element.appendChild(input);
-    input.focus();
-    input.select();
-
-    input.addEventListener('blur', () => saveInlineEdit(element));
-    input.addEventListener('keydown', function(e) {
+    element.addEventListener('blur', finishEditing);
+    element.addEventListener('keydown', function(e) {
         if (e.key === 'Enter') {
             e.preventDefault();
-            saveInlineEdit(element);
-        } else if (e.key === 'Escape') {
-            cancelInlineEdit(element);
+            finishEditing();
         }
-    });
-}
-
-function createSelectEditor(element) {
-    const options = element.getAttribute('data-options').split('|');
-    const currentValue = element.textContent.trim();
-
-    const select = document.createElement('select');
-    select.className = 'inline-editor';
-    select.style.cssText = `
-        background: transparent;
-        border: none;
-        outline: none;
-        font: inherit;
-        color: inherit;
-        width: 100%;
-        padding: 0;
-    `;
-
-    options.forEach(option => {
-        const optionEl = document.createElement('option');
-        optionEl.value = option;
-        optionEl.textContent = option;
-        optionEl.selected = option === currentValue;
-        select.appendChild(optionEl);
-    });
-
-    element.innerHTML = '';
-    element.appendChild(select);
-    select.focus();
-
-    select.addEventListener('blur', () => saveInlineEdit(element));
-    select.addEventListener('change', () => saveInlineEdit(element));
-    select.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
-            cancelInlineEdit(element);
+            element.textContent = originalValue;
+            finishEditing();
         }
     });
 }
 
-function saveInlineEdit(element) {
-    const editor = element.querySelector('.inline-editor');
-    if (!editor) return;
+function updateRingField(field, value, element) {
+    const data = {
+        field: field,
+        value: value
+    };
 
-    const newValue = editor.value.trim();
-    const originalValue = element.getAttribute('data-original');
-    const field = element.getAttribute('data-field');
-    const itemId = element.getAttribute('data-item-id');
-
-    if (newValue !== originalValue) {
-        // Save to backend
-        updateRingField(field, newValue)
-            .then(() => {
-                element.textContent = newValue;
-                element.classList.remove('editing');
-                element.removeAttribute('data-original');
-                showNotification('Updated successfully!', 'success');
-            })
-            .catch(error => {
-                console.error('Save failed:', error);
-                element.textContent = originalValue;
-                element.classList.remove('editing');
-                element.removeAttribute('data-original');
-                showNotification('Failed to save changes', 'error');
-            });
-    } else {
-        cancelInlineEdit(element);
-    }
-}
-
-function cancelInlineEdit(element) {
-    const originalValue = element.getAttribute('data-original');
-    element.textContent = originalValue;
-    element.classList.remove('editing');
-    element.removeAttribute('data-original');
-}
-
-function updateRingField(field, value) {
-    return fetch('/api/ring/update-field', {
+    fetch('/api/ring/update', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ field, value })
+        body: JSON.stringify(data)
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
+    .then(response => response.json())
     .then(data => {
-        if (!data.success) {
-            throw new Error(data.error || 'Update failed');
+        if (data.success) {
+            showNotification('Ring details updated', 'success');
+            // Update local data
+            if (window.RING_DATA) {
+                window.RING_DATA[field] = value;
+            }
+        } else {
+            showNotification('Failed to update ring details', 'error');
+            // Revert the change
+            element.textContent = window.RING_DATA[field] || 'Not specified';
         }
-        return data;
+    })
+    .catch(error => {
+        console.error('Update error:', error);
+        showNotification('Failed to update ring details', 'error');
+        element.textContent = window.RING_DATA[field] || 'Not specified';
     });
 }
 
-// Ring Edit Modal
+// Modal Management
+function setupModals() {
+    // Close modal when clicking backdrop
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            closeAllModals();
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAllModals();
+            closeLightbox();
+        }
+    });
+}
+
 function openRingEditModal() {
     const modal = document.getElementById('ring-edit-modal');
-    if (modal) {
+    if (modal && window.RING_DATA) {
+        // Populate form with current data using the correct field names
+        if (document.getElementById('edit-jeweler')) {
+            document.getElementById('edit-jeweler').value = window.RING_DATA['Jeweler'] || '';
+        }
+        if (document.getElementById('edit-metal')) {
+            document.getElementById('edit-metal').value = window.RING_DATA['Metal'] || '';
+        }
+        if (document.getElementById('edit-stones')) {
+            document.getElementById('edit-stones').value = window.RING_DATA['Stone(s)'] || '';
+        }
+        if (document.getElementById('edit-style')) {
+            document.getElementById('edit-style').value = window.RING_DATA['Ring Style (Inspiration)'] || '';
+        }
+        if (document.getElementById('edit-design-approved')) {
+            document.getElementById('edit-design-approved').value = window.RING_DATA['Design Approved'] || '';
+        }
+        if (document.getElementById('edit-order-placed')) {
+            document.getElementById('edit-order-placed').value = window.RING_DATA['Order Placed'] || '';
+        }
+        if (document.getElementById('edit-delivered')) {
+            document.getElementById('edit-delivered').value = window.RING_DATA['Delivered'] || '';
+        }
+        if (document.getElementById('edit-insured')) {
+            document.getElementById('edit-insured').value = window.RING_DATA['Insured'] || '';
+        }
+        if (document.getElementById('edit-insurance-details')) {
+            document.getElementById('edit-insurance-details').value = window.RING_DATA['Insurance Details'] || '';
+        }
+        if (document.getElementById('edit-engraving')) {
+            document.getElementById('edit-engraving').value = window.RING_DATA['Engraving'] || '';
+        }
+        if (document.getElementById('edit-estimated-delivery')) {
+            document.getElementById('edit-estimated-delivery').value = window.RING_DATA['Estimated Delivery'] || '';
+        }
+
         modal.classList.add('show');
+
+        // Focus first input after animation
+        setTimeout(() => {
+            const firstInput = modal.querySelector('#edit-jeweler');
+            if (firstInput) {
+                firstInput.focus();
+                firstInput.select();
+            }
+        }, 300);
     }
 }
 
@@ -532,16 +527,70 @@ function updateRingDetails(event) {
     event.preventDefault();
 
     const formData = {
-        jeweler: document.getElementById('edit-jeweler').value,
-        metal: document.getElementById('edit-metal').value,
-        stone: document.getElementById('edit-stone').value,
-        style: document.getElementById('edit-style').value,
-        design_approved: document.getElementById('edit-design-approved').value,
-        order_placed: document.getElementById('edit-order-placed').value,
-        delivered: document.getElementById('edit-delivered').value,
-        insured: document.getElementById('edit-insured').value,
-        insurance_details: document.getElementById('edit-insurance-details').value,
-        engraving: document.getElementById('edit-engraving').value
+        'Jeweler': document.getElementById('edit-jeweler').value,
+        'Metal': document.getElementById('edit-metal').value,
+        'Stone(s)': document.getElementById('edit-stones').value,
+        'Ring Style (Inspiration)': document.getElementById('edit-style').value,
+        'Design Approved': document.getElementById('edit-design-approved').value,
+        'Order Placed': document.getElementById('edit-order-placed').value,
+        'Delivered': document.getElementById('edit-delivered').value,
+        'Insured': document.getElementById('edit-insured').value,
+        'Insurance Details': document.getElementById('edit-insurance-details').value,
+        'Engraving': document.getElementById('edit-engraving').value,
+        'Estimated Delivery': document.getElementById('edit-estimated-delivery').value
+    };
+
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    submitBtn.disabled = true;
+
+    // Update each field individually to match the existing API structure
+    const updatePromises = Object.entries(formData).map(([field, value]) => {
+        return fetch('/api/ring/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ field, value })
+        });
+    });
+
+    Promise.all(updatePromises)
+    .then(responses => Promise.all(responses.map(r => r.json())))
+    .then(results => {
+        const allSuccessful = results.every(result => result.success);
+
+        if (allSuccessful) {
+            showNotification('Ring details updated successfully', 'success');
+            closeRingEditModal();
+
+            // Update local data
+            Object.assign(window.RING_DATA, formData);
+
+            // Refresh the page to show updates
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showNotification('Some updates failed', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Update error:', error);
+        showNotification('Failed to update ring details', 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
+}
+
+function updateInsuranceStatus() {
+    const data = {
+        field: 'Insured',
+        value: 'Yes'
     };
 
     fetch('/api/ring/update', {
@@ -549,179 +598,143 @@ function updateRingDetails(event) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(data)
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showNotification('Ring details updated successfully!', 'success');
-            closeRingEditModal();
-
-            // Update UI elements
+            showNotification('Insurance status updated', 'success');
+            // Update local data and refresh
+            if (window.RING_DATA) {
+                window.RING_DATA.Insured = 'Yes';
+            }
             setTimeout(() => {
-                location.reload(); // Simple reload to show changes
+                window.location.reload();
             }, 1000);
         } else {
-            showNotification('Failed to update ring details', 'error');
+            showNotification('Failed to update insurance status', 'error');
         }
     })
     .catch(error => {
         console.error('Update error:', error);
-        showNotification('Failed to update ring details', 'error');
-    });
-}
-
-// Modal System
-function setupModals() {
-    // Close modals when clicking backdrop
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('modal')) {
-            closeAllModals();
-        }
-        if (e.target.classList.contains('lightbox')) {
-            closeLightbox();
-        }
-    });
-
-    // Close modals with Escape key
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeAllModals();
-            closeLightbox();
-        }
-
-        // Lightbox navigation
-        if (document.getElementById('photo-lightbox').classList.contains('show')) {
-            if (e.key === 'ArrowLeft') {
-                previousPhoto();
-            } else if (e.key === 'ArrowRight') {
-                nextPhoto();
-            }
-        }
+        showNotification('Failed to update insurance status', 'error');
     });
 }
 
 function closeAllModals() {
     const modals = document.querySelectorAll('.modal.show');
-    modals.forEach(modal => modal.classList.remove('show'));
+    modals.forEach(modal => {
+        modal.classList.remove('show');
+    });
 }
 
 // Notification System
 function showNotification(message, type = 'info') {
     // Remove existing notifications
     const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notification => notification.remove());
+    existingNotifications.forEach(n => n.remove());
 
+    // Create notification element
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
+    notification.className = `notification notification-${type}`;
     notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-        <span>${message}</span>
+        <div class="notification-content">
+            <i class="fas fa-${getNotificationIcon(type)}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
     `;
 
+    // Add styles
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        padding: 12px 16px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        font-size: 14px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        max-width: 350px;
+        background: ${getNotificationColor(type)};
+    `;
+
+    // Add to page
     document.body.appendChild(notification);
 
-    setTimeout(() => notification.classList.add('show'), 10);
+    // Animate in
     setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }, 3000);
-}
+        notification.style.transform = 'translateX(0)';
+    }, 100);
 
-// Utility Functions
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-function isValidImageFile(file) {
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    return validTypes.includes(file.type);
-}
-
-function preloadImage(src) {
-    return new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = reject;
-        img.src = src;
-    });
-}
-
-// Initialize tooltips for action buttons
-function initializeTooltips() {
-    const tooltipElements = document.querySelectorAll('[data-tooltip]');
-
-    tooltipElements.forEach(element => {
-        element.addEventListener('mouseenter', function() {
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip';
-            tooltip.textContent = this.getAttribute('data-tooltip');
-            tooltip.style.cssText = `
-                position: absolute;
-                background: rgba(0, 0, 0, 0.8);
-                color: white;
-                padding: 0.5rem;
-                border-radius: 4px;
-                font-size: 0.75rem;
-                white-space: nowrap;
-                z-index: 1000;
-                pointer-events: none;
-            `;
-
-            document.body.appendChild(tooltip);
-
-            const rect = this.getBoundingClientRect();
-            tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
-            tooltip.style.top = (rect.top - tooltip.offsetHeight - 5) + 'px';
-
-            this._tooltip = tooltip;
-        });
-
-        element.addEventListener('mouseleave', function() {
-            if (this._tooltip) {
-                this._tooltip.remove();
-                this._tooltip = null;
-            }
-        });
-    });
-}
-
-// Error Handling
-window.addEventListener('error', function(e) {
-    console.error('Ring page error:', e.error);
-    showNotification('An unexpected error occurred', 'error');
-});
-
-window.addEventListener('unhandledrejection', function(e) {
-    console.error('Unhandled promise rejection:', e.reason);
-    showNotification('A network error occurred', 'error');
-});
-
-// Performance optimization - lazy load thumbnails
-function setupLazyLoading() {
-    const images = document.querySelectorAll('img[loading="lazy"]');
-
-    if ('IntersectionObserver' in window) {
-        const imageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    img.src = img.dataset.src || img.src;
-                    img.classList.remove('lazy');
-                    observer.unobserve(img);
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
                 }
-            });
-        });
-
-        images.forEach(img => imageObserver.observe(img));
-    }
+            }, 300);
+        }
+    }, 4000);
 }
+
+function getNotificationIcon(type) {
+    const icons = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle',
+        info: 'info-circle'
+    };
+    return icons[type] || icons.info;
+}
+
+function getNotificationColor(type) {
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+    return colors[type] || colors.info;
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + U to upload photos
+    if ((e.ctrlKey || e.metaKey) && e.key === 'u') {
+        e.preventDefault();
+        openImageUpload();
+    }
+
+    // Ctrl/Cmd + E to edit details
+    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        e.preventDefault();
+        openRingEditModal();
+    }
+
+    // Arrow keys for lightbox navigation
+    if (document.getElementById('photo-lightbox').classList.contains('show')) {
+        if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            previousPhoto();
+        }
+        if (e.key === 'ArrowRight') {
+            e.preventDefault();
+            nextPhoto();
+        }
+    }
+});
 
 // Export functions for global access
 window.changeMainImage = changeMainImage;
@@ -737,3 +750,4 @@ window.removeSelectedFile = removeSelectedFile;
 window.openRingEditModal = openRingEditModal;
 window.closeRingEditModal = closeRingEditModal;
 window.updateRingDetails = updateRingDetails;
+window.updateInsuranceStatus = updateInsuranceStatus;

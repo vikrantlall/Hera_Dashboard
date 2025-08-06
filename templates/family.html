@@ -44,17 +44,12 @@
                             </select>
                         </div>
                     </div>
-
-                    <div class="card-actions">
-                        <button class="action-btn edit-btn" data-member-id="{{ member.id }}" title="Edit Member">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                    </div>
                 </div>
 
                 {% if member.notes %}
                 <div class="member-notes">
                     <div class="notes-content">
+                        <i class="fas fa-quote-left"></i>
                         <p class="notes-text">{{ member.notes }}</p>
                     </div>
                 </div>
@@ -76,6 +71,9 @@
                             <span>Not Asked</span>
                         {% endif %}
                     </div>
+                    <button class="edit-btn" data-member-id="{{ member.id }}" title="Edit Member">
+                        <i class="fas fa-edit"></i>
+                    </button>
                 </div>
             </div>
         </div>

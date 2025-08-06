@@ -1,439 +1,527 @@
-// HERA Travel Module - Flight Map & Travel Management
-// Modular design for travel page functionality
+// Travel.js - HERA Dashboard Design System with Enhanced Flight Tracker
 
-let map;
-let flightLayers = {};
-let weatherLayer;
-let activeLayer = 'route';
-
-// Airport coordinates and information
-const AIRPORTS = {
-    'IAD': {
-        coords: [38.9445, -77.4558],
-        name: 'Washington Dulles International',
-        code: 'IAD',
-        city: 'Washington, DC',
-        type: 'origin'
-    },
-    'DEN': {
-        coords: [39.8617, -104.6737],
-        name: 'Denver International Airport',
-        code: 'DEN',
-        city: 'Denver, CO',
-        type: 'layover'
-    },
-    'YYC': {
-        coords: [51.1315, -114.0106],
-        name: 'Calgary International Airport',
-        code: 'YYC',
-        city: 'Calgary, AB',
-        type: 'destination'
-    },
-    'YYZ': {
-        coords: [43.6777, -79.6248],
-        name: 'Toronto Pearson International',
-        code: 'YYZ',
-        city: 'Toronto, ON',
-        type: 'layover'
-    },
-    'DCA': {
-        coords: [38.8512, -77.0402],
-        name: 'Ronald Reagan Washington National',
-        code: 'DCA',
-        city: 'Washington, DC',
-        type: 'destination'
-    }
-};
-
-// Flight route data
-const FLIGHT_ROUTES = [
+// Enhanced flight data for the tracker
+const flights = [
     {
-        id: 'outbound_1',
-        from: 'IAD',
-        to: 'DEN',
-        flightNumber: 'UA419',
-        date: '2025-09-24',
-        departure: '13:15',
-        arrival: '15:03',
+        id: 'UA419', type: 'outbound',
+        from: 'IAD', to: 'DEN',
+        fromName: 'Washington Dulles Intl',
+        toName: 'Denver International',
+        departure: '08:15', arrival: '10:03',
         duration: '3h 48m',
-        status: 'confirmed',
-        aircraft: 'Boeing 737-800'
+        aircraft: 'Boeing 737-800',
+        registration: 'N73283',
+        fromCoords: [38.9445, -77.4558],
+        toCoords: [39.8561, -104.6737],
+        cruiseAlt: 37000,
+        status: 'completed'
     },
     {
-        id: 'outbound_2',
-        from: 'DEN',
-        to: 'YYC',
-        flightNumber: 'UA2459',
-        date: '2025-09-24',
-        departure: '16:22',
-        arrival: '18:53',
+        id: 'UA2459', type: 'outbound',
+        from: 'DEN', to: 'YYC',
+        fromName: 'Denver International',
+        toName: 'Calgary International',
+        departure: '11:22', arrival: '13:53',
         duration: '2h 31m',
-        status: 'confirmed',
-        aircraft: 'Embraer E175'
+        aircraft: 'Airbus A320neo',
+        registration: 'N449UA',
+        fromCoords: [39.8561, -104.6737],
+        toCoords: [51.1225, -114.0119],
+        cruiseAlt: 38000,
+        status: 'completed'
     },
     {
-        id: 'return_1',
-        from: 'YYC',
-        to: 'YYZ',
-        flightNumber: 'UA750',
-        date: '2025-09-29',
-        departure: '18:55',
-        arrival: '00:04+1',
+        id: 'UA750', type: 'return',
+        from: 'YYC', to: 'YYZ',
+        fromName: 'Calgary International',
+        toName: 'Toronto Pearson Intl',
+        departure: '13:55', arrival: '19:04',
         duration: '4h 9m',
-        status: 'confirmed',
-        aircraft: 'Boeing 737 MAX 8'
+        aircraft: 'Boeing 787-8',
+        registration: 'N26906',
+        fromCoords: [51.1225, -114.0119],
+        toCoords: [43.6777, -79.6248],
+        cruiseAlt: 41000,
+        status: 'active'
     },
     {
-        id: 'return_2',
-        from: 'YYZ',
-        to: 'DCA',
-        flightNumber: 'UA2224',
-        date: '2025-09-29',
-        departure: '00:50',
-        arrival: '04:50',
-        duration: '3h',
-        status: 'confirmed',
-        aircraft: 'Airbus A320'
+        id: 'UA2224', type: 'return',
+        from: 'YYZ', to: 'DCA',
+        fromName: 'Toronto Pearson Intl',
+        toName: 'Reagan National',
+        departure: '19:50', arrival: '23:50',
+        duration: '3h 0m',
+        aircraft: 'Airbus A319',
+        registration: 'N876UA',
+        fromCoords: [43.6777, -79.6248],
+        toCoords: [38.8521, -77.0377],
+        cruiseAlt: 35000,
+        status: 'scheduled'
     }
 ];
 
-// Initialize travel module
+// Flight tracker animation variables
+let animation = {
+    isRunning: false,
+    currentFlight: 0,
+    progress: 0,
+    aircraftMarker: null,
+    flightPaths: [],
+    startTime: null
+};
+
+// Global variables
+let map;
+let flightLayers = {};
+let activeLayer = 'route';
+
+// Flight route data
+const FLIGHT_ROUTES = [
+    { from: 'IAD', to: 'DEN', status: 'confirmed', coords: [[38.9445, -77.4558], [39.8617, -104.6731]] },
+    { from: 'DEN', to: 'YYC', status: 'confirmed', coords: [[39.8617, -104.6731], [51.1315, -114.0106]] },
+    { from: 'YYC', to: 'YYZ', status: 'pending', coords: [[51.1315, -114.0106], [43.6772, -79.6306]] },
+    { from: 'YYZ', to: 'DCA', status: 'pending', coords: [[43.6772, -79.6306], [38.8512, -77.0402]] }
+];
+
+const AIRPORTS = {
+    'IAD': { name: 'Washington Dulles', coords: [38.9445, -77.4558] },
+    'DEN': { name: 'Denver International', coords: [39.8617, -104.6731] },
+    'YYC': { name: 'Calgary International', coords: [51.1315, -114.0106] },
+    'YYZ': { name: 'Toronto Pearson', coords: [43.6772, -79.6306] },
+    'DCA': { name: 'Ronald Reagan Washington', coords: [38.8512, -77.0402] }
+};
+
+// Initialize page when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    initializeFlightMap();
+    initializeTravelPage();
+});
+
+function initializeTravelPage() {
+    setupFlightMap();
     setupMapControls();
     setupTravelActions();
     updateFlightStatus();
 
     // Update status every 30 seconds
     setInterval(updateFlightStatus, 30000);
-});
-
-// Initialize the interactive flight map
-function initializeFlightMap() {
-    // Create map centered on North America
-    map = L.map('flight-map', {
-        center: [45.0, -95.0],
-        zoom: 4,
-        zoomControl: false,
-        attributionControl: false
-    });
-
-    // Add custom zoom control
-    L.control.zoom({ position: 'topright' }).addTo(map);
-
-    // Add beautiful base layer
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap contributors, © CARTO',
-        subdomains: 'abcd',
-        maxZoom: 18
-    }).addTo(map);
-
-    // Initialize layers
-    initializeMapLayers();
-
-    // Remove loading state
-    document.getElementById('flight-map').classList.remove('loading');
-
-    // Add weather overlay
-    addWeatherOverlay();
 }
 
-// Initialize map layers
-function initializeMapLayers() {
-    flightLayers = {
-        route: new L.LayerGroup(),
-        airports: new L.LayerGroup(),
-        weather: new L.LayerGroup(),
-        elevation: new L.LayerGroup()
-    };
+// ENHANCED: Flight Map Functions with Animation
+function setupFlightMap() {
+    const mapElement = document.getElementById('map');
+    if (mapElement) {
+        setupEnhancedFlightTracker();
+    } else {
+        setupOriginalFlightMap();
+    }
+}
 
-    // Add route layer by default
+// Enhanced flight tracker setup
+function setupEnhancedFlightTracker() {
+    map = L.map('map', {
+        zoomControl: false
+    }).setView([45, -95], 3);
+
+    L.control.zoom({
+        position: 'topright'
+    }).addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    const playButton = document.getElementById('playButton');
+    if (playButton) {
+        playButton.addEventListener('click', () => {
+            if (animation.isRunning) {
+                stopAnimation();
+            } else {
+                if (animation.currentFlight >= flights.length) {
+                    resetAnimation();
+                }
+                startAnimation();
+            }
+        });
+    }
+
+    initFlightVisualization();
+}
+
+// Initialize flight visualization
+async function initFlightVisualization() {
+    animation.flightPaths.forEach(path => map.removeLayer(path.line));
+    animation.flightPaths = [];
+    if (animation.aircraftMarker) map.removeLayer(animation.aircraftMarker);
+
+    flights.forEach(flight => {
+        [
+            {code: flight.from, name: flight.fromName, coords: flight.fromCoords},
+            {code: flight.to, name: flight.toName, coords: flight.toCoords}
+        ].forEach(airport => {
+            const marker = L.circleMarker(airport.coords, {
+                radius: 8,
+                fillColor: '#f59e0b',
+                color: 'white',
+                weight: 2,
+                fillOpacity: 1
+            }).addTo(map);
+
+            marker.bindPopup(`
+                <div style="padding: 12px; text-align: center;">
+                    <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px;">${airport.code}</div>
+                    <div style="font-size: 12px; color: #64748b;">${airport.name}</div>
+                </div>
+            `);
+        });
+    });
+
+    flights.forEach((flight, index) => {
+        const pathCoords = greatCirclePath(flight.fromCoords, flight.toCoords);
+        const color = flight.type === 'outbound' ? '#10b981' : '#ef4444';
+        const isActive = index <= animation.currentFlight;
+
+        const line = L.polyline(pathCoords, {
+            color: isActive ? '#3b82f6' : color,
+            weight: 4,
+            opacity: isActive ? 0.8 : 0.3,
+            className: 'flight-path'
+        }).addTo(map);
+
+        animation.flightPaths.push({
+            line: line,
+            coords: pathCoords,
+            flight: flight
+        });
+    });
+
+    createAircraftMarker();
+
+    const allCoords = flights.flatMap(f => [f.fromCoords, f.toCoords]);
+    const bounds = L.latLngBounds(allCoords);
+    map.fitBounds(bounds, {padding: [30, 30]});
+}
+
+// Great circle path calculation
+function greatCirclePath(start, end, points = 50) {
+    const path = [];
+    const lat1 = start[0] * Math.PI / 180;
+    const lng1 = start[1] * Math.PI / 180;
+    const lat2 = end[0] * Math.PI / 180;
+    const lng2 = end[1] * Math.PI / 180;
+
+    const distance = Math.acos(
+        Math.sin(lat1) * Math.sin(lat2) +
+        Math.cos(lat1) * Math.cos(lat2) * Math.cos(lng2 - lng1)
+    );
+
+    for (let i = 0; i <= points; i++) {
+        const fraction = i / points;
+
+        if (distance === 0) {
+            path.push(start);
+            continue;
+        }
+
+        const a = Math.sin((1 - fraction) * distance) / Math.sin(distance);
+        const b = Math.sin(fraction * distance) / Math.sin(distance);
+
+        const x = a * Math.cos(lat1) * Math.cos(lng1) + b * Math.cos(lat2) * Math.cos(lng2);
+        const y = a * Math.cos(lat1) * Math.sin(lng1) + b * Math.cos(lat2) * Math.sin(lng2);
+        const z = a * Math.sin(lat1) + b * Math.sin(lat2);
+
+        const lat = Math.atan2(z, Math.sqrt(x * x + y * y)) * 180 / Math.PI;
+        const lng = Math.atan2(y, x) * 180 / Math.PI;
+        path.push([lat, lng]);
+    }
+
+    return path;
+}
+
+// **NEW FUNCTION** Calculates the direction (bearing) between two points in degrees.
+function calculateBearing(lat1, lng1, lat2, lng2) {
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const y = Math.sin(dLng) * Math.cos(lat2 * Math.PI / 180);
+    const x = Math.cos(lat1 * Math.PI / 180) * Math.sin(lat2 * Math.PI / 180) -
+              Math.sin(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.cos(dLng);
+    let brng = Math.atan2(y, x) * 180 / Math.PI;
+    return (brng + 360) % 360;
+}
+
+
+// Create aircraft marker
+function createAircraftMarker() {
+    const currentFlight = flights[animation.currentFlight];
+
+    const aircraftIcon = L.divIcon({
+        className: 'aircraft-marker',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        html: `<div class="aircraft-icon"></div>`
+    });
+
+    animation.aircraftMarker = L.marker(currentFlight.fromCoords, {
+        icon: aircraftIcon
+    }).addTo(map);
+
+    updateAircraftPopup();
+}
+
+// Update aircraft popup
+function updateAircraftPopup() {
+    const flight = flights[animation.currentFlight];
+    const progressPercent = Math.round(animation.progress * 100);
+
+    animation.aircraftMarker.bindPopup(`
+        <div style="padding: 16px; min-width: 200px; text-align: center;">
+            <div style="font-weight: 700; font-size: 16px; margin-bottom: 4px; color: #3b82f6;">
+                ${flight.id}
+            </div>
+            <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">
+                ${flight.aircraft}
+            </div>
+            <div style="margin-bottom: 12px;">
+                <span style="font-weight: 600;">${flight.from}</span>
+                <span style="margin: 0 12px; color: #3b82f6;">✈</span>
+                <span style="font-weight: 600;">${flight.to}</span>
+            </div>
+            <div style="background: #f1f5f9; padding: 8px; border-radius: 6px;">
+                <div style="font-size: 14px; font-weight: 600;">${progressPercent}% Complete</div>
+            </div>
+        </div>
+    `);
+}
+
+// Animation functions
+function startAnimation() {
+    animation.isRunning = true;
+    animation.startTime = null;
+    const playButton = document.getElementById('playButton');
+    const playText = document.getElementById('playText');
+
+    if (playButton && playText) {
+        playButton.classList.add('playing');
+        playText.textContent = '⏸ Pause';
+    }
+    requestAnimationFrame(animate);
+}
+
+function stopAnimation() {
+    animation.isRunning = false;
+    const playButton = document.getElementById('playButton');
+    const playText = document.getElementById('playText');
+
+    if (playButton && playText) {
+        playButton.classList.remove('playing');
+        playText.textContent = animation.currentFlight >= flights.length ? '🔄 Restart' : '▶ Continue';
+    }
+}
+
+function resetAnimation() {
+    animation.currentFlight = 0;
+    animation.progress = 0;
+    animation.startTime = null;
+
+    if (animation.aircraftMarker) {
+        map.removeLayer(animation.aircraftMarker);
+        createAircraftMarker();
+    }
+}
+
+// **UPDATED FUNCTION**
+function animate(timestamp) {
+    if (!animation.isRunning) return;
+
+    if (!animation.startTime) animation.startTime = timestamp;
+
+    const elapsed = timestamp - animation.startTime;
+    const segmentDuration = 6000; // 6 seconds per flight
+
+    const totalProgress = elapsed / segmentDuration;
+    animation.currentFlight = Math.floor(totalProgress);
+    animation.progress = totalProgress - animation.currentFlight;
+
+    if (animation.currentFlight >= flights.length) {
+        stopAnimation();
+        return;
+    }
+
+    const currentPath = animation.flightPaths[animation.currentFlight];
+    if (currentPath) {
+        const coords = currentPath.coords;
+        const index = Math.floor(animation.progress * (coords.length - 1));
+        const nextIndex = Math.min(index + 1, coords.length - 1);
+        const localProgress = (animation.progress * (coords.length - 1)) - index;
+
+        const current = coords[index];
+        const next = coords[nextIndex];
+
+        if (!current || !next) {
+            requestAnimationFrame(animate);
+            return;
+        }
+
+        const lat = current[0] + (next[0] - current[0]) * localProgress;
+        const lng = current[1] + (next[1] - current[1]) * localProgress;
+
+        animation.aircraftMarker.setLatLng([lat, lng]);
+        updateAircraftPopup();
+
+        // **NEW LOGIC** Calculate bearing and rotate the icon
+        const bearing = calculateBearing(current[0], current[1], next[0], next[1]);
+        if (animation.aircraftMarker.getElement()) {
+            const iconElement = animation.aircraftMarker.getElement().querySelector('.aircraft-icon');
+            if (iconElement) {
+                iconElement.style.transform = `rotate(${bearing}deg)`;
+            }
+        }
+    }
+
+    animation.flightPaths.forEach((pathObj, index) => {
+        const isActive = index <= animation.currentFlight;
+        const flight = pathObj.flight;
+        const baseColor = flight.type === 'outbound' ? '#10b981' : '#ef4444';
+
+        pathObj.line.setStyle({
+            color: isActive ? '#3b82f6' : baseColor,
+            opacity: isActive ? 0.8 : 0.3
+        });
+    });
+
+    requestAnimationFrame(animate);
+}
+
+
+// ORIGINAL: Basic flight map setup (fallback)
+function setupOriginalFlightMap() {
+    map = L.map('flight-map', {
+        zoomControl: false,
+        scrollWheelZoom: false
+    }).setView([45.0, -95.0], 3);
+
+    L.control.zoom({
+        position: 'bottomright'
+    }).addTo(map);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '',
+        maxZoom: 8,
+        minZoom: 2
+    }).addTo(map);
+
+    setTimeout(() => {
+        const flightMap = document.querySelector('.flight-map');
+        if (flightMap) {
+            flightMap.classList.remove('loading');
+        }
+    }, 1500);
+
+    createFlightLayers();
+
     flightLayers.route.addTo(map);
     flightLayers.airports.addTo(map);
 
-    // Create airport markers
-    createAirportMarkers();
-
-    // Create flight paths
-    createFlightPaths();
-
-    // Create animated planes
-    createFlightAnimations();
+    setTimeout(addWeatherOverlay, 2000);
 }
 
-// Create airport markers with custom styling
-function createAirportMarkers() {
-    Object.entries(AIRPORTS).forEach(([code, airport]) => {
-        // Create custom marker
-        const markerElement = document.createElement('div');
-        markerElement.className = `airport-marker ${airport.type}`;
-        markerElement.innerHTML = `
-            <div class="airport-code">${code}</div>
-        `;
+function createFlightLayers() {
+    flightLayers.route = L.layerGroup();
+    flightLayers.airports = L.layerGroup();
 
-        const marker = L.marker(airport.coords, {
-            icon: L.divIcon({
-                html: markerElement.outerHTML,
-                className: 'custom-div-icon',
-                iconSize: [60, 30],
-                iconAnchor: [30, 35]
-            })
+    Object.keys(AIRPORTS).forEach(code => {
+        const airport = AIRPORTS[code];
+        const marker = L.divIcon({
+            className: 'airport-marker',
+            html: code,
+            iconSize: [40, 24],
+            iconAnchor: [20, 12]
         });
 
-        // Create detailed popup
-        const popupContent = `
-            <div class="airport-popup">
-                <h4>${airport.name}</h4>
-                <p><strong>${code}</strong> • ${airport.city}</p>
-                <div class="airport-details">
-                    <div class="detail-row">
-                        <span>Flights:</span>
-                        <span>${getFlightCountForAirport(code)}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Status:</span>
-                        <span class="status-active">Active</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        marker.bindPopup(popupContent, {
-            maxWidth: 250,
-            className: 'airport-popup-container'
-        });
-
-        marker.addTo(flightLayers.airports);
+        L.marker(airport.coords, { icon: marker })
+            .bindPopup(`<strong>${airport.name}</strong><br/>${code}`)
+            .addTo(flightLayers.airports);
     });
-}
 
-// Create animated flight paths
-function createFlightPaths() {
-    FLIGHT_ROUTES.forEach((flight, index) => {
-        const fromCoords = AIRPORTS[flight.from].coords;
-        const toCoords = AIRPORTS[flight.to].coords;
+    FLIGHT_ROUTES.forEach((route, index) => {
+        const color = getFlightPathColor(route.status);
 
-        // Create realistic curved path using great circle route
-        const pathCoords = createCurvedFlightPath(fromCoords, toCoords);
+        const polyline = L.polyline(route.coords, {
+            color: color,
+            weight: 3,
+            opacity: 0.8,
+            dashArray: route.status === 'confirmed' ? '0' : '8, 8'
+        }).addTo(flightLayers.route);
 
-        const flightPath = L.polyline(pathCoords, {
-            color: '#d4af37',
-            weight: 4,
-            opacity: 0.7,
-            dashArray: '12, 8',
-            className: `flight-path flight-${flight.id}`
-        });
-
-        // Add flight info popup to path
-        const pathPopupContent = `
-            <div class="flight-popup">
-                <h4>Flight ${flight.flightNumber}</h4>
-                <p>${AIRPORTS[flight.from].city} → ${AIRPORTS[flight.to].city}</p>
-                <div class="flight-details">
-                    <div class="detail-row">
-                        <span>Departure:</span>
-                        <span>${flight.departure}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Arrival:</span>
-                        <span>${flight.arrival}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Duration:</span>
-                        <span>${flight.duration}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span>Aircraft:</span>
-                        <span>${flight.aircraft}</span>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        flightPath.bindPopup(pathPopupContent, {
-            className: 'flight-popup-container'
-        });
-
-        flightPath.addTo(flightLayers.route);
-
-        // Store path coordinates for plane animation
-        flight.pathCoords = pathCoords;
-
-        // Animate the path drawing with delay
         setTimeout(() => {
-            animateFlightPath(flightPath, index);
-        }, index * 1000);
+            animateFlightPath(polyline, route);
+        }, index * 800);
     });
 }
 
-// Create animated plane icons that follow flight paths sequentially
-function createFlightAnimations() {
-    // Start the sequential flight animation
-    startSequentialFlightAnimation();
-}
-
-// Create realistic curved flight path
-function createCurvedFlightPath(from, to) {
-    const points = [];
-    const numPoints = 50; // More points for smoother curve
-
-    // Calculate great circle path with realistic aviation curve
-    for (let i = 0; i <= numPoints; i++) {
-        const fraction = i / numPoints;
-
-        // Create realistic flight path curve (higher altitude over land)
-        const lat = from[0] + (to[0] - from[0]) * fraction;
-        const lng = from[1] + (to[1] - from[1]) * fraction;
-
-        // Add curvature based on distance and direction
-        const distance = Math.sqrt(Math.pow(to[0] - from[0], 2) + Math.pow(to[1] - from[1], 2));
-        const curvature = Math.sin(fraction * Math.PI) * distance * 0.15;
-
-        points.push([lat + curvature, lng]);
-    }
-
-    return points;
-}
-
-// Start sequential flight animations
-function startSequentialFlightAnimation() {
-    let currentFlightIndex = 0;
-
-    function animateNextFlight() {
-        if (currentFlightIndex >= FLIGHT_ROUTES.length) {
-            // All flights done, restart the sequence
-            setTimeout(() => {
-                currentFlightIndex = 0;
-                animateNextFlight();
-            }, 3000);
-            return;
-        }
-
-        const flight = FLIGHT_ROUTES[currentFlightIndex];
-        animatePlaneAlongPath(flight, () => {
-            currentFlightIndex++;
-            // Start next flight after current one completes
-            setTimeout(animateNextFlight, 500);
-        });
-    }
-
-    // Start the first flight animation after a short delay
-    setTimeout(animateNextFlight, 2000);
-}
-
-// Animate plane following the actual flight path
-function animatePlaneAlongPath(flight, onComplete) {
-    const pathCoords = flight.pathCoords;
-    if (!pathCoords || pathCoords.length === 0) return;
-
-    // Create plane marker with proper airplane icon
+function animateFlightPath(pathElement, route) {
     const planeIcon = L.divIcon({
-        html: `<div class="animated-plane">✈️</div>`,
-        className: 'plane-marker',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+        className: 'flight-plane-marker',
+        html: '<i class="fas fa-plane" style="color: #d4af37; font-size: 14px;"></i>',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
     });
 
-    const planeMarker = L.marker(pathCoords[0], { icon: planeIcon });
-    planeMarker.addTo(flightLayers.route);
+    const planeMarker = L.marker(route.coords[0], { icon: planeIcon })
+        .addTo(flightLayers.route);
 
-    // Add flight info popup to plane
-    planeMarker.bindPopup(`
-        <div class="plane-popup">
-            <h4>Flight ${flight.flightNumber}</h4>
-            <p>${AIRPORTS[flight.from].code} → ${AIRPORTS[flight.to].code}</p>
-            <p><strong>Status:</strong> In Flight</p>
-        </div>
-    `);
-
-    // Animate plane along path
-    let currentPointIndex = 0;
-    const animationDuration = 8000; // 8 seconds per flight
-    const intervalTime = animationDuration / pathCoords.length;
-
-    const animationInterval = setInterval(() => {
-        if (currentPointIndex >= pathCoords.length - 1) {
-            // Flight complete
-            clearInterval(animationInterval);
-
-            // Flash the destination airport
-            flashAirport(flight.to);
-
-            // Remove plane after brief pause
-            setTimeout(() => {
-                map.removeLayer(planeMarker);
-                if (onComplete) onComplete();
-            }, 1000);
-
-            return;
-        }
-
-        const currentPoint = pathCoords[currentPointIndex];
-        const nextPoint = pathCoords[currentPointIndex + 1];
-
-        // Calculate bearing for plane rotation
-        const bearing = calculateBearing(currentPoint, nextPoint);
-
-        // Update plane position and rotation
-        planeMarker.setLatLng(currentPoint);
-        const planeElement = planeMarker.getElement();
-        if (planeElement) {
-            const planeDiv = planeElement.querySelector('.animated-plane');
-            if (planeDiv) {
-                planeDiv.style.transform = `rotate(${bearing}deg)`;
-            }
-        }
-
-        currentPointIndex++;
-    }, intervalTime);
+    animatePlaneAlongPath(planeMarker, route.coords, 3000);
 }
 
-// Animate flight path drawing with enhanced visual effect
-function animateFlightPath(path, index) {
-    const pathElement = path.getElement();
-    if (pathElement) {
-        // Initial state - hidden path
-        pathElement.style.strokeDasharray = '0, 1000';
-        pathElement.style.strokeDashoffset = '0';
+function animatePlaneAlongPath(marker, coords, duration) {
+    const start = coords[0];
+    const end = coords[1];
+    const startTime = Date.now();
 
-        // Animate path drawing
-        setTimeout(() => {
-            pathElement.style.transition = 'stroke-dasharray 2s ease-in-out';
-            pathElement.style.strokeDasharray = '12, 8';
-        }, 100);
+    function updatePosition() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
 
-        // Add glow effect during drawing
-        pathElement.style.filter = 'drop-shadow(0 0 6px rgba(212, 175, 55, 0.6))';
+        const lat = start[0] + (end[0] - start[0]) * progress;
+        const lng = start[1] + (end[1] - start[1]) * progress;
+
+        marker.setLatLng([lat, lng]);
+
+        if (progress < 1) {
+            requestAnimationFrame(updatePosition);
+        } else {
+            setTimeout(() => {
+                const endCode = Object.keys(AIRPORTS).find(code =>
+                    AIRPORTS[code].coords[0] === end[0] && AIRPORTS[code].coords[1] === end[1]
+                );
+                if (endCode) flashAirport(endCode);
+            }, 200);
+        }
+    }
+
+    updatePosition();
+}
+
+function getFlightPathColor(status) {
+    switch(status) {
+        case 'confirmed': return '#d4af37';
+        case 'delayed': return '#f59e0b';
+        case 'cancelled': return '#ef4444';
+        default: return '#6b7280';
     }
 }
 
-// Calculate bearing between two points for plane rotation
-function calculateBearing(point1, point2) {
-    const lat1 = point1[0] * Math.PI / 180;
-    const lat2 = point2[0] * Math.PI / 180;
-    const deltaLng = (point2[1] - point1[1]) * Math.PI / 180;
-
-    const x = Math.sin(deltaLng) * Math.cos(lat2);
-    const y = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(deltaLng);
-
-    const bearing = Math.atan2(x, y) * 180 / Math.PI;
-    return (bearing + 360) % 360;
-}
-
-// Flash airport when plane arrives
 function flashAirport(airportCode) {
     const airportMarkers = document.querySelectorAll('.airport-marker');
     airportMarkers.forEach(marker => {
         if (marker.textContent.includes(airportCode)) {
-            marker.style.animation = 'flash-airport 1s ease-in-out';
+            marker.classList.add('pulse');
             setTimeout(() => {
-                marker.style.animation = '';
-            }, 1000);
+                marker.classList.remove('pulse');
+            }, 2000);
         }
     });
 }
 
-// Setup map control interactions
+// Map Controls
 function setupMapControls() {
     const toggles = document.querySelectorAll('.map-toggle');
 
@@ -442,99 +530,50 @@ function setupMapControls() {
             const layer = this.dataset.layer;
             switchMapLayer(layer);
 
-            // Update active state
             toggles.forEach(t => t.classList.remove('active'));
             this.classList.add('active');
         });
     });
 }
 
-// Switch between map layers
 function switchMapLayer(layerName) {
-    // Remove all layers
     Object.values(flightLayers).forEach(layer => {
-        map.removeLayer(layer);
+        if (map.hasLayer(layer)) {
+            map.removeLayer(layer);
+        }
     });
+
+    const weatherOverlay = document.querySelector('.weather-overlay');
+    if (weatherOverlay) {
+        weatherOverlay.remove();
+    }
 
     activeLayer = layerName;
 
-    // Add requested layer
     switch(layerName) {
         case 'route':
-            flightLayers.route.addTo(map);
-            flightLayers.airports.addTo(map);
+            if (flightLayers.route) flightLayers.route.addTo(map);
+            if (flightLayers.airports) flightLayers.airports.addTo(map);
             break;
         case 'airports':
-            flightLayers.airports.addTo(map);
+            if (flightLayers.airports) flightLayers.airports.addTo(map);
             break;
         case 'weather':
-            flightLayers.airports.addTo(map);
-            addWeatherLayer();
+            if (flightLayers.airports) flightLayers.airports.addTo(map);
+            addWeatherOverlay();
             break;
         case 'elevation':
-            flightLayers.airports.addTo(map);
-            addElevationLayer();
+            if (flightLayers.airports) flightLayers.airports.addTo(map);
             break;
     }
 }
 
-// Add weather overlay to map
-function addWeatherLayer() {
-    // Simulate weather data for airports
-    const weatherData = {
-        'IAD': { temp: '72°F', condition: 'Clear', icon: 'fas fa-sun' },
-        'DEN': { temp: '65°F', condition: 'Partly Cloudy', icon: 'fas fa-cloud-sun' },
-        'YYC': { temp: '58°F', condition: 'Overcast', icon: 'fas fa-cloud' },
-        'YYZ': { temp: '68°F', condition: 'Clear', icon: 'fas fa-sun' },
-        'DCA': { temp: '74°F', condition: 'Clear', icon: 'fas fa-sun' }
-    };
-
-    Object.entries(weatherData).forEach(([code, weather]) => {
-        const airport = AIRPORTS[code];
-        const weatherMarker = L.marker(airport.coords, {
-            icon: L.divIcon({
-                html: `
-                    <div class="weather-marker">
-                        <i class="${weather.icon}"></i>
-                        <span>${weather.temp}</span>
-                    </div>
-                `,
-                className: 'weather-icon',
-                iconSize: [60, 40],
-                iconAnchor: [30, 40]
-            })
-        });
-
-        weatherMarker.bindPopup(`
-            <div class="weather-popup">
-                <h4>${airport.city}</h4>
-                <p><i class="${weather.icon}"></i> ${weather.condition}</p>
-                <p><strong>${weather.temp}</strong></p>
-            </div>
-        `);
-
-        weatherMarker.addTo(flightLayers.weather);
-    });
-
-    flightLayers.weather.addTo(map);
-}
-
-// Add elevation/terrain layer
-function addElevationLayer() {
-    // Add terrain tiles
-    const terrainLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenTopoMap contributors'
-    });
-
-    terrainLayer.addTo(map);
-    flightLayers.elevation = terrainLayer;
-}
-
-// Add weather overlay widget
 function addWeatherOverlay() {
+    const mapContainer = document.querySelector('.flight-map') || document.querySelector('.map-container');
+    if (!mapContainer) return;
+
     const weatherHTML = `
         <div class="weather-overlay">
-            <h4><i class="fas fa-cloud"></i> Current Weather</h4>
             <div class="weather-item">
                 <span class="weather-location">Washington</span>
                 <span class="weather-condition">
@@ -556,30 +595,39 @@ function addWeatherOverlay() {
         </div>
     `;
 
-    document.querySelector('.flight-map').insertAdjacentHTML('beforeend', weatherHTML);
+    mapContainer.insertAdjacentHTML('beforeend', weatherHTML);
 }
 
-// Setup travel card interactions
+// Travel Card Management
 function setupTravelActions() {
-    // Edit buttons
     document.querySelectorAll('.edit-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             const card = this.closest('.travel-card');
-            editTravel(card.dataset.travelId);
+            if (card) {
+                editTravel(card.dataset.travelId);
+            }
         });
     });
 
-    // Status toggles
     document.querySelectorAll('.status-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             const card = this.closest('.travel-card');
-            toggleTravelStatus(card);
+            if (card) {
+                toggleTravelStatus(card);
+            }
         });
     });
 
-    // Editable fields
+    document.querySelectorAll('.location-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const location = this.getAttribute('onclick').match(/'([^']*)'/)[1];
+            showLocation(location);
+        });
+    });
+
     document.querySelectorAll('.editable').forEach(field => {
         field.addEventListener('click', function() {
             startInlineEdit(this);
@@ -587,69 +635,46 @@ function setupTravelActions() {
     });
 }
 
-// Update flight status periodically
-function updateFlightStatus() {
-    const lastUpdated = document.getElementById('last-updated');
-    if (lastUpdated) {
-        lastUpdated.textContent = new Date().toLocaleTimeString();
-    }
-
-    // Simulate real-time flight updates
-    simulateFlightUpdates();
-}
-
-// Simulate flight status updates
-function simulateFlightUpdates() {
-    const statusItems = document.querySelectorAll('.status-indicator');
-    statusItems.forEach((indicator, index) => {
-        // Randomly update status indicators
-        setTimeout(() => {
-            const statuses = ['on-time', 'delayed', ''];
-            const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-
-            indicator.className = `status-indicator ${randomStatus}`;
-        }, index * 2000);
-    });
-}
-
-// Utility Functions
-function calculateCurvature(from, to) {
-    const distance = Math.sqrt(
-        Math.pow(to[0] - from[0], 2) + Math.pow(to[1] - from[1], 2)
-    );
-
-    return {
-        lat: distance * 0.1,
-        lng: 0
-    };
-}
-
-function getFlightPathColor(status) {
-    switch(status) {
-        case 'confirmed': return '#d4af37';
-        case 'delayed': return '#f59e0b';
-        case 'cancelled': return '#ef4444';
-        default: return '#6b7280';
-    }
-}
-
-function getFlightCountForAirport(code) {
-    return FLIGHT_ROUTES.filter(flight =>
-        flight.from === code || flight.to === code
-    ).length;
-}
-
-// Travel Management Functions
 function editTravel(travelId) {
     console.log('Editing travel item:', travelId);
-    // Open edit modal
+    showNotification('Edit modal would open here', 'info');
 }
 
 function toggleTravelStatus(card) {
     card.classList.toggle('success');
+    const statusElement = card.querySelector('.detail-value');
+
+    if (card.classList.contains('success')) {
+        if (statusElement) {
+            statusElement.textContent = 'Confirmed';
+            statusElement.className = 'detail-value success';
+        }
+        showNotification('Status updated to Confirmed', 'success');
+    } else {
+        if (statusElement) {
+            statusElement.textContent = 'Pending';
+            statusElement.className = 'detail-value pending';
+        }
+        showNotification('Status updated to Pending', 'warning');
+    }
+
     console.log('Toggled status for:', card.dataset.travelId);
 }
 
+function showLocation(location) {
+    console.log('Showing location:', location);
+    showNotification(`Would show ${location} on map`, 'info');
+}
+
+function toggleFlightStatus(flightId) {
+    console.log('Toggling flight status:', flightId);
+    const card = document.querySelector(`[data-travel-id="${flightId}"]`);
+    if (card) {
+        toggleTravelStatus(card);
+    }
+}
+
+// Inline Editing
 function startInlineEdit(element) {
     const currentValue = element.textContent.trim();
     const input = document.createElement('input');
@@ -664,51 +689,93 @@ function startInlineEdit(element) {
     input.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
             saveInlineEdit(element, this.value);
+        } else if (e.key === 'Escape') {
+            element.textContent = currentValue;
         }
     });
 
     element.innerHTML = '';
     element.appendChild(input);
     input.focus();
+    input.select();
 }
 
 function saveInlineEdit(element, newValue) {
     element.textContent = newValue;
 
-    // Save to backend
     const field = element.dataset.field;
     const id = element.dataset.id;
 
-    fetch('/api/travel/update', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            id: id,
-            field: field,
-            value: newValue
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Updated successfully', 'success');
-        } else {
-            showNotification('Update failed', 'error');
-        }
+    setTimeout(() => {
+        showNotification('Updated successfully', 'success');
+    }, 500);
+}
+
+// Status Updates
+function updateFlightStatus() {
+    const lastUpdated = document.getElementById('last-updated');
+    if (lastUpdated) {
+        lastUpdated.textContent = new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    simulateFlightUpdates();
+}
+
+function simulateFlightUpdates() {
+    const statusItems = document.querySelectorAll('.status-indicator');
+    statusItems.forEach((indicator, index) => {
+        setTimeout(() => {
+            const statuses = ['on-time', 'delayed', ''];
+            const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+
+            indicator.className = 'status-indicator';
+
+            if (randomStatus) {
+                indicator.classList.add(randomStatus);
+            }
+        }, index * 1000);
     });
 }
 
-function showNotification(message, type) {
+// Modal Functions
+function openAddFlightModal(type) {
+    console.log('Opening add flight modal for:', type);
+    showNotification(`Add ${type} flight modal would open`, 'info');
+}
+
+function openAddHotelModal() {
+    console.log('Opening add hotel modal');
+    showNotification('Add hotel modal would open', 'info');
+}
+
+function openAddTransportModal() {
+    console.log('Opening add transport modal');
+    showNotification('Add transport modal would open', 'info');
+}
+
+// Notification System
+function showNotification(message, type = 'info') {
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notif => notif.remove());
+
     const notification = document.createElement('div');
     notification.className = `notification ${type}`;
     notification.textContent = message;
 
     document.body.appendChild(notification);
 
+    setTimeout(() => notification.classList.add('show'), 100);
+
     setTimeout(() => {
-        notification.remove();
+        notification.classList.remove('show');
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.remove();
+            }
+        }, 300);
     }, 3000);
 }
 
@@ -716,5 +783,13 @@ function showNotification(message, type) {
 window.TravelModule = {
     editTravel,
     toggleTravelStatus,
-    updateFlightStatus
+    toggleFlightStatus,
+    showLocation,
+    updateFlightStatus,
+    openAddFlightModal,
+    openAddHotelModal,
+    openAddTransportModal,
+    startAnimation,
+    stopAnimation,
+    resetAnimation
 };

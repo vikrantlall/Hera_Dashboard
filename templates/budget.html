@@ -63,11 +63,13 @@
     <!-- Budget Items Section -->
     <div class="budget-items-section">
         <div class="section-header">
-            <h2 class="section-title">
-                <i class="fas fa-list-alt"></i>
-                Budget Items
-            </h2>
-            <p class="section-subtitle">Manage your proposal expenses</p>
+            <div>
+                <h2 class="section-title">
+                    <i class="fas fa-list-ul"></i>
+                    Budget Items
+                </h2>
+                <p class="section-subtitle">Track expenses for your proposal trip</p>
+            </div>
             <button class="add-item-btn" onclick="openAddBudgetModal()">
                 <i class="fas fa-plus"></i>
                 Add Item
@@ -75,83 +77,56 @@
         </div>
 
         <div class="budget-items-container">
-            <div class="budget-items-list">
+            <div class="budget-items-list" id="budget-items-list">
                 {% for item in budget_items %}
-                {% set progress = (item.saved / item.budget * 100) if item.budget > 0 else 0 %}
                 <div class="budget-item {{ 'paid' if item.status == 'Paid' else 'outstanding' }}" data-item-id="{{ item.id }}">
                     <div class="budget-item-content">
-                        <div class="item-emoji">{{ item.emoji or '💰' }}</div>
+                        <!-- Item Icon -->
+                        <div class="item-emoji">
+                            {{ item.emoji if item.emoji else '💰' }}
+                        </div>
 
+                        <!-- Item Details -->
                         <div class="item-details">
-                            <div class="item-header">
-                                <h3 class="item-name editable-text" data-field="category" data-item-id="{{ item.id }}">
-                                    {{ item.category }}
-                                </h3>
-                                <div class="item-amounts">
-                                    <span class="item-saved editable-text" data-field="saved" data-item-id="{{ item.id }}">
-                                        ${{ "{:,.0f}".format(item.saved) }}
-                                    </span>
-                                    <span class="amount-separator">/</span>
-                                    <span class="item-budget editable-text" data-field="budget" data-item-id="{{ item.id }}">
-                                        ${{ "{:,.0f}".format(item.budget) }}
-                                    </span>
-                                </div>
-                                <div class="item-status status-{{ item.status.lower().replace(' ', '-') }}">
-                                    {% if item.status == 'Paid' %}
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>PAID</span>
-                                    {% else %}
-                                        <i class="fas fa-clock"></i>
-                                        <span>{{ item.status.upper() }}</span>
-                                    {% endif %}
-                                </div>
-                            </div>
-
-                            <div class="item-progress">
-                                <div class="progress-bar">
-                                    <div class="progress-fill {{ 'pending' if item.status == 'Outstanding' else '' }}"
-                                         style="width: {{ progress }}%"></div>
-                                </div>
-                                <div class="progress-percentage">{{ "{:.0f}".format(progress) }}%</div>
-                            </div>
-
+                            <div class="item-name">{{ item.category }}</div>
+                            <div class="item-category">{{ item.status }}</div>
                             {% if item.notes %}
-                            <div class="item-notes editable-text" data-field="notes" data-item-id="{{ item.id }}">
-                                <i class="fas fa-sticky-note"></i>
-                                <span>{{ item.notes }}</span>
-                            </div>
+                            <div class="item-notes">{{ item.notes }}</div>
                             {% endif %}
                         </div>
 
-                        <div class="item-actions">
-                            <div class="edit-controls" style="display: none;">
-                                <button class="btn save-btn" onclick="saveBudgetItem({{ item.id }})">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                                <button class="btn cancel-btn" onclick="cancelBudgetEdit({{ item.id }})">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-
-                            <div class="item-menu">
-                                <button class="menu-toggle" onclick="toggleItemMenu({{ item.id }})">
-                                    <i class="fas fa-ellipsis-v"></i>
-                                </button>
-                                <div class="menu-dropdown">
-                                    <button class="menu-item edit-item" onclick="enableEditMode({{ item.id }})">
-                                        <i class="fas fa-edit"></i>
-                                        Edit
-                                    </button>
-                                    <button class="menu-item toggle-status" onclick="toggleBudgetStatus({{ item.id }})">
-                                        <i class="fas fa-{{ 'undo' if item.status == 'Paid' else 'check' }}"></i>
-                                        {{ 'Mark Outstanding' if item.status == 'Paid' else 'Mark Paid' }}
-                                    </button>
-                                    <button class="menu-item delete-item" onclick="deleteBudgetItem({{ item.id }})">
-                                        <i class="fas fa-trash"></i>
-                                        Delete
-                                    </button>
+                        <!-- Progress Section -->
+                        <div class="budget-progress">
+                            <div class="progress-container">
+                                <div class="progress-bar">
+                                    <div class="progress-fill" style="width: {{ ((item.saved / item.budget) * 100) if item.budget > 0 else 0 }}%"></div>
                                 </div>
+                                <div class="progress-text">{{ "{:.0f}".format(((item.saved / item.budget) * 100) if item.budget > 0 else 0) }}%</div>
                             </div>
+                        </div>
+
+                        <!-- Budget Status -->
+                        <div class="budget-status">
+                            <div class="budget-amount">${{ "{:,.0f}".format(item.budget) }}</div>
+                            {% if item.saved > 0 %}
+                            <div class="saved-amount">${{ "{:,.0f}".format(item.saved) }} saved</div>
+                            {% endif %}
+                            {% if item.budget - item.saved > 0 %}
+                            <div class="remaining-amount">${{ "{:,.0f}".format(item.budget - item.saved) }} left</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Item Actions -->
+                        <div class="item-actions">
+                            <button class="action-btn edit-btn" onclick="openBudgetModal({{ item.id }})" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn pay-btn" onclick="toggleBudgetStatus({{ item.id }})" title="{{ 'Mark Outstanding' if item.status == 'Paid' else 'Mark Paid' }}">
+                                <i class="fas fa-{{ 'undo' if item.status == 'Paid' else 'check' }}"></i>
+                            </button>
+                            <button class="action-btn delete-btn" onclick="deleteBudgetItem({{ item.id }})" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                     </div>
                 </div>

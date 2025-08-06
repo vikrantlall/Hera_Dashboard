@@ -10,6 +10,12 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
     setupEventListeners();
     setupInlineEditing();
+    updateCountdown();
+    setupNavigation();
+    setupFlashMessages();
+
+    // Update countdown every minute
+    setInterval(updateCountdown, 60000);
 });
 
 function initializeApp() {
@@ -42,6 +48,64 @@ function setupEventListeners() {
                 closeModal(openModal.id);
             }
         }
+    });
+}
+
+// Countdown functionality
+function updateCountdown() {
+    const countdownElement = document.getElementById('countdown-text');
+    if (!countdownElement) return;
+
+    // Calculate days until September 26, 2025
+    const proposalDate = new Date('2025-09-26');
+    const today = new Date();
+    const diffTime = proposalDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) {
+        countdownElement.textContent = `${diffDays} days until proposal`;
+    } else if (diffDays === 0) {
+        countdownElement.textContent = 'Proposal Day! 💍';
+        const countdownContainer = countdownElement.closest('.countdown-mini');
+        if (countdownContainer) {
+            countdownContainer.style.background = 'linear-gradient(135deg, #dc2626, #991b1b)';
+        }
+    } else {
+        countdownElement.textContent = 'Proposal Complete! 🎉';
+        const countdownContainer = countdownElement.closest('.countdown-mini');
+        if (countdownContainer) {
+            countdownContainer.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+        }
+    }
+}
+
+function setupNavigation() {
+    // Add active state management if needed
+    const navItems = document.querySelectorAll('.nav-item');
+    const currentPath = window.location.pathname;
+
+    navItems.forEach(item => {
+        const href = item.getAttribute('href');
+        if (currentPath === href || (currentPath === '/' && href.includes('dashboard'))) {
+            item.classList.add('active');
+        }
+    });
+}
+
+function setupFlashMessages() {
+    // Auto-hide flash messages after 5 seconds
+    const flashMessages = document.querySelectorAll('.flash-message');
+
+    flashMessages.forEach(message => {
+        setTimeout(() => {
+            message.style.transition = 'all 0.5s ease';
+            message.style.opacity = '0';
+            message.style.transform = 'translateX(100%)';
+
+            setTimeout(() => {
+                message.remove();
+            }, 500);
+        }, 5000);
     });
 }
 
@@ -79,10 +143,13 @@ function confirmDelete(message, callback) {
     currentDeleteCallback = callback;
 
     const modal = document.getElementById('delete-modal');
-    const modalBody = modal.querySelector('.modal-body p');
-    modalBody.textContent = message;
-
-    openModal('delete-modal');
+    if (modal) {
+        const modalBody = modal.querySelector('.modal-body p');
+        if (modalBody) {
+            modalBody.textContent = message;
+        }
+        openModal('delete-modal');
+    }
 }
 
 function closeDeleteModal() {
@@ -353,36 +420,55 @@ function closeImageModal() {
     }
 }
 
-// Notifications
+// Notifications - Enhanced version that works with flash messages
 function showNotification(message, type = 'info', duration = 3000) {
+    // Try to use flash message container first
+    const flashContainer = document.querySelector('.flash-messages') || createFlashContainer();
+
     const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
+    notification.className = `flash-message flash-${type}`;
     notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-        <span>${message}</span>
-        <button class="notification-close" onclick="this.parentElement.remove()">
+        ${message}
+        <button class="flash-close" onclick="this.parentElement.remove()">
             <i class="fas fa-times"></i>
         </button>
     `;
 
-    // Add to page
-    let container = document.querySelector('.notification-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.className = 'notification-container';
-        document.body.appendChild(container);
-    }
+    flashContainer.appendChild(notification);
 
-    container.appendChild(notification);
-
-    // Auto remove
+    // Auto-remove after specified duration
     if (duration > 0) {
         setTimeout(() => {
             if (notification.parentNode) {
-                notification.remove();
+                notification.style.transition = 'all 0.5s ease';
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 500);
             }
         }, duration);
     }
+}
+
+function createFlashContainer() {
+    const container = document.createElement('div');
+    container.className = 'flash-messages';
+
+    const pageContent = document.querySelector('.page-content');
+    if (pageContent) {
+        pageContent.insertBefore(container, pageContent.firstChild);
+    } else {
+        const mainContent = document.querySelector('.main-content');
+        if (mainContent) {
+            mainContent.insertBefore(container, mainContent.firstChild);
+        }
+    }
+
+    return container;
 }
 
 // Tooltips
@@ -440,6 +526,33 @@ function setupKeyboardShortcuts() {
             }
         }
     });
+}
+
+// Smooth page transitions
+function smoothPageTransition() {
+    document.body.style.opacity = '0';
+    setTimeout(() => {
+        document.body.style.opacity = '1';
+    }, 100);
+}
+
+// Mobile navigation toggle (if needed)
+function toggleMobileNav() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('show');
+    }
+}
+
+// Handle logo fallback
+function handleLogoError(img) {
+    if (img) {
+        img.style.display = 'none';
+        const fallbackText = img.nextElementSibling;
+        if (fallbackText) {
+            fallbackText.style.display = 'block';
+        }
+    }
 }
 
 // Utility Functions
@@ -538,10 +651,12 @@ function animateElement(element, animation, duration = 300) {
     });
 }
 
-// Local Storage Helpers (Note: These won't work in Claude artifacts but will work in your Flask app)
+// Local Storage Helpers
 function saveToLocalStorage(key, data) {
     try {
-        localStorage.setItem(key, JSON.stringify(data));
+        if (typeof Storage !== 'undefined') {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
     } catch (error) {
         console.warn('Could not save to localStorage:', error);
     }
@@ -549,15 +664,17 @@ function saveToLocalStorage(key, data) {
 
 function loadFromLocalStorage(key, defaultValue = null) {
     try {
-        const item = localStorage.getItem(key);
-        return item ? JSON.parse(item) : defaultValue;
+        if (typeof Storage !== 'undefined') {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : defaultValue;
+        }
     } catch (error) {
         console.warn('Could not load from localStorage:', error);
-        return defaultValue;
     }
+    return defaultValue;
 }
 
-// Export Functions
+// Export Functions to global HERA object
 window.HERA = {
     openModal,
     closeModal,
@@ -569,5 +686,9 @@ window.HERA = {
     setLoadingState,
     makeRequest,
     validateForm,
-    animateElement
+    animateElement,
+    updateCountdown,
+    setupNavigation,
+    toggleMobileNav,
+    handleLogoError
 };

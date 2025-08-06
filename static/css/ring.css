@@ -1,45 +1,45 @@
-/* Ring Page Styles - FIXED VERSION */
+/* Ring Page Styles - DASHBOARD MATCHED SIZING */
 /* This file should be saved as static/css/ring.css */
 
 .ring-container {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    padding: 2rem;
+    gap: 24px;
+    padding: 24px;
     animation: fadeIn 0.6s ease-out;
 }
 
-/* Ring Showcase */
+/* Ring Showcase - Compact layout */
 .ring-showcase {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 3rem;
+    gap: 24px;
     background: var(--white);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--border);
 }
 
 .ring-gallery {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 12px;
 }
 
 .ring-main-image {
     position: relative;
     aspect-ratio: 1;
-    border-radius: 16px;
+    border-radius: 8px;
     overflow: hidden;
-    background: var(--bg-light);
-    border: 2px solid var(--border);
-    transition: all 0.3s ease;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
 }
 
 .ring-main-image:hover {
     border-color: var(--accent-gold);
-    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.2);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
 }
 
 .ring-main-image img {
@@ -56,10 +56,10 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 12px;
     color: var(--text-secondary);
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .ring-image-placeholder:hover {
@@ -68,13 +68,13 @@
 }
 
 .ring-image-placeholder i {
-    font-size: 3rem;
+    font-size: 32px;
     color: var(--accent-gold);
     opacity: 0.7;
 }
 
 .ring-image-placeholder p {
-    font-size: 1.125rem;
+    font-size: 14px;
     font-weight: 500;
     margin: 0;
 }
@@ -89,9 +89,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 8px;
     opacity: 0;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .ring-main-image:hover .image-overlay {
@@ -99,14 +99,14 @@
 }
 
 .image-action-btn {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(10px);
     border: none;
     color: var(--text-primary);
-    font-size: 1.125rem;
+    font-size: 14px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -122,18 +122,18 @@
 
 .ring-thumbnails {
     display: flex;
-    gap: 0.75rem;
+    gap: 8px;
     overflow-x: auto;
-    padding: 0.5rem 0;
+    padding: 4px 0;
 }
 
 .ring-thumbnail {
     position: relative;
-    width: 80px;
-    height: 80px;
-    border-radius: 8px;
+    width: 60px;
+    height: 60px;
+    border-radius: 6px;
     overflow: hidden;
-    border: 2px solid var(--border);
+    border: 1px solid var(--border);
     cursor: pointer;
     transition: all 0.2s ease;
     flex-shrink: 0;
@@ -153,15 +153,15 @@
 
 .thumbnail-delete {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 20px;
-    height: 20px;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: rgba(239, 68, 68, 0.9);
     border: none;
     color: var(--white);
-    font-size: 0.75rem;
+    font-size: 10px;
     cursor: pointer;
     opacity: 0;
     transition: all 0.2s ease;
@@ -176,23 +176,23 @@
     transform: scale(1.1);
 }
 
-/* Ring Details */
+/* Ring Details - Compact layout */
 .ring-details {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 16px;
 }
 
 .ring-title {
-    font-size: 2rem;
-    font-weight: 700;
+    font-size: 20px;
+    font-weight: 600;
     color: var(--text-primary);
     margin: 0;
     line-height: 1.2;
 }
 
 .ring-subtitle {
-    font-size: 1.125rem;
+    font-size: 14px;
     color: var(--text-secondary);
     margin: 0;
     font-weight: 500;
@@ -201,10 +201,10 @@
 .ring-specs {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: 1.5rem;
-    background: var(--bg-light);
-    border-radius: 12px;
+    gap: 8px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
     border: 1px solid var(--border);
 }
 
@@ -212,7 +212,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--border);
 }
 
@@ -223,7 +223,7 @@
 .spec-label {
     font-weight: 600;
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
@@ -233,13 +233,16 @@
     color: var(--text-primary);
     text-align: right;
     flex: 1;
-    margin-left: 1rem;
+    margin-left: 12px;
+    font-size: 14px;
 }
 
 .status-indicator {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 6px;
+    justify-self: end;
+    text-align: right;
 }
 
 .status-complete {
@@ -252,21 +255,21 @@
 
 .ring-actions {
     display: flex;
-    gap: 1rem;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
 .btn {
-    padding: 0.75rem 1.5rem;
-    border-radius: 12px;
+    padding: 8px 16px;
+    border-radius: 8px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 6px;
     text-decoration: none;
-    font-size: 0.875rem;
+    font-size: 13px;
     border: none;
 }
 
@@ -277,7 +280,7 @@
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(212, 175, 55, 0.3);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
 }
 
 .btn-secondary {
@@ -294,7 +297,7 @@
 .btn-outline {
     background: transparent;
     color: var(--accent-gold);
-    border: 2px solid var(--accent-gold);
+    border: 1px solid var(--accent-gold);
 }
 
 .btn-outline:hover {
@@ -302,27 +305,27 @@
     color: var(--primary-dark);
 }
 
-/* Ring Timeline */
+/* Ring Timeline - Compact */
 .ring-timeline {
     background: var(--white);
-    border-radius: 20px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     border: 1px solid var(--border);
 }
 
 .widget-header {
-    margin-bottom: 2rem;
+    margin-bottom: 20px;
 }
 
 .widget-title {
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 16px;
+    font-weight: 600;
     color: var(--text-primary);
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 4px 0;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 8px;
 }
 
 .widget-title i {
@@ -330,7 +333,7 @@
 }
 
 .widget-subtitle {
-    font-size: 0.875rem;
+    font-size: 13px;
     color: var(--text-secondary);
     margin: 0;
 }
@@ -338,14 +341,14 @@
 .timeline {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 16px;
     position: relative;
 }
 
 .timeline::before {
     content: '';
     position: absolute;
-    left: 30px;
+    left: 24px;
     top: 0;
     bottom: 0;
     width: 2px;
@@ -355,24 +358,24 @@
 .timeline-item {
     display: flex;
     align-items: flex-start;
-    gap: 1.5rem;
+    gap: 16px;
     position: relative;
 }
 
 .timeline-icon {
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: var(--bg-secondary);
     color: var(--text-light);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
-    border: 3px solid var(--border);
+    font-size: 16px;
+    border: 2px solid var(--border);
     position: relative;
     z-index: 1;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .timeline-item.completed .timeline-icon {
@@ -389,31 +392,31 @@
 
 .timeline-content {
     flex: 1;
-    padding-top: 0.75rem;
+    padding-top: 8px;
 }
 
 .timeline-content h4 {
-    font-size: 1.125rem;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 4px 0;
 }
 
 .timeline-content p {
-    font-size: 0.875rem;
+    font-size: 13px;
     color: var(--text-secondary);
-    margin: 0 0 0.5rem 0;
-    line-height: 1.5;
+    margin: 0 0 6px 0;
+    line-height: 1.4;
 }
 
 .timeline-status {
-    font-size: 0.75rem;
+    font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    background: var(--bg-light);
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--bg-secondary);
     color: var(--text-secondary);
 }
 
@@ -427,14 +430,14 @@
     color: var(--warning);
 }
 
-/* Editable Elements */
+/* Editable Elements - Compact */
 .editable-text,
 .editable-select {
     cursor: pointer;
-    padding: 0.25rem 0.5rem;
+    padding: 2px 4px;
     border-radius: 4px;
     transition: all 0.2s ease;
-    min-height: 1.5em;
+    min-height: 1.2em;
     display: inline-block;
 }
 
@@ -446,11 +449,13 @@
 .editable-text.editing,
 .editable-select.editing {
     background: var(--white);
-    border: 2px solid var(--accent-gold);
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    border: 1px solid var(--accent-gold);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.1);
 }
 
-/* Modal Styles */
+/* SIMPLE RING MODAL FIX - Replace your existing modal CSS with this */
+
+/* Modal Overlay */
 .modal {
     position: fixed;
     top: 0;
@@ -466,6 +471,7 @@
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
+    padding: 20px;
 }
 
 .modal.show {
@@ -473,36 +479,44 @@
     visibility: visible;
 }
 
+/* Modal Content Container */
 .modal-content {
     background: var(--white);
-    border-radius: 20px;
+    border-radius: 12px;
+    width: 100%;
     max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow: hidden;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    transform: scale(0.9) translateY(20px);
-    transition: all 0.3s ease;
-}
+    max-height: calc(100vh - 40px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    transform: scale(0.9);
+    transition: transform 0.3s ease;
 
-.modal-large {
-    max-width: 700px;
+    /* CRITICAL: Flexbox layout for fixed header/footer */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Prevent content from spilling out */
 }
 
 .modal.show .modal-content {
-    transform: scale(1) translateY(0);
+    transform: scale(1);
 }
 
+/* FIXED HEADER */
 .modal-header {
-    padding: 1.5rem 2rem;
+    padding: 20px;
     border-bottom: 1px solid var(--border);
+    background: var(--white);
+    border-radius: 12px 12px 0 0;
+
+    /* Keep header fixed */
+    flex-shrink: 0;
+
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 .modal-title {
-    font-size: 1.25rem;
+    font-size: 18px;
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
@@ -511,12 +525,17 @@
 .modal-close {
     background: none;
     border: none;
-    font-size: 1.5rem;
+    font-size: 20px;
     color: var(--text-light);
     cursor: pointer;
-    padding: 0.25rem;
-    border-radius: 4px;
+    padding: 6px;
+    border-radius: 6px;
     transition: all 0.2s ease;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-close:hover {
@@ -524,29 +543,299 @@
     color: var(--text-primary);
 }
 
+/* SCROLLABLE BODY */
 .modal-body {
-    padding: 2rem;
-    max-height: 60vh;
+    padding: 20px;
+
+    /* CRITICAL: Make this the scrollable part */
+    flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
+
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-gold) transparent;
 }
 
+/* Webkit scrollbar styling */
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--accent-gold);
+    border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--secondary-gold);
+}
+
+/* FIXED FOOTER */
 .modal-footer {
-    padding: 1.5rem 2rem;
+    padding: 20px;
     border-top: 1px solid var(--border);
+    background: var(--white);
+    border-radius: 0 0 12px 12px;
+
+    /* Keep footer fixed */
+    flex-shrink: 0;
+
     display: flex;
-    gap: 1rem;
+    gap: 12px;
     justify-content: flex-end;
 }
 
-/* Upload Drop Zone */
+/* Form Elements */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background: var(--white);
+    font-family: inherit;
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Button Styles */
+.btn {
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-gold), var(--secondary-gold));
+    color: var(--primary-dark);
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+.btn-secondary {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-color: var(--border);
+}
+
+.btn-secondary:hover {
+    background: var(--border);
+    color: var(--text-primary);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .modal {
+        padding: 10px;
+    }
+
+    .modal-content {
+        max-height: calc(100vh - 20px);
+        max-width: none;
+        width: calc(100% - 20px);
+    }
+
+    .modal-header,
+    .modal-body,
+    .modal-footer {
+        padding: 16px;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .modal-footer {
+        flex-direction: column-reverse;
+    }
+
+    .btn {
+        justify-content: center;
+        width: 100%;
+    }
+}
+
+/* Loading States */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn:disabled:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* Form Validation States */
+.form-input.error,
+.form-select.error,
+.form-textarea.error {
+    border-color: var(--error);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.form-input.success,
+.form-select.success,
+.form-textarea.success {
+    border-color: var(--success);
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* Checkbox styling */
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+    accent-color: var(--accent-gold);
+}
+
+.checkbox-group label {
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+/* Additional ring-specific styles */
+.modal-large {
+    max-width: 600px;
+}
+
+/* Ensure proper spacing in modal body content */
+.modal-body > *:first-child {
+    margin-top: 0;
+}
+
+.modal-body > *:last-child {
+    margin-bottom: 0;
+}
+
+/* Animation for smooth opening */
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal.show .modal-content {
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+/* Form Styles - Compact */
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.form-input,
+.form-select,
+.form-textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    background: var(--white);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+    outline: none;
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+}
+
+/* Upload Area - Compact */
 .upload-drop-zone {
     border: 2px dashed var(--border);
-    border-radius: 12px;
-    padding: 3rem 2rem;
+    border-radius: 8px;
+    padding: 24px;
     text-align: center;
+    background: var(--bg-secondary);
+    transition: all 0.2s ease;
     cursor: pointer;
-    transition: all 0.3s ease;
-    background: var(--bg-light);
 }
 
 .upload-drop-zone:hover,
@@ -556,40 +845,40 @@
 }
 
 .upload-drop-zone i {
-    font-size: 3rem;
+    font-size: 24px;
     color: var(--accent-gold);
-    margin-bottom: 1rem;
+    margin-bottom: 8px;
 }
 
 .upload-drop-zone p {
-    font-size: 1.125rem;
+    margin: 8px 0;
     color: var(--text-secondary);
-    margin: 0 0 1.5rem 0;
+    font-size: 14px;
 }
 
 .upload-preview {
-    margin-top: 2rem;
+    margin-top: 16px;
 }
 
 .upload-preview h4 {
-    font-size: 1rem;
+    font-size: 14px;
     font-weight: 600;
+    margin-bottom: 12px;
     color: var(--text-primary);
-    margin: 0 0 1rem 0;
 }
 
 .preview-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
 }
 
 .preview-item {
     position: relative;
     aspect-ratio: 1;
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
-    background: var(--bg-secondary);
+    border: 1px solid var(--border);
 }
 
 .preview-item img {
@@ -600,90 +889,38 @@
 
 .preview-remove {
     position: absolute;
-    top: 4px;
-    right: 4px;
-    width: 24px;
-    height: 24px;
+    top: 2px;
+    right: 2px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     background: rgba(239, 68, 68, 0.9);
     border: none;
     color: var(--white);
-    font-size: 0.75rem;
+    font-size: 10px;
     cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.preview-remove:hover {
-    background: var(--error);
-    transform: scale(1.1);
 }
 
 .upload-progress {
-    margin-top: 2rem;
+    margin-top: 16px;
 }
 
 .progress-bar {
     width: 100%;
-    height: 8px;
-    background: var(--bg-secondary);
-    border-radius: 4px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
     overflow: hidden;
-    margin-bottom: 1rem;
 }
 
 .progress-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-gold), var(--secondary-gold));
-    border-radius: 4px;
+    background: var(--accent-gold);
+    border-radius: 2px;
     transition: width 0.3s ease;
-    width: 0%;
 }
 
-.progress-text {
-    text-align: center;
-    color: var(--text-secondary);
-    font-size: 0.875rem;
-    margin: 0;
-}
-
-/* Form Styles */
-.form-group {
-    margin-bottom: 1.5rem;
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-}
-
-.form-label {
-    display: block;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-}
-
-.form-input,
-.form-select {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    font-size: 0.875rem;
-    transition: all 0.2s ease;
-    background: var(--white);
-}
-
-.form-input:focus,
-.form-select:focus {
-    outline: none;
-    border-color: var(--accent-gold);
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
-}
-
-/* Lightbox */
+/* Lightbox - Keep existing functionality but compact controls */
 .lightbox {
     position: fixed;
     top: 0;
@@ -694,7 +931,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2000;
+    z-index: 9999;
     opacity: 0;
     visibility: hidden;
     transition: all 0.3s ease;
@@ -713,16 +950,16 @@
 
 .lightbox-close {
     position: absolute;
-    top: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     border: none;
     color: var(--white);
-    font-size: 1.25rem;
+    font-size: 16px;
     cursor: pointer;
     z-index: 1;
     transition: all 0.2s ease;
@@ -750,14 +987,14 @@
 }
 
 .lightbox-nav-btn {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.2);
     backdrop-filter: blur(10px);
     border: none;
     color: var(--white);
-    font-size: 1.125rem;
+    font-size: 16px;
     cursor: pointer;
     pointer-events: all;
     transition: all 0.2s ease;
@@ -771,11 +1008,11 @@
 @media (max-width: 1024px) {
     .ring-showcase {
         grid-template-columns: 1fr;
-        gap: 2rem;
+        gap: 16px;
     }
 
     .ring-container {
-        padding: 1rem;
+        padding: 16px;
     }
 }
 
@@ -793,17 +1030,17 @@
     }
 
     .timeline {
-        margin-left: -15px;
+        margin-left: -12px;
     }
 
     .timeline::before {
-        left: 15px;
+        left: 24px;
     }
 
     .timeline-icon {
         width: 40px;
         height: 40px;
-        font-size: 1rem;
+        font-size: 14px;
     }
 }
 
@@ -822,12 +1059,12 @@
     animation: pulse 1.5s ease-in-out infinite;
 }
 
-/* Notification Styles */
+/* Notification Styles - Compact */
 .notification {
     position: fixed;
     top: 20px;
     right: 20px;
-    padding: 1rem 1.5rem;
+    padding: 12px 16px;
     border-radius: 8px;
     color: var(--white);
     font-weight: 500;
@@ -835,6 +1072,7 @@
     opacity: 0;
     transform: translateX(100%);
     transition: all 0.3s ease;
+    font-size: 14px;
 }
 
 .notification.show {

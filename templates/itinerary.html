@@ -55,9 +55,11 @@
         <div class="activities-list" data-day="1">
             {% for activity in itinerary_items %}
                 {% if activity.day == 1 %}
-                <div class="activity-item" data-activity-id="{{ activity.id }}" data-completed="false">
+                <div class="activity-item {{ 'proposal-activity' if activity.isProposal else '' }}"
+                     data-activity-id="{{ activity.id }}"
+                     data-completed="{{ 'true' if activity.get('completed') else 'false' }}">
                     <div class="activity-checkbox">
-                        <input type="checkbox" onchange="toggleActivityComplete(this)">
+                        <input type="checkbox" {{ 'checked' if activity.get('completed') else '' }}>
                     </div>
 
                     <div class="activity-content">
@@ -65,6 +67,7 @@
                         <div class="activity-details">
                             <h4 class="activity-title editable-text" data-field="activity" data-item-id="{{ activity.id }}">
                                 {{ activity.activity }}
+                                {% if activity.isProposal %}<span class="proposal-indicator">💍</span>{% endif %}
                             </h4>
                             {% if activity.location %}
                             <div class="activity-location">
@@ -81,10 +84,10 @@
                     </div>
 
                     <div class="activity-actions">
-                        <button class="action-btn edit-btn" onclick="openEditActivityModal(this)" data-tooltip="Edit">
+                        <button class="action-btn edit-btn" data-tooltip="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="deleteActivity(this)" data-tooltip="Delete">
+                        <button class="action-btn delete-btn" data-tooltip="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -94,12 +97,12 @@
         </div>
     </div>
 
-    <!-- Day 2: Banff Exploration -->
+    <!-- Day 2: Banff -->
     <div class="day-card" data-day="2">
         <div class="day-header">
             <div class="day-info">
                 <h3 class="day-title">Day 2 - September 25th</h3>
-                <p class="day-subtitle">Banff Gondola & Spa</p>
+                <p class="day-subtitle">Exploring Banff</p>
             </div>
             <div class="day-progress">
                 <div class="day-progress-bar">
@@ -112,9 +115,11 @@
         <div class="activities-list" data-day="2">
             {% for activity in itinerary_items %}
                 {% if activity.day == 2 %}
-                <div class="activity-item" data-activity-id="{{ activity.id }}" data-completed="false">
+                <div class="activity-item {{ 'proposal-activity' if activity.isProposal else '' }}"
+                     data-activity-id="{{ activity.id }}"
+                     data-completed="{{ 'true' if activity.get('completed') else 'false' }}">
                     <div class="activity-checkbox">
-                        <input type="checkbox" onchange="toggleActivityComplete(this)">
+                        <input type="checkbox" {{ 'checked' if activity.get('completed') else '' }}>
                     </div>
 
                     <div class="activity-content">
@@ -122,6 +127,7 @@
                         <div class="activity-details">
                             <h4 class="activity-title editable-text" data-field="activity" data-item-id="{{ activity.id }}">
                                 {{ activity.activity }}
+                                {% if activity.isProposal %}<span class="proposal-indicator">💍</span>{% endif %}
                             </h4>
                             {% if activity.location %}
                             <div class="activity-location">
@@ -138,10 +144,10 @@
                     </div>
 
                     <div class="activity-actions">
-                        <button class="action-btn edit-btn" onclick="openEditActivityModal(this)" data-tooltip="Edit">
+                        <button class="action-btn edit-btn" data-tooltip="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="deleteActivity(this)" data-tooltip="Delete">
+                        <button class="action-btn delete-btn" data-tooltip="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -162,7 +168,7 @@
                         THE BIG DAY!
                     </span>
                 </h3>
-                <p class="day-subtitle">Proposal at Emerald Lake 💍</p>
+                <p class="day-subtitle">Proposal Day at Emerald Lake</p>
             </div>
             <div class="day-progress">
                 <div class="day-progress-bar">
@@ -175,9 +181,11 @@
         <div class="activities-list" data-day="3">
             {% for activity in itinerary_items %}
                 {% if activity.day == 3 %}
-                <div class="activity-item {% if activity.get('isProposal') %}proposal-activity{% endif %}" data-activity-id="{{ activity.id }}" data-completed="false">
+                <div class="activity-item {{ 'proposal-activity' if activity.isProposal else '' }}"
+                     data-activity-id="{{ activity.id }}"
+                     data-completed="{{ 'true' if activity.get('completed') else 'false' }}">
                     <div class="activity-checkbox">
-                        <input type="checkbox" onchange="toggleActivityComplete(this)">
+                        <input type="checkbox" {{ 'checked' if activity.get('completed') else '' }}>
                     </div>
 
                     <div class="activity-content">
@@ -185,9 +193,7 @@
                         <div class="activity-details">
                             <h4 class="activity-title editable-text" data-field="activity" data-item-id="{{ activity.id }}">
                                 {{ activity.activity }}
-                                {% if activity.get('isProposal') %}
-                                <span class="proposal-indicator">💍</span>
-                                {% endif %}
+                                {% if activity.isProposal %}<span class="proposal-indicator">💍</span>{% endif %}
                             </h4>
                             {% if activity.location %}
                             <div class="activity-location">
@@ -204,10 +210,10 @@
                     </div>
 
                     <div class="activity-actions">
-                        <button class="action-btn edit-btn" onclick="openEditActivityModal(this)" data-tooltip="Edit">
+                        <button class="action-btn edit-btn" data-tooltip="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="deleteActivity(this)" data-tooltip="Delete">
+                        <button class="action-btn delete-btn" data-tooltip="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -235,9 +241,11 @@
         <div class="activities-list" data-day="4">
             {% for activity in itinerary_items %}
                 {% if activity.day == 4 %}
-                <div class="activity-item" data-activity-id="{{ activity.id }}" data-completed="false">
+                <div class="activity-item {{ 'proposal-activity' if activity.isProposal else '' }}"
+                     data-activity-id="{{ activity.id }}"
+                     data-completed="{{ 'true' if activity.get('completed') else 'false' }}">
                     <div class="activity-checkbox">
-                        <input type="checkbox" onchange="toggleActivityComplete(this)">
+                        <input type="checkbox" {{ 'checked' if activity.get('completed') else '' }}>
                     </div>
 
                     <div class="activity-content">
@@ -245,6 +253,7 @@
                         <div class="activity-details">
                             <h4 class="activity-title editable-text" data-field="activity" data-item-id="{{ activity.id }}">
                                 {{ activity.activity }}
+                                {% if activity.isProposal %}<span class="proposal-indicator">💍</span>{% endif %}
                             </h4>
                             {% if activity.location %}
                             <div class="activity-location">
@@ -261,10 +270,10 @@
                     </div>
 
                     <div class="activity-actions">
-                        <button class="action-btn edit-btn" onclick="openEditActivityModal(this)" data-tooltip="Edit">
+                        <button class="action-btn edit-btn" data-tooltip="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="deleteActivity(this)" data-tooltip="Delete">
+                        <button class="action-btn delete-btn" data-tooltip="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -279,7 +288,7 @@
         <div class="day-header">
             <div class="day-info">
                 <h3 class="day-title">Day 5 - September 28th</h3>
-                <p class="day-subtitle">Peyto Lake & Yoho National Park</p>
+                <p class="day-subtitle">Scenic Drives & Views</p>
             </div>
             <div class="day-progress">
                 <div class="day-progress-bar">
@@ -292,9 +301,11 @@
         <div class="activities-list" data-day="5">
             {% for activity in itinerary_items %}
                 {% if activity.day == 5 %}
-                <div class="activity-item" data-activity-id="{{ activity.id }}" data-completed="false">
+                <div class="activity-item {{ 'proposal-activity' if activity.isProposal else '' }}"
+                     data-activity-id="{{ activity.id }}"
+                     data-completed="{{ 'true' if activity.get('completed') else 'false' }}">
                     <div class="activity-checkbox">
-                        <input type="checkbox" onchange="toggleActivityComplete(this)">
+                        <input type="checkbox" {{ 'checked' if activity.get('completed') else '' }}>
                     </div>
 
                     <div class="activity-content">
@@ -302,6 +313,7 @@
                         <div class="activity-details">
                             <h4 class="activity-title editable-text" data-field="activity" data-item-id="{{ activity.id }}">
                                 {{ activity.activity }}
+                                {% if activity.isProposal %}<span class="proposal-indicator">💍</span>{% endif %}
                             </h4>
                             {% if activity.location %}
                             <div class="activity-location">
@@ -318,10 +330,10 @@
                     </div>
 
                     <div class="activity-actions">
-                        <button class="action-btn edit-btn" onclick="openEditActivityModal(this)" data-tooltip="Edit">
+                        <button class="action-btn edit-btn" data-tooltip="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="deleteActivity(this)" data-tooltip="Delete">
+                        <button class="action-btn delete-btn" data-tooltip="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -349,9 +361,11 @@
         <div class="activities-list" data-day="6">
             {% for activity in itinerary_items %}
                 {% if activity.day == 6 %}
-                <div class="activity-item" data-activity-id="{{ activity.id }}" data-completed="false">
+                <div class="activity-item {{ 'proposal-activity' if activity.isProposal else '' }}"
+                     data-activity-id="{{ activity.id }}"
+                     data-completed="{{ 'true' if activity.get('completed') else 'false' }}">
                     <div class="activity-checkbox">
-                        <input type="checkbox" onchange="toggleActivityComplete(this)">
+                        <input type="checkbox" {{ 'checked' if activity.get('completed') else '' }}>
                     </div>
 
                     <div class="activity-content">
@@ -359,6 +373,7 @@
                         <div class="activity-details">
                             <h4 class="activity-title editable-text" data-field="activity" data-item-id="{{ activity.id }}">
                                 {{ activity.activity }}
+                                {% if activity.isProposal %}<span class="proposal-indicator">💍</span>{% endif %}
                             </h4>
                             {% if activity.location %}
                             <div class="activity-location">
@@ -375,10 +390,10 @@
                     </div>
 
                     <div class="activity-actions">
-                        <button class="action-btn edit-btn" onclick="openEditActivityModal(this)" data-tooltip="Edit">
+                        <button class="action-btn edit-btn" data-tooltip="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="deleteActivity(this)" data-tooltip="Delete">
+                        <button class="action-btn delete-btn" data-tooltip="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -422,14 +437,14 @@
                     <label for="is-proposal">Special Activity</label>
                     <div class="checkbox-group">
                         <input type="checkbox" id="is-proposal" name="isProposal">
-                        <label for="is-proposal">Proposal Activity</label>
+                        <label for="is-proposal">Proposal Activity 💍</label>
                     </div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="activity-title">Activity</label>
-                <input type="text" id="activity-title" name="activity" placeholder="What are you doing?" required>
+                <label for="activity-name">Activity Name</label>
+                <input type="text" id="activity-name" name="activity" placeholder="What are you doing?" required>
             </div>
 
             <div class="form-group">
@@ -485,24 +500,24 @@
                     <label for="edit-is-proposal">Special Activity</label>
                     <div class="checkbox-group">
                         <input type="checkbox" id="edit-is-proposal" name="isProposal">
-                        <label for="edit-is-proposal">Proposal Activity</label>
+                        <label for="edit-is-proposal">Proposal Activity 💍</label>
                     </div>
                 </div>
             </div>
 
             <div class="form-group">
-                <label for="edit-activity-title">Activity</label>
-                <input type="text" id="edit-activity-title" name="activity" required>
+                <label for="edit-activity-name">Activity Name</label>
+                <input type="text" id="edit-activity-name" name="activity" placeholder="What are you doing?" required>
             </div>
 
             <div class="form-group">
                 <label for="edit-activity-location">Location</label>
-                <input type="text" id="edit-activity-location" name="location">
+                <input type="text" id="edit-activity-location" name="location" placeholder="Where is this happening?">
             </div>
 
             <div class="form-group">
                 <label for="edit-activity-notes">Notes</label>
-                <textarea id="edit-activity-notes" name="notes"></textarea>
+                <textarea id="edit-activity-notes" name="notes" placeholder="Any additional details..."></textarea>
             </div>
 
             <div class="form-actions">

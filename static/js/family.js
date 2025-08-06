@@ -1,4 +1,4 @@
-// Family.js - Matching HERA Design System
+// Family.js - Matching HERA Dashboard Design System
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeFamilyPage();
@@ -64,64 +64,29 @@ function updateMemberStatus(selectElement) {
     const newStatus = selectElement.value;
     const card = selectElement.closest('.family-card');
 
+    if (!card) return;
+
     // Show loading state
     card.classList.add('loading');
 
-    // Update card styling immediately for better UX
-    updateCardStatus(card, newStatus);
+    // Store original status in case we need to revert
+    const originalStatus = card.dataset.status;
+    card.dataset.originalStatus = originalStatus;
 
-    // Prepare data for API call
-    const data = {
-        id: memberId,
-        status: newStatus
-    };
-
-    // Simulate API call (replace with actual fetch to your Flask route)
+    // Simulate API call delay
     setTimeout(() => {
-        console.log('Status updated:', data);
+        // Update card status
+        updateCardStatus(card, newStatus);
 
-        // Update progress and stats
+        // Update progress bar
         updateProgressBar();
-        updateHeaderStats();
+
+        // Show success notification
+        showNotification(`${card.querySelector('.member-name').textContent}'s status updated to ${newStatus}`, 'success');
 
         // Remove loading state
         card.classList.remove('loading');
-
-        // Show success notification
-        showNotification('Status updated successfully', 'success');
-    }, 800);
-
-    // TODO: Replace setTimeout with actual API call:
-    /*
-    fetch('/api/family/update-status', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            updateProgressBar();
-            updateHeaderStats();
-            showNotification('Status updated successfully', 'success');
-        } else {
-            throw new Error(data.message || 'Update failed');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Failed to update status', 'error');
-        // Revert the select value
-        selectElement.value = card.dataset.originalStatus;
-        updateCardStatus(card, card.dataset.originalStatus);
-    })
-    .finally(() => {
-        card.classList.remove('loading');
-    });
-    */
+    }, 500);
 }
 
 function updateCardStatus(card, status) {
@@ -175,11 +140,11 @@ function openEditModal(memberId) {
     // Show modal
     modal.classList.add('active');
 
-    // Focus first input
+    // Focus first input with small delay for animation
     setTimeout(() => {
         document.getElementById('edit-name').focus();
         document.getElementById('edit-name').select();
-    }, 300);
+    }, 100);
 }
 
 function closeModal() {
@@ -218,57 +183,27 @@ function saveMemberChanges() {
 
     // Simulate API call
     setTimeout(() => {
-        console.log('Member updated:', data);
+        try {
+            // Update the card with new data
+            updateMemberCard(memberId, data);
 
-        // Update the card in DOM
-        updateMemberCard(memberId, data);
-
-        // Update progress and stats
-        updateProgressBar();
-        updateHeaderStats();
-
-        // Close modal
-        closeModal();
-
-        // Show success
-        showNotification('Family member updated successfully', 'success');
-
-        // Reset button
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }, 1000);
-
-    // TODO: Replace with actual API call
-    /*
-    fetch('/api/family/update', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCSRFToken()
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            updateMemberCard(memberId, data.member);
+            // Update progress bar
             updateProgressBar();
-            updateHeaderStats();
+
+            // Show success message
+            showNotification('Member details updated successfully', 'success');
+
+            // Close modal
             closeModal();
-            showNotification('Family member updated successfully', 'success');
-        } else {
-            throw new Error(data.message || 'Update failed');
+        } catch (error) {
+            console.error('Error updating member:', error);
+            showNotification('Failed to update member details', 'error');
+        } finally {
+            // Reset button state
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Failed to update family member', 'error');
-    })
-    .finally(() => {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    });
-    */
+    }, 800);
 }
 
 function updateMemberCard(memberId, data) {
@@ -304,6 +239,7 @@ function updateMemberCard(memberId, data) {
             const notesHTML = `
                 <div class="member-notes">
                     <div class="notes-content">
+                        <i class="fas fa-quote-left"></i>
                         <p class="notes-text">${data.notes}</p>
                     </div>
                 </div>
@@ -338,88 +274,70 @@ function updateProgressBar() {
     }
 }
 
-function updateHeaderStats() {
-    const cards = document.querySelectorAll('.family-card');
-    const approvedCards = document.querySelectorAll('.family-card[data-status="approved"]');
-
-    const total = cards.length;
-    const approved = approvedCards.length;
-
-    // Update header stats
-    const statNumbers = document.querySelectorAll('.stat-number');
-    if (statNumbers.length >= 2) {
-        statNumbers[0].textContent = approved;
-        statNumbers[1].textContent = total;
-    }
-}
-
 function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(notif => notif.remove());
+
     // Create notification element
     const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
+    notification.className = `notification ${type}`;
+    notification.textContent = message;
 
-    const iconMap = {
-        'success': 'fa-check-circle',
-        'error': 'fa-exclamation-triangle',
-        'warning': 'fa-exclamation-circle',
-        'info': 'fa-info-circle'
-    };
-
-    const colorMap = {
-        'success': '#10b981',
-        'error': '#ef4444',
-        'warning': '#f59e0b',
-        'info': '#3b82f6'
-    };
-
-    notification.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-            <i class="fas ${iconMap[type]}"></i>
-            <span>${message}</span>
-        </div>
-    `;
-
-    // Style the notification
-    notification.style.cssText = `
-        position: fixed;
-        top: 24px;
-        right: 24px;
-        background: ${colorMap[type]};
-        color: white;
-        padding: 16px 20px;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-        z-index: 10000;
-        font-weight: 500;
-        font-size: 14px;
-        opacity: 0;
-        transform: translateX(100%);
-        transition: all 0.3s ease;
-        min-width: 300px;
-    `;
-
+    // Add to page
     document.body.appendChild(notification);
 
-    // Animate in
-    setTimeout(() => {
-        notification.style.opacity = '1';
-        notification.style.transform = 'translateX(0)';
-    }, 100);
+    // Show notification
+    setTimeout(() => notification.classList.add('show'), 100);
 
-    // Auto remove
+    // Auto-hide after 3 seconds
     setTimeout(() => {
-        notification.style.opacity = '0';
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 300);
+    }, 3000);
+}
+
+// Utility function to handle API errors
+function handleApiError(error, defaultMessage = 'An error occurred') {
+    console.error('API Error:', error);
+
+    let message = defaultMessage;
+    if (error.response && error.response.data && error.response.data.message) {
+        message = error.response.data.message;
+    } else if (error.message) {
+        message = error.message;
+    }
+
+    showNotification(message, 'error');
+}
+
+// Add keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + S to save when modal is open
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        const modal = document.getElementById('edit-modal');
+        if (modal && modal.classList.contains('active')) {
+            e.preventDefault();
+            const form = document.getElementById('edit-form');
+            if (form) {
+                saveMemberChanges();
             }
-        }, 300);
-    }, 4000);
+        }
+    }
+});
+
+// Initialize tooltips if using a tooltip library
+function initializeTooltips() {
+    // This would initialize tooltips if you're using a library like Tippy.js
+    // Example: tippy('[title]', { theme: 'light' });
 }
 
-// Utility function for CSRF token (if needed)
-function getCSRFToken() {
-    const token = document.querySelector('meta[name="csrf-token"]');
-    return token ? token.getAttribute('content') : '';
-}
+// Export functions for testing or external use
+window.FamilyPage = {
+    updateMemberStatus,
+    openEditModal,
+    closeModal,
+    saveMemberChanges,
+    updateProgressBar,
+    showNotification
+};
