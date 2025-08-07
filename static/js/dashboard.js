@@ -1,595 +1,1257 @@
-// Dashboard JavaScript functionality
-// Budget management, task tracking, and overview widgets
+// Complete HERA Dashboard JavaScript
+// Handles all dashboard interactions, modals, and functionality
+
+let currentEditingTaskId = null;
+let currentEditingBudgetId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     initializeDashboard();
-    setupBudgetManagement();
-    setupTaskManagement();
 });
 
 function initializeDashboard() {
-    updateBudgetProgress();
-    updateNavBadges();
-    setupQuickActions();
+    console.log('🎯 Initializing HERA Dashboard...');
+
+    setupModals();
+    setupInteractiveElements();
+    setupKeyboardShortcuts();
+    setupProgressAnimations();
+
+    console.log('✅ Dashboard initialized successfully');
 }
 
-// Budget Management
-function setupBudgetManagement() {
-    // Budget form submission
-    const budgetForm = document.getElementById('budget-form');
-    if (budgetForm) {
-        budgetForm.addEventListener('submit', handleBudgetSubmit);
-    }
+// =============================================================================
+// MODAL MANAGEMENT
+// =============================================================================
 
-    // Add budget form submission
-    const addBudgetForm = document.getElementById('add-budget-form');
-    if (addBudgetForm) {
-        addBudgetForm.addEventListener('submit', handleAddBudgetSubmit);
-    }
+function setupModals() {
+    // Close modals when clicking outside
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            const modalId = e.target.id;
+            closeModal(modalId);
+        }
+    });
 
-    // Auto-update saved amount when status changes to "Paid"
-    const budgetStatus = document.getElementById('budget-status');
-    if (budgetStatus) {
-        budgetStatus.addEventListener('change', function() {
-            if (this.value === 'Paid') {
-                const budgetAmount = document.getElementById('budget-amount').value;
-                document.getElementById('budget-saved').value = budgetAmount;
+    // Close modals with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const openModal = document.querySelector('.modal.show');
+            if (openModal) {
+                closeModal(openModal.id);
             }
-        });
+        }
+    });
+
+    // Setup form submissions
+    setupFormSubmissions();
+}
+
+function openModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden'; // Prevent background scroll
+
+        // Focus first input if available
+        const firstInput = modal.querySelector('input, textarea, select');
+        if (firstInput) {
+            setTimeout(() => firstInput.focus(), 100);
+        }
     }
 }
 
-function handleBudgetSubmit(e) {
-    e.preventDefault();
+function closeModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.classList.remove('show');
+        document.body.style.overflow = ''; // Restore scroll
 
-    if (!HERA.validateForm(e.target)) {
-        HERA.showNotification('Please fill in all required fields', 'error');
+        // Reset form if it exists
+        const form = modal.querySelector('form');
+        if (form) form.reset();
+
+        // Clear editing IDs
+        currentEditingTaskId = null;
+        currentEditingBudgetId = null;
+    }
+}
+
+// =============================================================================
+// TASK MANAGEMENT
+// =============================================================================
+
+function toggleTaskStatus(taskId) {
+    console.log('Toggling task status:', taskId);
+
+    const taskItem = document.querySelector(`[data-task-id="${taskId}"]`);
+    const checkbox = document.querySelector(`#task-${taskId}`);
+
+    if (!taskItem || !checkbox) return;
+
+    // Add loading state
+    taskItem.classList.add('completing');
+
+    // Determine new status
+    const newCompleted = checkbox.checked;
+    const newStatus = newCompleted ? 'Complete' : 'In Progress';
+
+    // Make API call
+    fetch(`/api/tasks/${taskId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            completed: newCompleted,
+            status: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update UI
+            if (newCompleted) {
+                taskItem.classList.add('completed');
+            } else {
+                taskItem.classList.remove('completed');
+            }
+
+            // Update task status display
+            const statusElement = taskItem.querySelector('.task-status');
+            if (statusElement) {
+                statusElement.textContent = newStatus;
+                statusElement.className = `task-status status-${newStatus.toLowerCase().replace(' ', '-')}`;
+            }
+
+            // Update progress
+            updateTaskProgress();
+
+            showNotification(
+                newCompleted ? 'Task marked as complete!' : 'Task marked as in progress',
+                'success'
+            );
+        } else {
+            // Revert checkbox if failed
+            checkbox.checked = !newCompleted;
+            showNotification('Failed to update task status', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error toggling task:', error);
+        checkbox.checked = !newCompleted;
+        showNotification('Error updating task', 'error');
+    })
+    .finally(() => {
+        taskItem.classList.remove('completing');
+    });
+}
+
+function editTask(taskId) {
+    console.log('Editing task:', taskId);
+
+    // Find task data
+    const taskData = window.HERA_DATA?.tasks?.find(t => t.id === taskId);
+    if (!taskData) {
+        console.error('Task data not found:', taskId);
         return;
     }
 
-    const formData = new FormData(e.target);
-    const budgetData = Object.fromEntries(formData.entries());
-    budgetData.id = document.getElementById('budget-item-id').value;
+    currentEditingTaskId = taskId;
 
-    HERA.setLoadingState(e.target, true);
+    // Populate edit modal (create if doesn't exist)
+    showTaskEditModal(taskData);
+}
 
-    const endpoint = budgetData.id ? '/api/budget/update' : '/api/budget/add';
+function showTaskEditModal(taskData) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('edit-task-modal');
+    if (!modal) {
+        modal = createTaskEditModal();
+        document.body.appendChild(modal);
+    }
 
-    HERA.makeRequest(endpoint, {
+    // Populate form
+    const form = modal.querySelector('form');
+    if (form) {
+        form.querySelector('#edit-task-name').value = taskData.task || '';
+        form.querySelector('#edit-task-deadline').value = taskData.deadline || '';
+        form.querySelector('#edit-task-status').value = taskData.status || '';
+        form.querySelector('#edit-task-notes').value = taskData.notes || '';
+    }
+
+    openModal('edit-task-modal');
+}
+
+function createTaskEditModal() {
+    const modal = document.createElement('div');
+    modal.id = 'edit-task-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Task</h3>
+                <button class="modal-close" onclick="closeModal('edit-task-modal')">&times;</button>
+            </div>
+            <form id="edit-task-form">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Task Name</label>
+                        <input type="text" class="form-input" id="edit-task-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Deadline</label>
+                        <input type="date" class="form-input" id="edit-task-deadline">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="edit-task-status">
+                            <option value="Not Started">Not Started</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="In Progress, On Schedule">In Progress, On Schedule</option>
+                            <option value="In Progress, Behind Schedule">In Progress, Behind Schedule</option>
+                            <option value="Complete">Complete</option>
+                            <option value="Complete, On Schedule">Complete, On Schedule</option>
+                            <option value="Ahead Schedule, Complete">Ahead Schedule, Complete</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="edit-task-notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-task-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    return modal;
+}
+
+function saveTaskChanges() {
+    if (!currentEditingTaskId) return;
+
+    const form = document.getElementById('edit-task-form');
+    const formData = new FormData(form);
+
+    const data = {
+        task: form.querySelector('#edit-task-name').value,
+        deadline: form.querySelector('#edit-task-deadline').value,
+        status: form.querySelector('#edit-task-status').value,
+        notes: form.querySelector('#edit-task-notes').value
+    };
+
+    fetch(`/api/tasks/${currentEditingTaskId}/update`, {
         method: 'POST',
-        body: JSON.stringify(budgetData)
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
     })
+    .then(response => response.json())
     .then(data => {
         if (data.success) {
-            HERA.showNotification('Budget updated successfully', 'success');
-            updateBudgetItem(data.budget_item);
-            updateBudgetProgress();
-            updateNavBadges();
-            closeBudgetModal();
+            showNotification('Task updated successfully!', 'success');
+            closeModal('edit-task-modal');
+
+            // Update task display
+            updateTaskDisplay(currentEditingTaskId, data.task);
         } else {
-            HERA.showNotification('Error updating budget: ' + data.error, 'error');
+            showNotification('Failed to update task', 'error');
         }
     })
     .catch(error => {
-        HERA.showNotification('Error updating budget', 'error');
-    })
-    .finally(() => {
-        HERA.setLoadingState(e.target, false);
+        console.error('Error updating task:', error);
+        showNotification('Error updating task', 'error');
     });
 }
 
-function handleAddBudgetSubmit(e) {
-    e.preventDefault();
+function updateTaskDisplay(taskId, taskData) {
+    const taskItem = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (!taskItem) return;
 
-    if (!HERA.validateForm(e.target)) {
-        HERA.showNotification('Please fill in all required fields', 'error');
-        return;
+    // Update task name
+    const nameElement = taskItem.querySelector('.task-name');
+    if (nameElement) nameElement.textContent = taskData.task;
+
+    // Update deadline
+    const deadlineElement = taskItem.querySelector('.task-deadline');
+    if (deadlineElement) deadlineElement.textContent = `Due: ${taskData.deadline}`;
+
+    // Update status
+    const statusElement = taskItem.querySelector('.task-status');
+    if (statusElement) {
+        statusElement.textContent = taskData.status;
+        statusElement.className = `task-status status-${taskData.status.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
     }
 
-    const formData = new FormData(e.target);
-    const budgetData = Object.fromEntries(formData.entries());
-
-    // Handle new category selection
-    if (budgetData.category === 'new') {
-        const newCategory = document.getElementById('new-category-name').value;
-        if (!newCategory) {
-            HERA.showNotification('Please enter a category name', 'error');
-            return;
-        }
-        budgetData.category = newCategory;
-    }
-
-    HERA.setLoadingState(e.target, true);
-
-    HERA.makeRequest('/api/budget/add', {
-        method: 'POST',
-        body: JSON.stringify(budgetData)
-    })
-    .then(data => {
-        if (data.success) {
-            HERA.showNotification('Budget item added successfully', 'success');
-            addBudgetItemToDOM(data.budget_item);
-            updateBudgetProgress();
-            updateNavBadges();
-            closeAddBudgetModal();
+    // Update notes
+    const notesElement = taskItem.querySelector('.task-notes');
+    if (notesElement) {
+        if (taskData.notes) {
+            notesElement.textContent = taskData.notes;
+            notesElement.style.display = 'block';
         } else {
-            HERA.showNotification('Error adding budget item: ' + data.error, 'error');
+            notesElement.style.display = 'none';
         }
-    })
-    .catch(error => {
-        HERA.showNotification('Error adding budget item', 'error');
-    })
-    .finally(() => {
-        HERA.setLoadingState(e.target, false);
-    });
-}
-
-// Modal Functions
-function openBudgetModal(budgetId) {
-    const budgetItem = window.HERA_DATA.budget.find(item => item.id === budgetId);
-    if (!budgetItem) return;
-
-    document.getElementById('budget-modal-title').textContent = `Edit ${budgetItem.category}`;
-    document.getElementById('budget-item-id').value = budgetItem.id;
-    document.getElementById('budget-category').value = budgetItem.category;
-    document.getElementById('budget-amount').value = budgetItem.budget;
-    document.getElementById('budget-saved').value = budgetItem.saved;
-    document.getElementById('budget-status').value = budgetItem.status;
-    document.getElementById('budget-priority').value = budgetItem.priority || 'medium';
-    document.getElementById('budget-notes').value = budgetItem.notes || '';
-
-    HERA.openModal('budget-modal');
-}
-
-function closeBudgetModal() {
-    HERA.closeModal('budget-modal');
-}
-
-function openAddBudgetModal() {
-    document.getElementById('add-budget-form').reset();
-    HERA.openModal('add-budget-modal');
-}
-
-function closeAddBudgetModal() {
-    HERA.closeModal('add-budget-modal');
-
-    // Hide new category field
-    const newCategoryGroup = document.getElementById('new-category-group');
-    if (newCategoryGroup) {
-        newCategoryGroup.style.display = 'none';
     }
 }
 
-// Handle category selection change
-document.addEventListener('DOMContentLoaded', function() {
-    const categorySelect = document.getElementById('new-item-category');
-    if (categorySelect) {
-        categorySelect.addEventListener('change', function() {
-            const newCategoryGroup = document.getElementById('new-category-group');
-            if (this.value === 'new') {
-                newCategoryGroup.style.display = 'block';
-                document.getElementById('new-category-name').required = true;
-            } else {
-                newCategoryGroup.style.display = 'none';
-                document.getElementById('new-category-name').required = false;
-            }
-        });
-    }
-});
+function updateTaskProgress() {
+    const taskItems = document.querySelectorAll('.task-item');
+    const completedTasks = document.querySelectorAll('.task-item.completed');
 
-// Delete Budget Item
-function deleteBudgetItem(budgetId) {
-    HERA.confirmDelete('Are you sure you want to delete this budget item?', () => {
-        HERA.makeRequest(`/api/budget/delete/${budgetId}`, {
-            method: 'DELETE'
-        })
-        .then(data => {
-            if (data.success) {
-                HERA.showNotification('Budget item deleted successfully', 'success');
-                removeBudgetItemFromDOM(budgetId);
-                updateBudgetProgress();
-                updateNavBadges();
-            } else {
-                HERA.showNotification('Error deleting budget item: ' + data.error, 'error');
-            }
-        })
-        .catch(error => {
-            HERA.showNotification('Error deleting budget item', 'error');
-        });
-    });
-}
+    const totalTasks = taskItems.length;
+    const completed = completedTasks.length;
+    const percentage = totalTasks > 0 ? (completed / totalTasks) * 100 : 0;
 
-// Task Management
-function setupTaskManagement() {
-    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
-    taskCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('click', function() {
-            const taskId = this.closest('.task-item').dataset.taskId;
-            toggleTaskComplete(taskId);
-        });
-    });
-}
-
-function toggleTaskComplete(taskId) {
-    const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
-    const checkbox = taskElement.querySelector('.task-checkbox');
-    const taskName = taskElement.querySelector('.task-name');
-
-    // Optimistic update
-    const wasCompleted = checkbox.classList.contains('completed');
-
-    if (wasCompleted) {
-        checkbox.classList.remove('completed');
-        checkbox.innerHTML = '';
-        taskName.classList.remove('completed');
-    } else {
-        checkbox.classList.add('completed');
-        checkbox.innerHTML = '<i class="fas fa-check"></i>';
-        taskName.classList.add('completed');
-        taskElement.classList.add('completing');
+    // Update progress bar
+    const progressBar = document.querySelector('.task-progress-bar .progress-fill');
+    if (progressBar) {
+        progressBar.style.width = `${percentage}%`;
     }
 
-    // Send to server
-    HERA.makeRequest(`/api/tasks/toggle/${taskId}`, {
-        method: 'POST'
-    })
-    .then(data => {
-        if (data.success) {
-            if (!wasCompleted) {
-                HERA.showNotification('Task completed!', 'success');
-                setTimeout(() => {
-                    taskElement.classList.remove('completing');
-                }, 300);
-            }
-            updateNavBadges();
-        } else {
-            // Revert optimistic update
-            if (wasCompleted) {
-                checkbox.classList.add('completed');
-                checkbox.innerHTML = '<i class="fas fa-check"></i>';
-                taskName.classList.add('completed');
-            } else {
-                checkbox.classList.remove('completed');
-                checkbox.innerHTML = '';
-                taskName.classList.remove('completed');
-                taskElement.classList.remove('completing');
-            }
-            HERA.showNotification('Error updating task: ' + data.error, 'error');
-        }
-    })
-    .catch(error => {
-        // Revert optimistic update
-        if (wasCompleted) {
-            checkbox.classList.add('completed');
-            checkbox.innerHTML = '<i class="fas fa-check"></i>';
-            taskName.classList.add('completed');
-        } else {
-            checkbox.classList.remove('completed');
-            checkbox.innerHTML = '';
-            taskName.classList.remove('completed');
-            taskElement.classList.remove('completing');
-        }
-        HERA.showNotification('Error updating task', 'error');
-    });
-}
-
-// Update Functions
-function updateBudgetProgress() {
-    if (!window.HERA_DATA) return;
-
-    const totalBudget = window.HERA_DATA.budget.reduce((sum, item) => sum + parseFloat(item.budget || 0), 0);
-    const totalSaved = window.HERA_DATA.budget.reduce((sum, item) => sum + parseFloat(item.saved || 0), 0);
-
-    // Update stats
-    const budgetStatElement = document.querySelector('.stat-card:nth-child(2) .stat-number');
-    if (budgetStatElement) {
-        budgetStatElement.textContent = HERA.formatCurrency(totalSaved);
-    }
-
-    const budgetSubElement = document.querySelector('.stat-card:nth-child(2) .stat-sublabel');
-    if (budgetSubElement) {
-        budgetSubElement.textContent = `${HERA.formatCurrency(totalSaved)} of ${HERA.formatCurrency(totalBudget)}`;
+    // Update progress text
+    const progressText = document.querySelector('.task-progress-bar .progress-text');
+    if (progressText) {
+        progressText.textContent = `${Math.round(percentage)}% Complete`;
     }
 
     // Update widget subtitle
-    const budgetSubtitle = document.querySelector('.widget-subtitle');
-    if (budgetSubtitle) {
-        budgetSubtitle.textContent = `${HERA.formatCurrency(totalSaved)} saved of ${HERA.formatCurrency(totalBudget)} total`;
+    const subtitle = document.querySelector('.widget-title + .widget-subtitle');
+    if (subtitle && subtitle.textContent.includes('completed')) {
+        subtitle.textContent = `${completed} of ${totalTasks} completed`;
+    }
+
+    // Update stats card
+    const statsNumber = document.querySelector('.stat-card .stat-number');
+    if (statsNumber && statsNumber.textContent.includes('/')) {
+        statsNumber.textContent = `${completed}/${totalTasks}`;
     }
 }
 
-function updateBudgetItem(budgetItem) {
-    const itemElement = document.querySelector(`[data-item-id="${budgetItem.id}"]`);
-    if (!itemElement) return;
+// =============================================================================
+// BUDGET MANAGEMENT
+// =============================================================================
 
-    // Update the item in the data
-    const dataIndex = window.HERA_DATA.budget.findIndex(item => item.id === budgetItem.id);
-    if (dataIndex !== -1) {
-        window.HERA_DATA.budget[dataIndex] = budgetItem;
-    }
+function openBudgetModal(budgetId) {
+    console.log('Opening budget modal for:', budgetId);
 
-    // Update DOM elements
-    const nameElement = itemElement.querySelector('.budget-name');
-    const amountElement = itemElement.querySelector('.budget-amount');
-    const progressElement = itemElement.querySelector('.progress-fill');
-    const statusElement = itemElement.querySelector('.status-badge');
+    // Find budget data
+    const budgetData = window.HERA_DATA?.budget?.find(b => b.id === budgetId);
+    if (!budgetData) return;
 
-    if (nameElement) nameElement.textContent = budgetItem.category;
-    if (amountElement) amountElement.textContent = `${HERA.formatCurrency(budgetItem.saved)} / ${HERA.formatCurrency(budgetItem.budget)}`;
-
-    if (progressElement) {
-        const progress = budgetItem.budget > 0 ? (budgetItem.saved / budgetItem.budget * 100) : 0;
-        progressElement.style.width = `${progress}%`;
-        progressElement.className = `progress-fill ${budgetItem.status === 'Paid' ? '' : 'pending'}`;
-    }
-
-    if (statusElement) {
-        statusElement.textContent = budgetItem.status;
-        statusElement.className = `status-badge ${budgetItem.status === 'Paid' ? 'paid' : 'outstanding'}`;
-    }
-
-    // Add success animation
-    itemElement.classList.add('success');
-    setTimeout(() => itemElement.classList.remove('success'), 1000);
+    currentEditingBudgetId = budgetId;
+    showBudgetEditModal(budgetData);
 }
 
-function addBudgetItemToDOM(budgetItem) {
-    const budgetItems = document.querySelector('.budget-items');
-    if (!budgetItems) return;
+function showBudgetEditModal(budgetData) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('edit-budget-modal');
+    if (!modal) {
+        modal = createBudgetEditModal();
+        document.body.appendChild(modal);
+    }
 
-    const progress = budgetItem.budget > 0 ? (budgetItem.saved / budgetItem.budget * 100) : 0;
-    const statusClass = budgetItem.status === 'Paid' ? 'paid' : 'outstanding';
-    const progressClass = budgetItem.status === 'Paid' ? '' : 'pending';
+    // Populate form
+    const form = modal.querySelector('form');
+    if (form) {
+        form.querySelector('#edit-budget-category').value = budgetData.category || '';
+        form.querySelector('#edit-budget-amount').value = budgetData.budget || '';
+        form.querySelector('#edit-budget-saved').value = budgetData.saved || '';
+        form.querySelector('#edit-budget-status').value = budgetData.status || '';
+        form.querySelector('#edit-budget-notes').value = budgetData.notes || '';
+    }
 
-    const itemHTML = `
-        <div class="budget-item fade-in" data-item-id="${budgetItem.id}">
-            <div class="budget-info">
-                <div class="budget-name">${budgetItem.category}</div>
-                <div class="budget-amount">${HERA.formatCurrency(budgetItem.saved)} / ${HERA.formatCurrency(budgetItem.budget)}</div>
+    openModal('edit-budget-modal');
+}
+
+function createBudgetEditModal() {
+    const modal = document.createElement('div');
+    modal.id = 'edit-budget-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Budget Item</h3>
+                <button class="modal-close" onclick="closeModal('edit-budget-modal')">&times;</button>
             </div>
-            <div class="budget-progress">
-                <div class="progress-bar">
-                    <div class="progress-fill ${progressClass}" style="width: ${progress}%"></div>
+            <form id="edit-budget-form">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
+                        <input type="text" class="form-input" id="edit-budget-category" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Budget Amount</label>
+                            <input type="number" class="form-input" id="edit-budget-amount" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount Saved</label>
+                            <input type="number" class="form-input" id="edit-budget-saved" step="0.01" min="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="edit-budget-status">
+                            <option value="Outstanding">Outstanding</option>
+                            <option value="Paid">Paid</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="edit-budget-notes" rows="3"></textarea>
+                    </div>
                 </div>
-            </div>
-            <div class="budget-status">
-                <span class="status-badge ${statusClass}">${budgetItem.status}</span>
-            </div>
-            <div class="budget-actions">
-                <button class="action-btn edit-btn" onclick="openBudgetModal(${budgetItem.id})" data-tooltip="Edit">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="action-btn delete-btn" onclick="deleteBudgetItem(${budgetItem.id})" data-tooltip="Delete">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-budget-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
         </div>
     `;
-
-    budgetItems.insertAdjacentHTML('beforeend', itemHTML);
-
-    // Add to data
-    window.HERA_DATA.budget.push(budgetItem);
+    return modal;
 }
 
-function removeBudgetItemFromDOM(budgetId) {
-    const itemElement = document.querySelector(`[data-item-id="${budgetId}"]`);
-    if (itemElement) {
-        HERA.animateElement(itemElement, 'fadeOut').then(() => {
-            itemElement.remove();
+// =============================================================================
+// INTERACTIVE ELEMENTS
+// =============================================================================
+
+function setupInteractiveElements() {
+    // Setup hover effects for cards
+    setupCardHovers();
+
+    // Setup click handlers for navigation
+    setupNavigationHandlers();
+
+    // Setup budget item interactions
+    setupBudgetInteractions();
+}
+
+function setupCardHovers() {
+    const cards = document.querySelectorAll('.stat-card, .action-card, .task-item, .budget-item-compact');
+
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-2px)';
         });
-    }
 
-    // Remove from data
-    window.HERA_DATA.budget = window.HERA_DATA.budget.filter(item => item.id !== budgetId);
-}
-
-function updateNavBadges() {
-    if (!window.HERA_DATA) return;
-
-    // Budget badge
-    const totalRemaining = window.HERA_DATA.budget.reduce((sum, item) => sum + (item.budget - item.saved), 0);
-    const budgetBadge = document.getElementById('nav-budget-badge');
-    if (budgetBadge) {
-        budgetBadge.textContent = HERA.formatCurrency(totalRemaining).replace(', '');
-    }
-
-    // Family badge (if data available)
-    if (window.HERA_DATA.family) {
-        const approvedFamily = window.HERA_DATA.family.filter(f => f.status === 'Approved').length;
-        const totalFamily = window.HERA_DATA.family.length;
-        const familyBadge = document.getElementById('nav-family-badge');
-        if (familyBadge) {
-            familyBadge.textContent = `${approvedFamily}/${totalFamily}`;
-        }
-    }
-
-    // Tasks badge (if data available)
-    if (window.HERA_DATA.tasks) {
-        const completedTasks = window.HERA_DATA.tasks.filter(t => t.status.includes('Complete')).length;
-        const totalTasks = window.HERA_DATA.tasks.length;
-        const tasksBadge = document.getElementById('nav-tasks-badge');
-        if (tasksBadge) {
-            tasksBadge.textContent = `${completedTasks}/${totalTasks}`;
-        }
-    }
-}
-
-// Quick Actions Setup
-function setupQuickActions() {
-    // Add click handlers for quick action cards
-    const actionCards = document.querySelectorAll('.action-card');
-    actionCards.forEach(card => {
-        card.addEventListener('click', function() {
-            const action = this.dataset.action;
-            handleQuickAction(action);
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
         });
     });
 }
 
-function handleQuickAction(action) {
-    switch (action) {
-        case 'add-budget':
-            openAddBudgetModal();
-            break;
-        case 'view-ring':
-            window.location.href = '/ring';
-            break;
-        case 'check-family':
-            window.location.href = '/family';
-            break;
-        case 'view-itinerary':
-            window.location.href = '/itinerary';
-            break;
-        case 'manage-travel':
+function setupNavigationHandlers() {
+    // Quick action cards
+    const actionCards = document.querySelectorAll('.action-card');
+    actionCards.forEach(card => {
+        card.addEventListener('click', function(e) {
+            // Prevent double-click issues
+            if (e.detail > 1) return;
+
+            const href = this.getAttribute('onclick');
+            if (href && href.includes('window.location.href')) {
+                // Extract URL from onclick
+                const url = href.match(/'([^']+)'/)[1];
+                window.location.href = url;
+            }
+        });
+    });
+}
+
+function setupBudgetInteractions() {
+    const budgetItems = document.querySelectorAll('.budget-item-compact');
+
+    budgetItems.forEach(item => {
+        item.addEventListener('click', function() {
+            // Extract budget ID from data attribute or other method
+            const budgetId = this.dataset.budgetId;
+            if (budgetId) {
+                openBudgetModal(parseInt(budgetId));
+            }
+        });
+    });
+}
+
+// =============================================================================
+// FORM SUBMISSIONS
+// =============================================================================
+
+function setupFormSubmissions() {
+    // Task edit form
+    document.addEventListener('submit', function(e) {
+        if (e.target.id === 'edit-task-form') {
+            e.preventDefault();
+            saveTaskChanges();
+        }
+
+        if (e.target.id === 'edit-budget-form') {
+            e.preventDefault();
+            saveBudgetChanges();
+        }
+    });
+}
+
+function saveBudgetChanges() {
+    if (!currentEditingBudgetId) return;
+
+    const form = document.getElementById('edit-budget-form');
+    const data = {
+        category: form.querySelector('#edit-budget-category').value,
+        budget_amount: parseFloat(form.querySelector('#edit-budget-amount').value),
+        budget_saved: parseFloat(form.querySelector('#edit-budget-saved').value),
+        status: form.querySelector('#edit-budget-status').value,
+        notes: form.querySelector('#edit-budget-notes').value
+    };
+
+    fetch(`/api/budget/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: currentEditingBudgetId, ...data })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Budget item updated successfully!', 'success');
+            closeModal('edit-budget-modal');
+
+            // Refresh page or update display
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('Failed to update budget item', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating budget:', error);
+        showNotification('Error updating budget item', 'error');
+    });
+}
+
+// =============================================================================
+// KEYBOARD SHORTCUTS
+// =============================================================================
+
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Only activate shortcuts when not in input fields
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        // Escape key - close any open modal
+        if (e.key === 'Escape') {
+            const openModal = document.querySelector('.modal.show');
+            if (openModal) {
+                closeModal(openModal.id);
+                e.preventDefault();
+            }
+        }
+
+        // Ctrl/Cmd + B - Go to budget page
+        if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+            e.preventDefault();
+            window.location.href = '/budget';
+        }
+
+        // Ctrl/Cmd + T - Go to travel page
+        if ((e.ctrlKey || e.metaKey) && e.key === 't') {
+            e.preventDefault();
             window.location.href = '/travel';
-            break;
-        case 'check-packing':
+        }
+
+        // Ctrl/Cmd + I - Go to itinerary page
+        if ((e.ctrlKey || e.metaKey) && e.key === 'i') {
+            e.preventDefault();
+            window.location.href = '/itinerary';
+        }
+
+        // Ctrl/Cmd + P - Go to packing page
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+            e.preventDefault();
             window.location.href = '/packing';
-            break;
-        default:
-            console.log('Unknown action:', action);
+        }
+
+        // R key - Go to ring page
+        if (e.key === 'r' || e.key === 'R') {
+            e.preventDefault();
+            window.location.href = '/ring';
+        }
+
+        // F key - Go to family page
+        if (e.key === 'f' || e.key === 'F') {
+            e.preventDefault();
+            window.location.href = '/family';
+        }
+    });
+}
+
+// =============================================================================
+// PROGRESS ANIMATIONS
+// =============================================================================
+
+function setupProgressAnimations() {
+    // Animate progress bars on load
+    const progressBars = document.querySelectorAll('.progress-fill');
+
+    progressBars.forEach(bar => {
+        const width = bar.style.width;
+        bar.style.width = '0%';
+
+        // Animate to target width after short delay
+        setTimeout(() => {
+            bar.style.width = width;
+        }, 500);
+    });
+
+    // Animate stat numbers counting up
+    animateStatNumbers();
+}
+
+function animateStatNumbers() {
+    const statNumbers = document.querySelectorAll('.stat-number');
+
+    statNumbers.forEach(stat => {
+        const text = stat.textContent;
+
+        // Only animate pure numbers, not text with slashes or symbols
+        if (/^\d+$/.test(text)) {
+            const finalValue = parseInt(text);
+            animateNumber(stat, 0, finalValue, 1000);
+        }
+    });
+}
+
+function animateNumber(element, start, end, duration) {
+    const range = end - start;
+    const increment = range / (duration / 16); // 60fps
+    let current = start;
+
+    const timer = setInterval(() => {
+        current += increment;
+
+        if (current >= end) {
+            current = end;
+            clearInterval(timer);
+        }
+
+        element.textContent = Math.floor(current);
+    }, 16);
+}
+
+// =============================================================================
+// FAMILY MEMBER INTERACTIONS
+// =============================================================================
+
+function toggleFamilyMemberStatus(memberId) {
+    console.log('Toggling family member status:', memberId);
+
+    fetch(`/api/family/${memberId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Find and update the family member display
+            const memberElement = document.querySelector(`[data-member-id="${memberId}"]`);
+            if (memberElement) {
+                const statusElement = memberElement.querySelector('.member-status');
+                if (statusElement) {
+                    statusElement.textContent = data.status;
+                    statusElement.className = `member-status status-${data.status.toLowerCase().replace(' ', '-')}`;
+                }
+            }
+
+            showNotification(`Family member status updated to: ${data.status}`, 'success');
+
+            // Update family progress
+            updateFamilyProgress();
+        } else {
+            showNotification('Failed to update family member status', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error toggling family status:', error);
+        showNotification('Error updating family member', 'error');
+    });
+}
+
+function updateFamilyProgress() {
+    // Count approved family members
+    const familyMembers = document.querySelectorAll('.family-member');
+    const approvedMembers = document.querySelectorAll('.status-approved');
+
+    const total = familyMembers.length;
+    const approved = approvedMembers.length;
+    const percentage = total > 0 ? (approved / total) * 100 : 0;
+
+    // Update progress bar
+    const progressBar = document.querySelector('.family-progress .progress-fill');
+    if (progressBar) {
+        progressBar.style.width = `${percentage}%`;
+    }
+
+    // Update progress text
+    const progressText = document.querySelector('.family-progress .progress-text');
+    if (progressText) {
+        progressText.textContent = `${Math.round(percentage)}% Approved`;
+    }
+
+    // Update widget subtitle
+    const familySubtitle = document.querySelector('.widget:has(.family-grid) .widget-subtitle');
+    if (familySubtitle) {
+        familySubtitle.textContent = `${approved} of ${total} approved`;
     }
 }
 
-// Budget Analytics
-function getBudgetAnalytics() {
-    if (!window.HERA_DATA) return {};
+// =============================================================================
+// NOTIFICATION SYSTEM
+// =============================================================================
 
-    const budget = window.HERA_DATA.budget;
-    const totalBudget = budget.reduce((sum, item) => sum + item.budget, 0);
-    const totalSaved = budget.reduce((sum, item) => sum + item.saved, 0);
-    const totalRemaining = totalBudget - totalSaved;
+function showNotification(message, type = 'info', duration = 4000) {
+    console.log(`${type.toUpperCase()}: ${message}`);
 
-    const paidItems = budget.filter(item => item.status === 'Paid').length;
-    const outstandingItems = budget.length - paidItems;
+    // Remove existing notifications
+    const existingNotifications = document.querySelectorAll('.notification');
+    existingNotifications.forEach(n => n.remove());
 
-    const criticalItems = budget.filter(item => item.priority === 'critical');
-    const highPriorityItems = budget.filter(item => item.priority === 'high');
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas fa-${getNotificationIcon(type)}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
 
-    return {
-        totalBudget,
-        totalSaved,
-        totalRemaining,
-        percentSaved: (totalSaved / totalBudget * 100).toFixed(1),
-        paidItems,
-        outstandingItems,
-        criticalItems: criticalItems.length,
-        highPriorityItems: highPriorityItems.length,
-        budgetOnTrack: totalSaved >= (totalBudget * 0.7) // 70% threshold
+    // Style notification
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 16px 20px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        z-index: 10001;
+        min-width: 300px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        animation: slideInRight 0.3s ease, fadeOut 0.3s ease ${duration - 300}ms forwards;
+    `;
+
+    // Set background color based on type
+    const colors = {
+        success: '#10b981',
+        error: '#ef4444',
+        warning: '#f59e0b',
+        info: '#3b82f6'
+    };
+
+    notification.style.backgroundColor = colors[type] || colors.info;
+
+    // Add to DOM
+    document.body.appendChild(notification);
+
+    // Auto-remove after duration
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, duration);
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        success: 'check-circle',
+        error: 'exclamation-circle',
+        warning: 'exclamation-triangle',
+        info: 'info-circle'
+    };
+
+    return icons[type] || icons.info;
+}
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount);
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+    });
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
     };
 }
 
-// Dashboard Refresh
-function refreshDashboard() {
-    updateBudgetProgress();
-    updateNavBadges();
-
-    // Refresh countdown
-    if (window.CountdownManager) {
-        window.CountdownManager.updateCountdown();
-    }
-
-    HERA.showNotification('Dashboard refreshed', 'info', 2000);
-}
-
-// Auto-save functionality
-let autoSaveTimeout;
-
-function scheduleAutoSave() {
-    clearTimeout(autoSaveTimeout);
-    autoSaveTimeout = setTimeout(() => {
-        saveDashboardState();
-    }, 5000); // Auto-save after 5 seconds of inactivity
-}
-
-function saveDashboardState() {
-    const dashboardState = {
-        lastUpdated: new Date().toISOString(),
-        budgetData: window.HERA_DATA.budget,
-        analytics: getBudgetAnalytics()
+function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
     };
-
-    // Save to localStorage (for offline persistence)
-    try {
-        localStorage.setItem('hera-dashboard-state', JSON.stringify(dashboardState));
-    } catch (error) {
-        console.warn('Could not save dashboard state:', error);
-    }
 }
 
-// Export dashboard data
-function exportDashboardData() {
-    const analytics = getBudgetAnalytics();
-    const exportData = {
-        exportDate: new Date().toISOString(),
-        analytics,
-        budgetItems: window.HERA_DATA.budget,
-        tasks: window.HERA_DATA.tasks,
-        family: window.HERA_DATA.family
-    };
+// =============================================================================
+// DATA REFRESH & SYNC
+// =============================================================================
 
-    const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+function refreshDashboardData() {
+    console.log('🔄 Refreshing dashboard data...');
 
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(dataBlob);
-    link.download = `hera-dashboard-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
+    fetch('/api/dashboard/data')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update global data
+                window.HERA_DATA = data.data;
+
+                // Update progress bars and stats
+                updateTaskProgress();
+                updateFamilyProgress();
+
+                showNotification('Dashboard data refreshed!', 'success');
+            } else {
+                showNotification('Failed to refresh data', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error refreshing data:', error);
+            showNotification('Error refreshing dashboard data', 'error');
+        });
 }
 
-// Keyboard shortcuts for dashboard
-document.addEventListener('keydown', function(e) {
-    // Alt + B for budget
-    if (e.altKey && e.key === 'b') {
-        e.preventDefault();
-        openAddBudgetModal();
-    }
+// Auto-refresh data every 5 minutes
+setInterval(refreshDashboardData, 5 * 60 * 1000);
 
-    // Alt + R for refresh
-    if (e.altKey && e.key === 'r') {
-        e.preventDefault();
-        refreshDashboard();
-    }
+// =============================================================================
+// EXPORT FUNCTIONS FOR GLOBAL ACCESS
+// =============================================================================
 
-    // Alt + E for export
-    if (e.altKey && e.key === 'e') {
-        e.preventDefault();
-        exportDashboardData();
-    }
-});
+// Make functions globally accessible
+window.toggleTaskStatus = toggleTaskStatus;
+window.editTask = editTask;
+window.openBudgetModal = openBudgetModal;
+window.toggleFamilyMemberStatus = toggleFamilyMemberStatus;
+window.showNotification = showNotification;
+window.closeModal = closeModal;
+window.openModal = openModal;
 
-// Initialize tooltips for keyboard shortcuts
-document.addEventListener('DOMContentLoaded', function() {
-    // Add keyboard shortcut hints to buttons
-    const addBudgetBtn = document.querySelector('[onclick="openAddBudgetModal()"]');
-    if (addBudgetBtn && !addBudgetBtn.dataset.tooltip) {
-        addBudgetBtn.dataset.tooltip = 'Add Budget Item (Alt+B)';
-    }
-});
+// Dashboard utilities
+window.HERA_Dashboard = {
+    refresh: refreshDashboardData,
+    showNotification: showNotification,
+    formatCurrency: formatCurrency,
+    formatDate: formatDate
+};
 
-// Performance monitoring
-function logPerformanceMetrics() {
-    if (window.performance) {
-        const loadTime = window.performance.timing.loadEventEnd - window.performance.timing.navigationStart;
-        console.log(`Dashboard loaded in ${loadTime}ms`);
-
-        // Log to analytics if available
-        if (window.analytics) {
-            window.analytics.track('Dashboard Load Time', { loadTime });
+// Add CSS for notifications and animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
         }
     }
+
+    @keyframes fadeOut {
+        to {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+    }
+
+    .notification-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1;
+    }
+
+    .notification-close {
+        background: none;
+        border: none;
+        color: currentColor;
+        cursor: pointer;
+        padding: 4px;
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+    }
+
+    .notification-close:hover {
+        opacity: 1;
+    }
+
+    /* Task completion animation */
+    .task-item.completing {
+        opacity: 0.7;
+        transform: scale(0.98);
+        transition: all 0.2s ease;
+    }
+
+    /* Budget item animation */
+    .budget-item-compact:hover {
+        background: rgba(212, 175, 55, 0.05);
+        border-radius: 4px;
+        margin: -4px;
+        padding: 4px;
+    }
+
+    /* Family member hover effect */
+    .family-member:hover {
+        transform: translateX(2px);
+        transition: transform 0.2s ease;
+    }
+
+    /* Progress bar smooth animation */
+    .progress-fill {
+        transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Modal form styling */
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .form-group {
+        margin-bottom: 16px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: 500;
+        color: var(--text-primary);
+        font-size: 13px;
+    }
+
+    .form-input,
+    .form-select,
+    .form-textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.2s ease;
+    }
+
+    .form-input:focus,
+    .form-select:focus,
+    .form-textarea:focus {
+        outline: none;
+        border-color: var(--accent-gold);
+        box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+    }
+`;
+
+document.head.appendChild(style);
+
+function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+        return;
+    }
+
+    console.log('Deleting task:', taskId);
+
+    fetch(`/api/tasks/${taskId}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Task deleted successfully!', 'success');
+
+            // Remove task from UI
+            const taskItem = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskItem) {
+                taskItem.style.opacity = '0';
+                taskItem.style.transform = 'translateX(-100%)';
+                setTimeout(() => {
+                    taskItem.remove();
+                    updateTaskProgress();
+                }, 300);
+            }
+
+            // Update global data
+            if (window.HERA_DATA && window.HERA_DATA.tasks) {
+                window.HERA_DATA.tasks = window.HERA_DATA.tasks.filter(t => t.id !== taskId);
+            }
+        } else {
+            showNotification('Failed to delete task', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting task:', error);
+        showNotification('Error deleting task', 'error');
+    });
 }
 
-// Call performance logging after load
-window.addEventListener('load', logPerformanceMetrics);
+// =============================================================================
+// COMPLETE FORM SUBMISSIONS SETUP
+// =============================================================================
 
-// Export functions for global access
-window.DashboardManager = {
-    refreshDashboard,
-    updateBudgetProgress,
-    updateNavBadges,
-    getBudgetAnalytics,
-    exportDashboardData,
-    saveDashboardState
-};
+function setupFormSubmissions() {
+    // Wait for DOM to ensure forms are loaded
+    setTimeout(() => {
+        // Add task form
+        const addTaskForm = document.getElementById('add-task-form');
+        if (addTaskForm) {
+            addTaskForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                submitNewTask();
+            });
+        }
+
+        // Setup edit form when it gets created
+        document.addEventListener('submit', function(e) {
+            if (e.target && e.target.id === 'edit-task-form') {
+                e.preventDefault();
+                saveTaskChanges();
+            }
+        });
+    }, 100);
+}
+
+function submitNewTask() {
+    const form = document.getElementById('add-task-form');
+    if (!form) {
+        showNotification('Add task form not found', 'error');
+        return;
+    }
+
+    const data = {
+        task: form.querySelector('#add-task-name').value,
+        deadline: form.querySelector('#add-task-deadline').value,
+        status: form.querySelector('#add-task-status').value,
+        notes: form.querySelector('#add-task-notes').value
+    };
+
+    // Validate required fields
+    if (!data.task.trim()) {
+        showNotification('Please enter a task name', 'warning');
+        return;
+    }
+
+    if (!data.deadline) {
+        showNotification('Please select a deadline', 'warning');
+        return;
+    }
+
+    fetch('/api/tasks/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Task added successfully!', 'success');
+            closeModal('add-task-modal');
+
+            // Add to global data
+            if (window.HERA_DATA && window.HERA_DATA.tasks) {
+                window.HERA_DATA.tasks.push(data.task);
+            }
+
+            // Refresh the page to show new task
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('Failed to add task: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding task:', error);
+        showNotification('Error adding task', 'error');
+    });
+}
+
+// =============================================================================
+// ENHANCE EXISTING EDIT MODAL CREATION
+// =============================================================================
+
+function createTaskEditModal() {
+    const modal = document.createElement('div');
+    modal.id = 'edit-task-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Task</h3>
+                <button class="modal-close" type="button" onclick="closeModal('edit-task-modal')">&times;</button>
+            </div>
+            <form id="edit-task-form">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Task Name</label>
+                        <input type="text" class="form-input" id="edit-task-name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Deadline</label>
+                        <input type="date" class="form-input" id="edit-task-deadline" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="edit-task-status">
+                            <option value="Not Started">Not Started</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="In Progress, On Schedule">In Progress, On Schedule</option>
+                            <option value="In Progress, Behind Schedule">In Progress, Behind Schedule</option>
+                            <option value="Complete">Complete</option>
+                            <option value="Complete, On Schedule">Complete, On Schedule</option>
+                            <option value="Complete, Behind Schedule">Complete, Behind Schedule</option>
+                            <option value="Ahead Schedule, Complete">Ahead Schedule, Complete</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-textarea" id="edit-task-notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-task-modal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    return modal;
+}
+
+// =============================================================================
+// ENHANCED SAVE TASK CHANGES
+// =============================================================================
+
+function saveTaskChanges() {
+    if (!currentEditingTaskId) {
+        showNotification('No task selected for editing', 'error');
+        return;
+    }
+
+    const form = document.getElementById('edit-task-form');
+    if (!form) {
+        showNotification('Edit form not found', 'error');
+        return;
+    }
+
+    const data = {
+        task: form.querySelector('#edit-task-name').value.trim(),
+        deadline: form.querySelector('#edit-task-deadline').value,
+        status: form.querySelector('#edit-task-status').value,
+        notes: form.querySelector('#edit-task-notes').value.trim()
+    };
+
+    // Validate required fields
+    if (!data.task) {
+        showNotification('Please enter a task name', 'warning');
+        return;
+    }
+
+    if (!data.deadline) {
+        showNotification('Please select a deadline', 'warning');
+        return;
+    }
+
+    fetch(`/api/tasks/${currentEditingTaskId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Task updated successfully!', 'success');
+            closeModal('edit-task-modal');
+
+            // Update task display
+            updateTaskDisplay(currentEditingTaskId, data.task);
+
+            // Update global data
+            if (window.HERA_DATA && window.HERA_DATA.tasks) {
+                const taskIndex = window.HERA_DATA.tasks.findIndex(t => t.id === currentEditingTaskId);
+                if (taskIndex !== -1) {
+                    Object.assign(window.HERA_DATA.tasks[taskIndex], data.task);
+                }
+            }
+
+            // Update progress after changes
+            updateTaskProgress();
+        } else {
+            showNotification('Failed to update task: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating task:', error);
+        showNotification('Error updating task', 'error');
+    });
+}

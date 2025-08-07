@@ -4,6 +4,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import os
 from datetime import datetime, timedelta
+from werkzeug.utils import secure_filename
+from flask import send_file
+from werkzeug.datastructures import FileStorage
+import uuid
+import mimetypes
+
 
 app = Flask(__name__)
 app.secret_key = 'hera_proposal_2025_emerald_lake_secret'
@@ -14,14 +20,16 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 class User(UserMixin):
-    def __init__(self, id, username, password_hash):
+    def __init__(self, id, username, password_hash, display_name=None):
         self.id = id
         self.username = username
         self.password_hash = password_hash
+        self.display_name = display_name or username
 
 users = {
-    'admin': User('admin', 'admin', generate_password_hash('admin123'))
+    'admin': User('admin', 'admin', generate_password_hash('admin123'), 'Vikrant')
 }
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -149,8 +157,45 @@ HERA_DATA = {
         {"id": 5, "item": "Camera/Tripod", "packed": False, "notes": ""},
         {"id": 6, "item": "Toiletries", "packed": False, "notes": ""},
         {"id": 7, "item": "Daypack", "packed": False, "notes": ""}
-    ]
+    ],
+    "files": []
 }
+
+
+def get_file_type(filename):
+    """Determine file type based on extension"""
+    if not filename:
+        return 'other'
+
+    ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
+
+    if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
+        return 'image'
+    elif ext == 'pdf':
+        return 'pdf'
+    elif ext in ['doc', 'docx']:
+        return 'document'
+    elif ext in ['xls', 'xlsx']:
+        return 'spreadsheet'
+    elif ext == 'txt':
+        return 'text'
+    elif ext == 'zip':
+        return 'archive'
+    else:
+        return 'other'
+
+
+def format_file_size(size_bytes):
+    """Format file size in human readable format"""
+    if size_bytes == 0:
+        return "0 B"
+    size_names = ["B", "KB", "MB", "GB", "TB"]
+    import math
+    i = int(math.floor(math.log(size_bytes, 1024)))
+    p = math.pow(1024, i)
+    s = round(size_bytes / p, 2)
+    return f"{s} {size_names[i]}"
+
 
 # Data persistence functions
 def save_data():
@@ -216,6 +261,11 @@ def dashboard():
     days_until = calculate_days_until_proposal()
     budget_stats = calculate_budget_stats()
 
+    # Calculate task completion stats
+    completed_tasks = [t for t in HERA_DATA['main']['tasks'] if 'Complete' in t['status']]
+    total_tasks = len(HERA_DATA['main']['tasks'])
+    task_progress = (len(completed_tasks) / total_tasks * 100) if total_tasks > 0 else 0
+
     # Family approval stats
     approved_family = len([f for f in HERA_DATA['family'] if f['status'] == 'Approved'])
     total_family = len(HERA_DATA['family'])
@@ -231,8 +281,11 @@ def dashboard():
                          total_family=total_family,
                          packed_items=packed_items,
                          total_items=total_items,
+                         completed_tasks=completed_tasks,
+                         total_tasks=total_tasks,
+                         task_progress=task_progress,
                          top_budget_items=HERA_DATA['budget'][:5],
-                         HERA_DATA=HERA_DATA)  # Pass the full data object
+                         HERA_DATA=HERA_DATA)
 
 @app.route('/budget')
 @login_required
@@ -388,6 +441,104 @@ def toggle_family_status(member_id):
         save_data()
         return jsonify({'success': True, 'status': member['status']})
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/ring/upload-photos', methods=['POST'])
+@login_required
+def upload_ring_photos():
+    """Handle ring photo uploads"""
+    try:
+        # Check if files were sent
+        if 'photos' not in request.files:
+            return jsonify({'success': False, 'error': 'No photos provided'})
+
+        files = request.files.getlist('photos')
+        if not files or files[0].filename == '':
+            return jsonify({'success': False, 'error': 'No photos selected'})
+
+        # Create upload directory if it doesn't exist
+        upload_dir = os.path.join(app.static_folder, 'uploads', 'ring')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        uploaded_files = []
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+
+        for file in files:
+            # Validate file type
+            if not file.filename:
+                continue
+
+            file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if file_ext not in allowed_extensions:
+                continue
+
+            # Generate safe filename with timestamp to avoid conflicts
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            random_id = str(uuid.uuid4())[:8]
+            safe_filename = f"ring_{timestamp}_{random_id}.{file_ext}"
+
+            # Save file
+            file_path = os.path.join(upload_dir, safe_filename)
+            file.save(file_path)
+            uploaded_files.append(safe_filename)
+
+        if not uploaded_files:
+            return jsonify({'success': False, 'error': 'No valid image files were uploaded'})
+
+        return jsonify({
+            'success': True,
+            'message': f'{len(uploaded_files)} photos uploaded successfully',
+            'files': uploaded_files
+        })
+
+    except Exception as e:
+        print(f"Upload error: {e}")  # For debugging
+        return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
+
+
+@app.route('/api/ring/delete-photo/<filename>', methods=['DELETE'])
+@login_required
+def delete_ring_photo(filename):
+    """Delete a ring photo"""
+    try:
+        # Validate filename to prevent directory traversal
+        safe_filename = secure_filename(filename)
+        if safe_filename != filename:
+            return jsonify({'success': False, 'error': 'Invalid filename'})
+
+        # Construct file path
+        file_path = os.path.join(app.static_folder, 'uploads', 'ring', safe_filename)
+
+        # Check if file exists and delete it
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return jsonify({'success': True, 'message': 'Photo deleted successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Photo not found'})
+
+    except Exception as e:
+        print(f"Delete error: {e}")  # For debugging
+        return jsonify({'success': False, 'error': f'Delete failed: {str(e)}'})
+
+
+# Optional: Add route to get ring photo list (for refreshing without page reload)
+@app.route('/api/ring/photos', methods=['GET'])
+@login_required
+def get_ring_photos():
+    """Get list of ring photos"""
+    try:
+        ring_upload_path = os.path.join(app.static_folder, 'uploads', 'ring')
+        if not os.path.exists(ring_upload_path):
+            return jsonify({'success': True, 'photos': []})
+
+        photos = [f for f in os.listdir(ring_upload_path)
+                  if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))]
+
+        return jsonify({'success': True, 'photos': photos})
+
+    except Exception as e:
+        print(f"Get photos error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/refresh_data', methods=['POST'])
@@ -687,6 +838,389 @@ def toggle_itinerary_complete(item_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+
+@app.route('/files')
+@login_required
+def files():
+    """Files management page"""
+    files_data = HERA_DATA.get('files', [])
+
+    # Calculate statistics
+    total_size = sum(file.get('size_bytes', 0) for file in files_data)
+    total_size_formatted = format_file_size(total_size)
+
+    # Get unique categories
+    categories = list(set(file.get('category', 'other') for file in files_data))
+
+    # Count recent uploads (last 7 days)
+    recent_count = 0
+    week_ago = datetime.now() - timedelta(days=7)
+    for file in files_data:
+        if file.get('upload_date'):
+            upload_date = datetime.fromisoformat(file['upload_date'].replace('Z', '+00:00'))
+            if upload_date > week_ago:
+                recent_count += 1
+
+    # Count files by category
+    category_counts = {
+        'travel_docs_count': len([f for f in files_data if f.get('category') == 'travel']),
+        'reservations_count': len([f for f in files_data if f.get('category') == 'reservations']),
+        'photos_count': len([f for f in files_data if f.get('category') == 'photos']),
+        'documents_count': len([f for f in files_data if f.get('category') == 'documents']),
+        'other_count': len([f for f in files_data if f.get('category') == 'other']),
+    }
+
+    return render_template('files.html',
+                           files=files_data,
+                           total_size=total_size_formatted,
+                           categories=categories,
+                           recent_count=recent_count,
+                           **category_counts)
+
+
+@app.route('/api/files/upload', methods=['POST'])
+@login_required
+def upload_files():
+    """Handle file uploads"""
+    try:
+        # Check if files were sent
+        if 'files' not in request.files:
+            return jsonify({'success': False, 'error': 'No files provided'})
+
+        files = request.files.getlist('files')
+        categories = request.form.getlist('categories')
+        notes_list = request.form.getlist('notes')
+
+        if not files or files[0].filename == '':
+            return jsonify({'success': False, 'error': 'No files selected'})
+
+        # Create upload directory if it doesn't exist
+        upload_dir = os.path.join(app.static_folder, 'uploads', 'files')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        uploaded_files = []
+        allowed_extensions = {
+            'pdf', 'doc', 'docx', 'txt', 'zip', 'xlsx', 'xls',
+            'jpg', 'jpeg', 'png', 'gif', 'webp'
+        }
+
+        for i, file in enumerate(files):
+            if not file.filename:
+                continue
+
+            # Validate file type
+            file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if file_ext not in allowed_extensions:
+                continue
+
+            # Generate safe filename with timestamp to avoid conflicts
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            random_id = str(uuid.uuid4())[:8]
+            safe_filename = f"file_{timestamp}_{random_id}.{file_ext}"
+
+            # Save file
+            file_path = os.path.join(upload_dir, safe_filename)
+            file.save(file_path)
+
+            # Get file info
+            file_size = os.path.getsize(file_path)
+            file_type = get_file_type(file.filename)
+
+            # Create file record
+            file_record = {
+                'id': len(HERA_DATA['files']) + len(uploaded_files) + 1,
+                'filename': safe_filename,
+                'original_name': file.filename,
+                'size': format_file_size(file_size),
+                'size_bytes': file_size,
+                'type': file_type,
+                'category': categories[i] if i < len(categories) else 'other',
+                'notes': notes_list[i] if i < len(notes_list) else '',
+                'upload_date': datetime.now().isoformat(),
+                'mimetype': file.mimetype
+            }
+
+            uploaded_files.append(file_record)
+
+        if not uploaded_files:
+            return jsonify({'success': False, 'error': 'No valid files were uploaded'})
+
+        # Add to HERA_DATA and save
+        HERA_DATA['files'].extend(uploaded_files)
+        save_data()
+
+        return jsonify({
+            'success': True,
+            'message': f'{len(uploaded_files)} files uploaded successfully',
+            'uploaded_count': len(uploaded_files),
+            'files': uploaded_files
+        })
+
+    except Exception as e:
+        print(f"Upload error: {e}")  # For debugging
+        return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
+
+
+@app.route('/api/files/download/<filename>')
+@login_required
+def download_file(filename):
+    """Download a file"""
+    try:
+        # Validate filename to prevent directory traversal
+        safe_filename = secure_filename(filename)
+        if safe_filename != filename:
+            return jsonify({'error': 'Invalid filename'}), 400
+
+        file_path = os.path.join(app.static_folder, 'uploads', 'files', safe_filename)
+
+        if not os.path.exists(file_path):
+            return jsonify({'error': 'File not found'}), 404
+
+        # Get original filename from database
+        file_record = next((f for f in HERA_DATA['files'] if f['filename'] == filename), None)
+        download_name = file_record['original_name'] if file_record else filename
+
+        return send_file(file_path, as_attachment=True, download_name=download_name)
+
+    except Exception as e:
+        print(f"Download error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/files/delete/<int:file_id>', methods=['DELETE'])
+@login_required
+def delete_file(file_id):
+    """Delete a file"""
+    try:
+        # Find file record
+        file_record = next((f for f in HERA_DATA['files'] if f['id'] == file_id), None)
+        if not file_record:
+            return jsonify({'success': False, 'error': 'File not found'})
+
+        # Delete physical file
+        file_path = os.path.join(app.static_folder, 'uploads', 'files', file_record['filename'])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # Remove from data
+        HERA_DATA['files'] = [f for f in HERA_DATA['files'] if f['id'] != file_id]
+        save_data()
+
+        return jsonify({'success': True, 'message': 'File deleted successfully'})
+
+    except Exception as e:
+        print(f"Delete error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/files/update/<int:file_id>', methods=['POST'])
+@login_required
+def update_file(file_id):
+    """Update file details"""
+    try:
+        data = request.get_json()
+
+        # Find file record
+        file_record = next((f for f in HERA_DATA['files'] if f['id'] == file_id), None)
+        if not file_record:
+            return jsonify({'success': False, 'error': 'File not found'})
+
+        # Update fields
+        if 'name' in data:
+            file_record['original_name'] = data['name']
+        if 'category' in data:
+            file_record['category'] = data['category']
+        if 'notes' in data:
+            file_record['notes'] = data['notes']
+
+        file_record['updated_date'] = datetime.now().isoformat()
+        save_data()
+
+        return jsonify({
+            'success': True,
+            'message': 'File updated successfully',
+            'file': {
+                'name': file_record['original_name'],
+                'category': file_record['category'],
+                'notes': file_record.get('notes', '')
+            }
+        })
+
+    except Exception as e:
+        print(f"Update error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/tasks/<int:task_id>/toggle', methods=['POST'])
+@login_required
+def toggle_task_status(task_id):
+    """Toggle task completion status"""
+    try:
+        data = request.get_json()
+        completed = data.get('completed', False)
+
+        # Find task in main.tasks
+        task = next((t for t in HERA_DATA['main']['tasks'] if t['id'] == task_id), None)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'})
+
+        # Update task status based on completion
+        if completed:
+            if 'Complete' not in task['status']:
+                task['status'] = 'Complete, On Schedule'
+        else:
+            if 'Complete' in task['status']:
+                task['status'] = 'In Progress, On Schedule'
+
+        save_data()
+        return jsonify({
+            'success': True,
+            'status': task['status'],
+            'completed': completed
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/tasks/<int:task_id>/update', methods=['POST'])
+@login_required
+def update_task(task_id):
+    """Update task details"""
+    try:
+        data = request.get_json()
+
+        # Find task in main.tasks
+        task = next((t for t in HERA_DATA['main']['tasks'] if t['id'] == task_id), None)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'})
+
+        # Update task fields
+        if 'task' in data:
+            task['task'] = data['task']
+        if 'deadline' in data:
+            task['deadline'] = data['deadline']
+        if 'status' in data:
+            task['status'] = data['status']
+        if 'notes' in data:
+            task['notes'] = data['notes']
+
+        save_data()
+        return jsonify({
+            'success': True,
+            'task': {
+                'task': task['task'],
+                'deadline': task['deadline'],
+                'status': task['status'],
+                'notes': task['notes']
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/tasks/add', methods=['POST'])
+@login_required
+def add_task():
+    """Add new task"""
+    try:
+        data = request.get_json()
+
+        # Generate new ID
+        max_id = max([t['id'] for t in HERA_DATA['main']['tasks']], default=0)
+        new_task = {
+            'id': max_id + 1,
+            'task': data['task'],
+            'deadline': data['deadline'],
+            'status': data.get('status', 'Not Started'),
+            'notes': data.get('notes', '')
+        }
+
+        HERA_DATA['main']['tasks'].append(new_task)
+        save_data()
+
+        return jsonify({'success': True, 'task': new_task})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/tasks/<int:task_id>/delete', methods=['DELETE'])
+@login_required
+def delete_task(task_id):
+    """Delete task"""
+    try:
+        # Remove task from main.tasks
+        HERA_DATA['main']['tasks'] = [t for t in HERA_DATA['main']['tasks'] if t['id'] != task_id]
+        save_data()
+
+        return jsonify({'success': True})
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/dashboard/data', methods=['GET'])
+@login_required
+def get_dashboard_data():
+    """Get dashboard data for refresh"""
+    try:
+        budget_stats = calculate_budget_stats()
+        days_until = calculate_days_until_proposal()
+
+        # Count completed tasks
+        completed_tasks = len([t for t in HERA_DATA['main']['tasks'] if 'Complete' in t['status']])
+        total_tasks = len(HERA_DATA['main']['tasks'])
+
+        # Family stats
+        approved_family = len([f for f in HERA_DATA['family'] if f['status'] == 'Approved'])
+        total_family = len(HERA_DATA['family'])
+
+        # Packing stats
+        packed_items = len([p for p in HERA_DATA['packing'] if p['packed']])
+        total_packing = len(HERA_DATA['packing'])
+
+        return jsonify({
+            'success': True,
+            'data': HERA_DATA,
+            'stats': {
+                'budget': budget_stats,
+                'days_until': days_until,
+                'tasks': {'completed': completed_tasks, 'total': total_tasks},
+                'family': {'approved': approved_family, 'total': total_family},
+                'packing': {'packed': packed_items, 'total': total_packing}
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@app.route('/api/files', methods=['GET'])
+@login_required
+def get_files():
+    """Get list of files with optional filtering"""
+    try:
+        category = request.args.get('category')
+        search = request.args.get('search', '').lower()
+
+        files_data = HERA_DATA.get('files', [])
+
+        # Apply filters
+        if category and category != 'all':
+            files_data = [f for f in files_data if f.get('category') == category]
+
+        if search:
+            files_data = [f for f in files_data
+                          if search in f.get('original_name', '').lower()
+                          or search in f.get('category', '').lower()]
+
+        return jsonify({'success': True, 'files': files_data})
+
+    except Exception as e:
+        print(f"Get files error: {e}")
+        return jsonify({'success': False, 'error': str(e)})
 
 if __name__ == '__main__':
     # Load existing data if available

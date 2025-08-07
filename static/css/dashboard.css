@@ -1,205 +1,41 @@
-/* Dashboard Specific Styles */
+/* Dashboard Specific Styles - Complete File */
 
-/* Budget Progress */
-.budget-items {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.budget-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 0;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-}
-
-.budget-item:hover {
-    background-color: var(--bg-secondary);
-    margin: 0 -16px;
-    padding: 16px;
-    border-radius: 8px;
-}
-
-.budget-item:last-child {
-    border-bottom: none;
-}
-
-.budget-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.budget-name {
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 4px;
-}
-
-.budget-amount {
-    color: var(--text-secondary);
-    font-size: 13px;
-}
-
-.budget-progress {
-    flex: 1;
-    margin: 0 16px;
-}
-
-.budget-status {
-    text-align: right;
-    margin-right: 12px;
-}
-
-.budget-actions {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.budget-item:hover .budget-actions {
-    opacity: 1;
-}
-
-/* Task List */
-.task-items {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.task-item {
-    display: flex;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.task-item:hover {
-    background-color: var(--bg-secondary);
-    margin: 0 -16px;
-    padding: 12px 16px;
-    border-radius: 8px;
-}
-
-.task-item:last-child {
-    border-bottom: none;
-}
-
-.task-checkbox {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    border: 2px solid var(--border);
-    margin-right: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    cursor: pointer;
-}
-
-.task-checkbox.completed {
-    background: var(--success);
-    border-color: var(--success);
-    color: white;
-}
-
-.task-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.task-name {
-    font-weight: 500;
-    color: var(--text-primary);
-    margin-bottom: 2px;
-}
-
-.task-name.completed {
-    text-decoration: line-through;
-    color: var(--text-secondary);
-}
-
-.task-deadline {
-    color: var(--text-secondary);
-    font-size: 12px;
-}
-
-/* Family Grid */
-.family-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
-}
-
-.family-member {
-    background: var(--bg-secondary);
-    border-radius: 12px;
-    padding: 16px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.family-member:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.member-avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 12px;
-    font-weight: 600;
-    font-size: 18px;
-}
-
-.member-name {
-    font-weight: 600;
-    margin-bottom: 8px;
-}
-
-.member-notes {
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-style: italic;
-}
-
-/* Countdown Display */
+/* Enhanced Countdown Display */
 .countdown-display {
     text-align: center;
-    padding: 40px;
+    padding: 32px;
     background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
     color: white;
-    border-radius: 20px;
+    border-radius: 16px;
     margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+.countdown-display::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="40" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="80" r="1" fill="rgba(255,255,255,0.1)"/></svg>');
+    pointer-events: none;
 }
 
 .countdown-title {
-    font-size: 18px;
-    font-weight: 300;
-    margin-bottom: 24px;
+    font-size: 16px;
+    font-weight: 400;
+    margin-bottom: 20px;
     opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .countdown-numbers {
     display: flex;
     justify-content: center;
-    gap: 24px;
+    gap: 32px;
     margin-bottom: 16px;
 }
 
@@ -208,19 +44,20 @@
 }
 
 .countdown-value {
-    font-size: 36px;
+    font-size: 42px;
     font-weight: 200;
     color: var(--accent-gold);
     display: block;
     line-height: 1;
+    font-family: 'Inter', monospace;
 }
 
 .countdown-label {
     font-size: 11px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.1em;
     opacity: 0.8;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
 .trip-dates {
@@ -229,22 +66,539 @@
     font-weight: 300;
 }
 
-/* Dashboard Quick Actions */
+/* Countdown Special States */
+.countdown-display.trip-phase {
+    background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+}
+
+/* Celebration Mode (When Trip is Active) */
+.countdown-display.celebration-mode {
+    background: linear-gradient(135deg, #10b981, #059669);
+    animation: celebrate 3s ease-in-out infinite;
+}
+
+@keyframes celebrate {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+.countdown-display.celebration-mode .countdown-value {
+    font-size: 36px;
+    animation: bounce 1s ease-in-out infinite alternate;
+}
+
+@keyframes bounce {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(-4px);
+    }
+}
+
+/* Special styling for completion phase */
+.countdown-display.trip-complete {
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+}
+
+.countdown-display.trip-complete .countdown-value {
+    font-size: 48px;
+}
+
+.countdown-display.trip-complete .countdown-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Stats Grid - 4 cards layout */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border);
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+.stat-number {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent-gold);
+    line-height: 1;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.stat-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-sublabel {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Content Grid - Tasks take more space */
+.content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+/* Large Widget for Tasks */
+.widget-large {
+    grid-column: 1 / -1;
+}
+
+/* Task Completion Summary - Replaces task-progress-bar */
+.task-completion-summary {
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.completion-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.task-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.task-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--white);
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.task-item:hover {
+    border-color: var(--accent-gold);
+    background: rgba(212, 175, 55, 0.02);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.task-item.completed {
+    opacity: 0.7;
+    background: var(--bg-secondary);
+}
+
+.task-item.completed .task-name {
+    text-decoration: line-through;
+    color: #6b7280;
+}
+
+.task-checkbox {
+    margin-right: 12px;
+    margin-top: 2px;
+}
+
+.task-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.task-checkbox input[type="checkbox"]:checked {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.task-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    font-size: 14px;
+}
+
+.task-details {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 6px;
+}
+
+.task-deadline {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.task-status {
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+}
+
+.status-in-progress-behind-schedule { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+.status-in-progress-on-schedule { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+.status-ahead-schedule-complete,
+.status-complete-ahead-schedule,
+.status-complete-on-schedule,
+.status-on-schedule-complete { background: rgba(16, 185, 129, 0.1); color: #059669; }
+
+.task-notes {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 4px;
+    padding: 4px 0;
+    border-top: 1px solid #f3f4f6;
+}
+
+/* Task Actions */
+.task-actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.task-item:hover .task-actions {
+    opacity: 1;
+}
+
+.task-action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.15s ease;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+}
+
+.task-action-btn:hover {
+    background: #f3f4f6;
+    color: #374151;
+    transform: scale(1.1);
+}
+
+.task-action-btn.edit:hover {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.task-action-btn.delete:hover {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.task-action-btn:active {
+    transform: scale(0.95);
+}
+
+/* Task deletion animation */
+.task-item.deleting {
+    opacity: 0;
+    transform: translateX(-100%);
+    transition: all 0.3s ease;
+}
+
+/* Compact Budget Widget */
+.budget-summary-compact {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.budget-amount-large {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent-gold);
+    line-height: 1;
+}
+
+.budget-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.budget-stats-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    font-weight: 500;
+}
+
+.budget-items-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.budget-item-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.budget-item-compact:last-child {
+    border-bottom: none;
+}
+
+.budget-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.budget-name {
+    font-weight: 500;
+    font-size: 13px;
+}
+
+.budget-status-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    font-weight: 600;
+    align-self: flex-start;
+}
+
+.status-outstanding { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+.status-paid { background: rgba(16, 185, 129, 0.1); color: #059669; }
+
+.budget-amount {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Family Approval Summary - Replaces family-progress */
+.family-approval-summary {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.approval-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Family Grid */
+.family-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.family-member {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    background: var(--bg-secondary);
+}
+
+.member-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+}
+
+.member-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.member-name {
+    font-weight: 500;
+    font-size: 12px;
+    margin-bottom: 2px;
+}
+
+.member-status {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.status-approved { background: rgba(16, 185, 129, 0.1); color: #059669; }
+.status-pending { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+.status-not-asked { background: rgba(107, 114, 128, 0.1); color: #6b7280; }
+
+/* Packing Summary - New section */
+.packing-summary {
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.packing-stats {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.packing-reminder {
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* Packing Categories */
+.packing-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.category-summary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+.category-name {
+    font-size: 13px;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.category-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-gold);
+}
+
+/* Activity List Styling */
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.activity-icon.completed {
+    background: var(--success);
+}
+
+.activity-details {
+    flex: 1;
+}
+
+.activity-text {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+}
+
+.activity-time {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+/* Quick Actions Grid */
 .quick-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
     margin-bottom: 32px;
 }
 
 .action-card {
-    background: white;
+    background: var(--white);
     border-radius: 12px;
     padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     transition: all 0.2s ease;
     cursor: pointer;
     border: 1px solid var(--border);
+    text-align: center;
 }
 
 .action-card:hover {
@@ -261,13 +615,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
+    margin: 0 auto 16px;
     color: white;
     font-size: 20px;
 }
 
 .action-title {
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 600;
     margin-bottom: 4px;
     color: var(--text-primary);
@@ -275,56 +629,127 @@
 
 .action-subtitle {
     color: var(--text-secondary);
+    font-size: 12px;
+}
+
+/* Widget Styles */
+.widget {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.widget-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.widget-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.widget-subtitle {
     font-size: 13px;
+    color: var(--text-secondary);
+    margin: 4px 0 0 0;
 }
 
-/* Budget Item Animations */
-.budget-item.saving {
-    opacity: 0.7;
-    pointer-events: none;
+.widget-content {
+    padding: 20px;
 }
 
-.budget-item.success {
-    background: rgba(16, 185, 129, 0.1);
-    border-color: var(--success);
+.widget-actions {
+    display: flex;
+    gap: 8px;
 }
 
-/* Task Item Animations */
-.task-item.completing {
-    opacity: 0.7;
-    transform: scale(0.98);
+/* Enhanced button styles for consistency */
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    text-decoration: none;
 }
 
-/* Progress Animation */
-.progress-fill {
-    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* Dashboard Responsiveness */
-@media (max-width: 1200px) {
-    .content-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+.btn-primary {
+    background: #3b82f6;
+    color: white;
 }
 
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #6b7280;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #4b5563;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+}
+
+/* Modal enhancements */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Responsive countdown adjustments */
 @media (max-width: 768px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .countdown-numbers {
-        gap: 16px;
-    }
-
-    .countdown-value {
+    .countdown-display.celebration-mode .countdown-value {
         font-size: 28px;
     }
 
-    .family-grid {
-        grid-template-columns: 1fr;
+    .countdown-display.trip-complete .countdown-value {
+        font-size: 36px;
     }
+}
+
+/* Subtle animations for phase transitions */
+.countdown-display {
+    transition: background 0.5s ease, transform 0.3s ease;
+}
+
+.countdown-title,
+.trip-dates {
+    transition: color 0.3s ease;
+}
+
+.countdown-value {
+    transition: color 0.3s ease, font-size 0.3s ease;
 }

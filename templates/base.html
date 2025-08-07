@@ -60,12 +60,17 @@
                     <i class="fas fa-suitcase"></i>
                     <span class="nav-label">Packing</span>
                 </a>
+
+                <a href="{{ url_for('files') }}" class="nav-item {% if request.endpoint == 'files' %}active{% endif %}">
+                    <i class="fas fa-folder-open"></i>
+                    <span class="nav-label">Files</span>
+                </a>
             </div>
 
             <div class="sidebar-footer">
                 <div class="user-info">
                     <i class="fas fa-user-circle"></i>
-                    <span>{{ current_user.username if current_user.is_authenticated else 'Admin' }}</span>
+                    <span>{{ current_user.display_name|default(current_user.username) if current_user.is_authenticated else 'Admin' }}</span>
                 </div>
                 <a href="{{ url_for('logout') }}" class="logout-btn">
                     <i class="fas fa-sign-out-alt"></i>
