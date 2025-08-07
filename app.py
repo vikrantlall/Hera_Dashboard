@@ -253,6 +253,7 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+
 @app.route('/')
 @app.route('/dashboard')
 @login_required
@@ -270,22 +271,38 @@ def dashboard():
     approved_family = len([f for f in HERA_DATA['family'] if f['status'] == 'Approved'])
     total_family = len(HERA_DATA['family'])
 
-    # Packing progress
+    # Packing progress - FIX THE CATEGORY ISSUE HERE
     packed_items = len([p for p in HERA_DATA['packing'] if p['packed']])
     total_items = len(HERA_DATA['packing'])
 
+    # CRITICAL FIX: Ensure all packing items have a category
+    for item in HERA_DATA['packing']:
+        if 'category' not in item or not item['category']:
+            # Assign categories based on item names
+            item_lower = item['item'].lower()
+            if any(word in item_lower for word in ['ring', 'documents', 'passport']):
+                item['category'] = 'Essential'
+            elif any(word in item_lower for word in ['camera', 'tripod', 'gear']):
+                item['category'] = 'Equipment'
+            elif any(word in item_lower for word in ['clothes', 'hiking']):
+                item['category'] = 'Clothing'
+            elif any(word in item_lower for word in ['toiletries']):
+                item['category'] = 'Personal Care'
+            else:
+                item['category'] = 'General'
+
     return render_template('dashboard.html',
-                         days_until=days_until,
-                         budget_stats=budget_stats,
-                         approved_family=approved_family,
-                         total_family=total_family,
-                         packed_items=packed_items,
-                         total_items=total_items,
-                         completed_tasks=completed_tasks,
-                         total_tasks=total_tasks,
-                         task_progress=task_progress,
-                         top_budget_items=HERA_DATA['budget'][:5],
-                         HERA_DATA=HERA_DATA)
+                           days_until=days_until,
+                           budget_stats=budget_stats,
+                           approved_family=approved_family,
+                           total_family=total_family,
+                           packed_items=packed_items,
+                           total_items=total_items,
+                           completed_tasks=completed_tasks,
+                           total_tasks=total_tasks,
+                           task_progress=task_progress,
+                           top_budget_items=HERA_DATA['budget'][:5],
+                           HERA_DATA=HERA_DATA)
 
 @app.route('/budget')
 @login_required
