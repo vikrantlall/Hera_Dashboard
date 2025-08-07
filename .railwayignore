@@ -1,0 +1,148 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local development
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Testing
+.coverage
+.pytest_cache/
+.tox/
+.nox/
+htmlcov/
+
+# Documentation
+docs/_build/
+
+# Backup files
+*.bak
+*.backup
+
+# Development tools
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local uploads folder contents (keep structure but ignore uploaded files)
+static/uploads/*
+!static/uploads/.gitkeep
+
+# Development database files (if you add SQLite later)
+*.db
+*.sqlite
+*.sqlite3
+
+# Flask session files
+flask_session/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# Poetry
+poetry.lock
+
+# Conda
+.conda/
+
+# Local configuration overrides
+config.local.py
+settings.local.py
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+
+# Large files that shouldn't be deployed
+*.mov
+*.mp4
+*.avi
+*.mkv
+*.zip
+*.rar
+*.7z
+*.tar.gz
+
+# Local development scripts
+local_*.py
+test_*.py
+dev_*.py
+
+# Personal notes and documentation
+TODO.md
+NOTES.md
+personal_notes/

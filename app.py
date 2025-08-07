@@ -1222,16 +1222,16 @@ def get_files():
         print(f"Get files error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+
 if __name__ == '__main__':
     # Load existing data if available
     load_data()
 
     print("=" * 60)
-    print("🎯 HERA Proposal Planning Dashboard - Complete Edition")
+    print("🎯 HERA Proposal Planning Dashboard - Railway Ready")
     print("=" * 60)
     print("✅ All 42 itinerary activities loaded")
     print("✅ All Excel data preserved with integrity")
-    print("✅ Selective enhancements (budget priority kept, family priority removed)")
     print("✅ Full CRUD operations available")
     print("✅ Real-time updates and persistence")
 
@@ -1242,6 +1242,13 @@ if __name__ == '__main__':
     print(f"  📅 Itinerary Activities: {len(HERA_DATA['itinerary'])}")
     print(f"  🎒 Packing Items: {len(HERA_DATA['packing'])}")
 
+    # Railway deployment configuration
+    port = int(os.environ.get('PORT', 5000))
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+
+    print(f"\n🚀 Starting server on port {port}")
+    print(f"🔧 Debug mode: {debug_mode}")
+
     # Find the proposal activity
     proposal_activity = next((item for item in HERA_DATA['itinerary'] if item.get('isProposal')), None)
     if proposal_activity:
@@ -1249,16 +1256,11 @@ if __name__ == '__main__':
         print(f"   {proposal_activity['time']} - {proposal_activity['activity']}")
         print(f"   Location: {proposal_activity['location']}")
 
-    print(f"\n🔗 Access Information:")
-    print(f"  URL: http://localhost:5000")
-    print(f"  Username: admin")
-    print(f"  Password: admin123")
-
     print(f"\n🎉 Days until proposal: {calculate_days_until_proposal()}")
     print("=" * 60)
 
     try:
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        app.run(debug=debug_mode, host='0.0.0.0', port=port)
     except KeyboardInterrupt:
         print("\n\n👋 Server stopped. Your data is saved in hera_data.json")
     except Exception as e:
