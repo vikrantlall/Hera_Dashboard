@@ -8,6 +8,8 @@ from werkzeug.utils import secure_filename
 from flask import send_file
 from werkzeug.datastructures import FileStorage
 import uuid
+from flask import session
+import random
 import mimetypes
 
 
@@ -235,15 +237,26 @@ def calculate_budget_stats():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
-        user = users.get(username)
+        username = request.form['username'].strip().lower()
+        password = request.form['password'].strip()
 
-        if user and check_password_hash(user.password_hash, password):
+        # REAL CREDENTIALS - Access to HERA proposal dashboard
+        if username == 'admin' and password == 'admin123':
+            user = users.get('admin')
             login_user(user)
+            session['hera_access'] = True
             return redirect(url_for('dashboard'))
+
+        # FAKE CREDENTIALS - Redirect to harmless games (the decoy)
+        elif username == 'demo' and password == 'test123':
+            session['games_access'] = True
+            session.pop('hera_access', None)  # Clear any HERA access
+            return redirect(url_for('games'))
+
+        # ANY OTHER CREDENTIALS - Show error and stay on login
         else:
             flash('Invalid username or password')
+            return render_template('login.html', show_error=True)
 
     return render_template('login.html')
 
@@ -251,6 +264,7 @@ def login():
 @login_required
 def logout():
     logout_user()
+    session.clear()  # Clear all session data including games access
     return redirect(url_for('login'))
 
 
@@ -258,6 +272,13 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+
+    if not session.get('hera_access'):
+        logout_user()
+        session.clear()
+        flash('Session expired. Please log in again.')
+        return redirect(url_for('login'))
+
     """Main dashboard with all key metrics"""
     days_until = calculate_days_until_proposal()
     budget_stats = calculate_budget_stats()
@@ -303,6 +324,27 @@ def dashboard():
                            task_progress=task_progress,
                            top_budget_items=HERA_DATA['budget'][:5],
                            HERA_DATA=HERA_DATA)
+
+
+@app.route('/games')
+def games():
+    """Personal Break Dashboard - Cover story for wrong credentials"""
+    if not session.get('games_access'):
+        return redirect(url_for('login'))
+
+    # Generate fake "personal project" stats for authenticity
+    game_stats = {
+        'high_scores': {
+            'snake': random.randint(850, 2340),
+            'memory': random.randint(12, 28),
+            'clicker': random.randint(15600, 89400),
+            'puzzle': random.randint(4200, 18900)
+        },
+        'total_plays': random.randint(156, 892),
+        'time_played': f'{random.randint(12, 47)}h {random.randint(15, 59)}m'
+    }
+
+    return render_template('games.html', stats=game_stats)
 
 @app.route('/budget')
 @login_required
@@ -1136,6 +1178,19 @@ def update_task(task_id):
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+
+@app.route('/api/games/score', methods=['POST'])
+def save_game_score():
+    """Fake API endpoint for game scores - makes games look legitimate"""
+    if not session.get('games_access'):
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json()
+    return jsonify({
+        'success': True,
+        'message': 'Score saved!',
+        'new_high': random.choice([True, False])
+    })
 
 @app.route('/api/tasks/add', methods=['POST'])
 @login_required

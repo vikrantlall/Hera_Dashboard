@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Break Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/games.css') }}" rel="stylesheet">
+</head>
+<body>
+    <a href="/login" class="back-button">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1>Personal Break Dashboard</h1>
+            <p>Quick games and productivity tools for development breaks</p>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon snake">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="stat-value" id="snake-high-score">{{ stats.high_scores.snake }}</div>
+                <div class="stat-label">Best Snake Score</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon memory">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <div class="stat-value" id="memory-high-score">{{ stats.high_scores.memory }}</div>
+                <div class="stat-label">Memory Record</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon clicker">
+                    <i class="fas fa-mouse-pointer"></i>
+                </div>
+                <div class="stat-value" id="clicker-high-score">{{ stats.high_scores.clicker }}</div>
+                <div class="stat-label">Clicker High Score</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon puzzle">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-value">{{ stats.time_played }}</div>
+                <div class="stat-label">Total Play Time</div>
+            </div>
+        </div>
+
+        <!-- Games Grid -->
+        <div class="games-grid">
+            <!-- Snake Game -->
+            <div class="game-card">
+                <div class="game-header">
+                    <div class="game-icon snake-bg">
+                        <i class="fas fa-gamepad"></i>
+                    </div>
+                    <div>
+                        <h3 class="game-title">Snake Game</h3>
+                        <p class="game-desc">Classic snake game with arrow key controls</p>
+                    </div>
+                </div>
+                <div class="game-stats">
+                    <div class="game-stat">
+                        <div class="game-stat-value" id="snake-display-score">{{ stats.high_scores.snake }}</div>
+                        <div class="game-stat-label">High Score</div>
+                    </div>
+                    <div class="game-stat">
+                        <div class="game-stat-value">{{ (stats.total_plays * 0.3) | int }}</div>
+                        <div class="game-stat-label">Games Played</div>
+                    </div>
+                </div>
+                <button class="play-button" onclick="startSnakeGame()">
+                    <i class="fas fa-play"></i> Play Snake
+                </button>
+            </div>
+
+            <!-- Memory Game -->
+            <div class="game-card">
+                <div class="game-header">
+                    <div class="game-icon memory-bg">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div>
+                        <h3 class="game-title">Memory Match</h3>
+                        <p class="game-desc">Test your memory with card matching</p>
+                    </div>
+                </div>
+                <div class="game-stats">
+                    <div class="game-stat">
+                        <div class="game-stat-value" id="memory-display-score">{{ stats.high_scores.memory }}</div>
+                        <div class="game-stat-label">Best Time</div>
+                    </div>
+                    <div class="game-stat">
+                        <div class="game-stat-value">{{ (stats.total_plays * 0.25) | int }}</div>
+                        <div class="game-stat-label">Games Played</div>
+                    </div>
+                </div>
+                <button class="play-button" onclick="startMemoryGame()">
+                    <i class="fas fa-play"></i> Play Memory
+                </button>
+            </div>
+
+            <!-- Clicker Game -->
+            <div class="game-card">
+                <div class="game-header">
+                    <div class="game-icon clicker-bg">
+                        <i class="fas fa-mouse-pointer"></i>
+                    </div>
+                    <div>
+                        <h3 class="game-title">Speed Clicker</h3>
+                        <p class="game-desc">10 seconds of furious clicking</p>
+                    </div>
+                </div>
+                <div class="game-stats">
+                    <div class="game-stat">
+                        <div class="game-stat-value" id="clicker-display-score">{{ stats.high_scores.clicker }}</div>
+                        <div class="game-stat-label">Best Score</div>
+                    </div>
+                    <div class="game-stat">
+                        <div class="game-stat-value">{{ (stats.total_plays * 0.2) | int }}</div>
+                        <div class="game-stat-label">Games Played</div>
+                    </div>
+                </div>
+                <button class="play-button" onclick="startClickerGame()">
+                    <i class="fas fa-play"></i> Start Clicking
+                </button>
+            </div>
+
+            <!-- 2048 Game -->
+            <div class="game-card">
+                <div class="game-header">
+                    <div class="game-icon puzzle-bg">
+                        <i class="fas fa-th"></i>
+                    </div>
+                    <div>
+                        <h3 class="game-title">2048 Puzzle</h3>
+                        <p class="game-desc">Slide tiles to reach 2048</p>
+                    </div>
+                </div>
+                <div class="game-stats">
+                    <div class="game-stat">
+                        <div class="game-stat-value">{{ stats.high_scores.puzzle }}</div>
+                        <div class="game-stat-label">High Score</div>
+                    </div>
+                    <div class="game-stat">
+                        <div class="game-stat-value">{{ (stats.total_plays * 0.25) | int }}</div>
+                        <div class="game-stat-label">Games Played</div>
+                    </div>
+                </div>
+                <button class="play-button" onclick="start2048Game()">
+                    <i class="fas fa-play"></i> Play 2048
+                </button>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p><i class="fas fa-code"></i> Personal development project dashboard • Built with Flask & JavaScript</p>
+        </div>
+    </div>
+
+    <!-- Game Modals -->
+    <div id="game-modal" class="game-modal">
+        <div class="game-modal-content">
+            <div class="game-modal-header">
+                <h3 id="game-modal-title">Game</h3>
+                <button class="game-modal-close" onclick="closeGameModal()">&times;</button>
+            </div>
+            <div class="game-modal-body" id="game-modal-body">
+                <!-- Game content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/games.js') }}"></script>
+</body>
+</html>

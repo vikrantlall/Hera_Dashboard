@@ -3,34 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HERA - Login</title>
+    <title>Enterprise Portal - System Access</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- USING YOUR EXISTING CSS STRUCTURE -->
     <link href="{{ url_for('static', filename='css/login.css') }}" rel="stylesheet">
 </head>
 <body>
     <div class="login-container">
+        <!-- Professional Enterprise Header -->
         <div class="login-header">
-            <div class="brand-logo">
-                <img src="{{ url_for('static', filename='images/logo.png') }}" alt="HERA" class="brand-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="brand-logo-text" style="display:none;">HERA</div>
+            <div class="system-logo">
+                <i class="fas fa-server"></i>
             </div>
-            <p class="login-subtitle">Proposal Planning Dashboard</p>
+            <h1 class="system-title">Enterprise Portal</h1>
+            <p class="system-subtitle">Secure System Access Gateway</p>
         </div>
 
+        <!-- Flash Messages -->
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
-                    <div class="flash-message">{{ message }}</div>
+                    <div class="flash-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        {{ message }}
+                    </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
 
+        <!-- Login Form -->
         <form class="login-form" method="POST" id="loginForm">
             <div class="form-group">
                 <label for="username" class="form-label">Username</label>
-                <div style="position: relative;">
-                    <i class="fas fa-user form-icon"></i>
+                <div class="form-input-wrapper">
                     <input type="text"
                            id="username"
                            name="username"
@@ -38,13 +44,13 @@
                            placeholder="Enter your username"
                            required
                            autocomplete="username">
+                    <i class="fas fa-user form-icon"></i>
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="password" class="form-label">Password</label>
-                <div style="position: relative;">
-                    <i class="fas fa-lock form-icon"></i>
+                <div class="form-input-wrapper">
                     <input type="password"
                            id="password"
                            name="password"
@@ -52,46 +58,85 @@
                            placeholder="Enter your password"
                            required
                            autocomplete="current-password">
+                    <i class="fas fa-lock form-icon"></i>
                 </div>
             </div>
 
             <button type="submit" class="login-button">
-                <span class="button-text">Sign In</span>
+                <i class="fas fa-sign-in-alt"></i>
+                <span class="button-text">Access System</span>
             </button>
+
+            <!-- THE BAIT: Fake demo credentials hint -->
+            <div class="demo-hint">
+                <i class="fas fa-info-circle"></i>
+                <strong>Demo Access:</strong> Use demo/test123 for limited system preview
+            </div>
         </form>
 
-        <!-- REMOVED THE SECURITY CREDENTIALS FOOTER -->
+        <!-- System Status Info (looks professional) -->
+        <div class="system-info">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span>System Status</span>
+                    <span class="info-value">Online</span>
+                </div>
+                <div class="info-item">
+                    <span>Server Load</span>
+                    <span class="info-value">23%</span>
+                </div>
+                <div class="info-item">
+                    <span>Active Sessions</span>
+                    <span class="info-value">847</span>
+                </div>
+                <div class="info-item">
+                    <span>Last Update</span>
+                    <span class="info-value">12:34 PM</span>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- Use your existing login.js or add this inline -->
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
-            const form = this;
-            const button = form.querySelector('.login-button');
-            const buttonText = button.querySelector('.button-text');
-
-            // Add loading state
-            form.classList.add('loading');
-            buttonText.textContent = 'Signing In...';
-
-            // Remove loading state after form submission
-            setTimeout(() => {
-                if (form.classList.contains('loading')) {
-                    form.classList.remove('loading');
-                    buttonText.textContent = 'Sign In';
-                }
-            }, 3000);
-        });
-
-        // Auto-focus username field
         document.addEventListener('DOMContentLoaded', function() {
+            // Auto-focus username field
             document.getElementById('username').focus();
-        });
 
-        // Enter key handling
-        document.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('loginForm').submit();
-            }
+            // Loading state for button
+            document.getElementById('loginForm').addEventListener('submit', function() {
+                const button = this.querySelector('.login-button');
+                const buttonText = button.querySelector('.button-text');
+                const icon = button.querySelector('i');
+
+                if (button && buttonText && icon) {
+                    button.classList.add('loading');
+                    icon.className = 'fas fa-spinner fa-spin';
+                    buttonText.textContent = 'Authenticating...';
+                    button.disabled = true;
+                }
+            });
+
+            // Update system stats occasionally
+            setInterval(function() {
+                const serverLoad = document.querySelector('.info-item:nth-child(2) .info-value');
+                const sessions = document.querySelector('.info-item:nth-child(3) .info-value');
+                const timestamp = document.querySelector('.info-item:nth-child(4) .info-value');
+
+                if (Math.random() > 0.8) {
+                    if (serverLoad) serverLoad.textContent = Math.floor(Math.random() * 30) + 15 + '%';
+                    if (sessions) sessions.textContent = Math.floor(Math.random() * 500) + 500;
+                }
+
+                if (timestamp) {
+                    const now = new Date();
+                    timestamp.textContent = now.toLocaleTimeString('en-US', {
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                }
+            }, 10000);
         });
     </script>
 </body>
