@@ -3,182 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Break Dashboard</title>
+    <title>Development Tools & Utilities</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/games.css') }}" rel="stylesheet">
 </head>
 <body>
-    <a href="/login" class="back-button">
-        <i class="fas fa-sign-out-alt"></i> Logout
-    </a>
+    <div class="terminal-header">
+        <div class="terminal-controls">
+            <span class="dot red"></span>
+            <span class="dot yellow"></span>
+            <span class="dot green"></span>
+        </div>
+        <div class="terminal-title">dev-tools@localhost:~/utilities</div>
+        <a href="/login" class="terminal-exit">
+            <i class="fas fa-times"></i>
+        </a>
+    </div>
 
     <div class="container">
         <div class="header">
-            <h1>Personal Break Dashboard</h1>
-            <p>Quick games and productivity tools for development breaks</p>
-        </div>
-
-        <!-- Stats Overview -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon snake">
-                    <i class="fas fa-trophy"></i>
-                </div>
-                <div class="stat-value" id="snake-high-score">{{ stats.high_scores.snake }}</div>
-                <div class="stat-label">Best Snake Score</div>
+            <div class="header-icon">
+                <i class="fas fa-terminal"></i>
             </div>
-
-            <div class="stat-card">
-                <div class="stat-icon memory">
-                    <i class="fas fa-brain"></i>
+            <div class="header-content">
+                <h1>Development Utilities</h1>
+                <p class="subtitle">Interactive tools and algorithms for development testing</p>
+                <div class="status-bar">
+                    <span class="status-item">
+                        <i class="fas fa-circle status-dot"></i>
+                        System Active
+                    </span>
+                    <span class="status-item">
+                        <i class="fas fa-code"></i>
+                        6 Tools Available
+                    </span>
                 </div>
-                <div class="stat-value" id="memory-high-score">{{ stats.high_scores.memory }}</div>
-                <div class="stat-label">Memory Record</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon clicker">
-                    <i class="fas fa-mouse-pointer"></i>
-                </div>
-                <div class="stat-value" id="clicker-high-score">{{ stats.high_scores.clicker }}</div>
-                <div class="stat-label">Clicker High Score</div>
-            </div>
-
-            <div class="stat-card">
-                <div class="stat-icon puzzle">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-value">{{ stats.time_played }}</div>
-                <div class="stat-label">Total Play Time</div>
             </div>
         </div>
 
-        <!-- Games Grid -->
-        <div class="games-grid">
-            <!-- Snake Game -->
-            <div class="game-card">
-                <div class="game-header">
-                    <div class="game-icon snake-bg">
-                        <i class="fas fa-gamepad"></i>
+        <div class="tools-grid">
+            <!-- Snake Algorithm Visualizer -->
+            <div class="tool-card" data-category="algorithm">
+                <div class="tool-header">
+                    <div class="tool-icon algorithm">
+                        <i class="fas fa-project-diagram"></i>
                     </div>
-                    <div>
-                        <h3 class="game-title">Snake Game</h3>
-                        <p class="game-desc">Classic snake game with arrow key controls</p>
-                    </div>
-                </div>
-                <div class="game-stats">
-                    <div class="game-stat">
-                        <div class="game-stat-value" id="snake-display-score">{{ stats.high_scores.snake }}</div>
-                        <div class="game-stat-label">High Score</div>
-                    </div>
-                    <div class="game-stat">
-                        <div class="game-stat-value">{{ (stats.total_plays * 0.3) | int }}</div>
-                        <div class="game-stat-label">Games Played</div>
+                    <div class="tool-meta">
+                        <h3>Path Algorithm</h3>
+                        <p>Snake-based pathfinding visualization</p>
+                        <div class="tool-tags">
+                            <span class="tag">Algorithm</span>
+                            <span class="tag">Visualization</span>
+                        </div>
                     </div>
                 </div>
-                <button class="play-button" onclick="startSnakeGame()">
-                    <i class="fas fa-play"></i> Play Snake
+                <div class="tool-description">
+                    Interactive implementation of classic pathfinding algorithms with real-time visualization
+                </div>
+                <button class="tool-button" onclick="startSnakeGame()">
+                    <i class="fas fa-play"></i>
+                    Launch Tool
                 </button>
             </div>
 
-            <!-- Memory Game -->
-            <div class="game-card">
-                <div class="game-header">
-                    <div class="game-icon memory-bg">
-                        <i class="fas fa-brain"></i>
+            <!-- Memory Pattern Matcher -->
+            <div class="tool-card" data-category="testing">
+                <div class="tool-header">
+                    <div class="tool-icon testing">
+                        <i class="fas fa-memory"></i>
                     </div>
-                    <div>
-                        <h3 class="game-title">Memory Match</h3>
-                        <p class="game-desc">Test your memory with card matching</p>
-                    </div>
-                </div>
-                <div class="game-stats">
-                    <div class="game-stat">
-                        <div class="game-stat-value" id="memory-display-score">{{ stats.high_scores.memory }}</div>
-                        <div class="game-stat-label">Best Time</div>
-                    </div>
-                    <div class="game-stat">
-                        <div class="game-stat-value">{{ (stats.total_plays * 0.25) | int }}</div>
-                        <div class="game-stat-label">Games Played</div>
+                    <div class="tool-meta">
+                        <h3>Memory Tester</h3>
+                        <p>Pattern matching algorithm tester</p>
+                        <div class="tool-tags">
+                            <span class="tag">Testing</span>
+                            <span class="tag">Memory</span>
+                        </div>
                     </div>
                 </div>
-                <button class="play-button" onclick="startMemoryGame()">
-                    <i class="fas fa-play"></i> Play Memory
+                <div class="tool-description">
+                    Test memory allocation patterns and matching algorithms with visual feedback
+                </div>
+                <button class="tool-button" onclick="startMemoryGame()">
+                    <i class="fas fa-play"></i>
+                    Launch Tool
                 </button>
             </div>
 
-            <!-- Clicker Game -->
-            <div class="game-card">
-                <div class="game-header">
-                    <div class="game-icon clicker-bg">
-                        <i class="fas fa-mouse-pointer"></i>
+            <!-- Performance Benchmark -->
+            <div class="tool-card" data-category="performance">
+                <div class="tool-header">
+                    <div class="tool-icon performance">
+                        <i class="fas fa-tachometer-alt"></i>
                     </div>
-                    <div>
-                        <h3 class="game-title">Speed Clicker</h3>
-                        <p class="game-desc">10 seconds of furious clicking</p>
-                    </div>
-                </div>
-                <div class="game-stats">
-                    <div class="game-stat">
-                        <div class="game-stat-value" id="clicker-display-score">{{ stats.high_scores.clicker }}</div>
-                        <div class="game-stat-label">Best Score</div>
-                    </div>
-                    <div class="game-stat">
-                        <div class="game-stat-value">{{ (stats.total_plays * 0.2) | int }}</div>
-                        <div class="game-stat-label">Games Played</div>
+                    <div class="tool-meta">
+                        <h3>Click Benchmark</h3>
+                        <p>Input performance measurement tool</p>
+                        <div class="tool-tags">
+                            <span class="tag">Performance</span>
+                            <span class="tag">Benchmark</span>
+                        </div>
                     </div>
                 </div>
-                <button class="play-button" onclick="startClickerGame()">
-                    <i class="fas fa-play"></i> Start Clicking
+                <div class="tool-description">
+                    Measure and analyze click input performance with statistical analysis
+                </div>
+                <button class="tool-button" onclick="startClickerGame()">
+                    <i class="fas fa-play"></i>
+                    Launch Tool
                 </button>
             </div>
 
-            <!-- 2048 Game -->
-            <div class="game-card">
-                <div class="game-header">
-                    <div class="game-icon puzzle-bg">
-                        <i class="fas fa-th"></i>
+            <!-- Matrix Calculator -->
+            <div class="tool-card" data-category="algorithm">
+                <div class="tool-header">
+                    <div class="tool-icon algorithm">
+                        <i class="fas fa-calculator"></i>
                     </div>
-                    <div>
-                        <h3 class="game-title">2048 Puzzle</h3>
-                        <p class="game-desc">Slide tiles to reach 2048</p>
-                    </div>
-                </div>
-                <div class="game-stats">
-                    <div class="game-stat">
-                        <div class="game-stat-value">{{ stats.high_scores.puzzle }}</div>
-                        <div class="game-stat-label">High Score</div>
-                    </div>
-                    <div class="game-stat">
-                        <div class="game-stat-value">{{ (stats.total_plays * 0.25) | int }}</div>
-                        <div class="game-stat-label">Games Played</div>
+                    <div class="tool-meta">
+                        <h3>Matrix Solver</h3>
+                        <p>2048-based matrix operations</p>
+                        <div class="tool-tags">
+                            <span class="tag">Math</span>
+                            <span class="tag">Algorithm</span>
+                        </div>
                     </div>
                 </div>
-                <button class="play-button" onclick="start2048Game()">
-                    <i class="fas fa-play"></i> Play 2048
+                <div class="tool-description">
+                    Interactive matrix manipulation tool with sliding algorithm implementation
+                </div>
+                <button class="tool-button" onclick="start2048Game()">
+                    <i class="fas fa-play"></i>
+                    Launch Tool
+                </button>
+            </div>
+
+            <!-- Tetris Logic Engine -->
+            <div class="tool-card" data-category="simulation">
+                <div class="tool-header">
+                    <div class="tool-icon simulation">
+                        <i class="fas fa-cubes"></i>
+                    </div>
+                    <div class="tool-meta">
+                        <h3>Block Simulator</h3>
+                        <p>Geometric fitting algorithm tester</p>
+                        <div class="tool-tags">
+                            <span class="tag">Simulation</span>
+                            <span class="tag">Geometry</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tool-description">
+                    Test geometric shape fitting algorithms with real-time physics simulation
+                </div>
+                <button class="tool-button" onclick="startTetrisGame()">
+                    <i class="fas fa-play"></i>
+                    Launch Tool
+                </button>
+            </div>
+
+            <!-- Breakout Engine -->
+            <div class="tool-card" data-category="nlp">
+                <div class="tool-header">
+                    <div class="tool-icon nlp">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="tool-meta">
+                        <h3>Breakout</h3>
+                        <p>Collision detection algorithm tester</p>
+                        <div class="tool-tags">
+                            <span class="tag">Physics</span>
+                            <span class="tag">Collision</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="tool-description">
+                    Advanced collision detection and physics simulation with ball-paddle dynamics
+                </div>
+                <button class="tool-button" onclick="startWordSearchGame()">
+                    <i class="fas fa-play"></i>
+                    Launch Tool
                 </button>
             </div>
         </div>
 
         <div class="footer">
-            <p><i class="fas fa-code"></i> Personal development project dashboard • Built with Flask & JavaScript</p>
+            <div class="footer-content">
+                <div class="footer-section">
+                    <i class="fas fa-code"></i>
+                    <span>Development Environment v2.1.3</span>
+                </div>
+                <div class="footer-section">
+                    <i class="fas fa-server"></i>
+                    <span>Flask Backend • JavaScript Frontend</span>
+                </div>
+                <div class="footer-section">
+                    <i class="fas fa-clock"></i>
+                    <span id="system-time"></span>
+                </div>
+            </div>
         </div>
     </div>
 
-    <!-- Game Modals -->
-    <div id="game-modal" class="game-modal">
-        <div class="game-modal-content">
-            <div class="game-modal-header">
-                <h3 id="game-modal-title">Game</h3>
-                <button class="game-modal-close" onclick="closeGameModal()">&times;</button>
+    <!-- Professional Tool Modal -->
+    <div id="game-modal" class="tool-modal">
+        <div class="modal-container">
+            <div class="modal-header">
+                <div class="modal-title-section">
+                    <i class="fas fa-terminal modal-icon"></i>
+                    <h3 id="game-modal-title">Development Tool</h3>
+                </div>
+                <div class="modal-controls">
+                    <button class="modal-btn minimize"><i class="fas fa-minus"></i></button>
+                    <button class="modal-btn maximize"><i class="fas fa-expand"></i></button>
+                    <button class="modal-btn close" onclick="closeGameModal()"><i class="fas fa-times"></i></button>
+                </div>
             </div>
-            <div class="game-modal-body" id="game-modal-body">
-                <!-- Game content will be inserted here -->
+            <div class="modal-body" id="game-modal-body">
+                <!-- Tool content will be inserted here -->
             </div>
         </div>
     </div>
 
     <script src="{{ url_for('static', filename='js/games.js') }}"></script>
+    <script>
+        // Update system time
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('system-time').textContent = now.toLocaleTimeString();
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+
+        // Override the modal title for breakout
+        const originalStartWordSearchGame = window.startWordSearchGame;
+        window.startWordSearchGame = function() {
+            originalStartWordSearchGame();
+            document.getElementById('game-modal-title').textContent = 'Breakout';
+        };
+    </script>
 </body>
 </html>
