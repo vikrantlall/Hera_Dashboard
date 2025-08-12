@@ -12,7 +12,7 @@
 
 {% block content %}
 
-<!-- Enhanced Flight Path Map Module (ONLY THIS SECTION CHANGED) -->
+<!-- Enhanced Flight Path Map Module -->
 <div class="flight-map-section">
     <div class="widget">
         <div class="widget-header">
@@ -25,20 +25,6 @@
                 </h3>
                 <p class="widget-subtitle">Washington → Denver → Calgary → Toronto → Washington</p>
             </div>
-            <!--div class="map-controls">
-                <button class="map-toggle active" data-layer="route" title="Show Flight Path">
-                    <i class="fas fa-route"></i> Route
-                </button>
-                <button class="map-toggle" data-layer="airports" title="Show Airports">
-                    <i class="fas fa-map-marker-alt"></i> Airports
-                </button>
-                <button class="map-toggle" data-layer="weather" title="Show Weather">
-                    <i class="fas fa-cloud"></i> Weather
-                </button>
-                <button class="map-toggle" data-layer="elevation" title="Show Elevation">
-                    <i class="fas fa-mountain"></i> Terrain
-                </button>
-            </div> -->
         </div>
 
         <!-- Enhanced Interactive Flight Map with Animation -->
@@ -50,49 +36,10 @@
                 </button>
             </div>
         </div>
-
-        <!-- Flight Statistics (keeping your original) -->
-        <div class="flight-summary">
-            <div class="flight-stat">
-                <span class="stat-number">4</span>
-                <span class="stat-label">Total Flights</span>
-            </div>
-            <div class="flight-stat">
-                <span class="stat-number">2,847</span>
-                <span class="stat-label">Total Miles</span>
-            </div>
-            <div class="flight-stat">
-                <span class="stat-number">8h 15m</span>
-                <span class="stat-label">Flight Time</span>
-            </div>
-            <div class="flight-stat">
-                <span class="stat-number">$1,247</span>
-                <span class="stat-label">Total Cost</span>
-            </div>
-        </div>
-
-        <!-- Flight Status Bar (keeping your original) -->
-        <div class="flight-status-bar">
-            <div class="status-item">
-                <span class="status-indicator on-time"></span>
-                <span>On Time</span>
-            </div>
-            <div class="status-item">
-                <span class="status-indicator delayed"></span>
-                <span>Delayed</span>
-            </div>
-            <div class="status-item">
-                <span class="status-indicator cancelled"></span>
-                <span>Cancelled</span>
-            </div>
-            <div class="status-item">
-                <span>Last Updated: <span id="last-updated">--:--</span></span>
-            </div>
-        </div>
     </div>
 </div>
 
-<!-- Travel Content Sections (EVERYTHING BELOW STAYS EXACTLY THE SAME) -->
+<!-- Travel Content Sections -->
 <div class="travel-sections">
     <!-- Outbound Flights Section -->
     <div class="widget">
@@ -104,7 +51,7 @@
                 </h3>
                 <p class="widget-subtitle">September 24, 2025 - Washington to Calgary</p>
             </div>
-            <button class="action-btn add-btn" onclick="openAddFlightModal('outbound')" data-tooltip="Add Flight">
+            <button class="action-btn add-btn" onclick="showNotification('Add flight functionality coming soon', 'info')" data-tooltip="Add Flight">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
@@ -136,18 +83,18 @@
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Status</div>
-                        <div class="detail-value {{ 'success' if flight.status == 'Confirmed' else 'pending' }}">
+                        <div class="detail-value {{ 'confirmed' if flight.status == 'Confirmed' else 'pending' }}">
                             {{ flight.status or 'Pending' }}
                         </div>
                     </div>
                 </div>
 
                 <div class="travel-actions">
-                    <button class="action-btn edit-btn" onclick="editTravel({{ flight.id }})" data-tooltip="Edit Flight">
+                    <button class="action-btn edit-btn" onclick="showNotification('Edit functionality coming soon', 'info')" data-tooltip="Edit Flight">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn status-btn" onclick="toggleFlightStatus({{ flight.id }})" data-tooltip="Update Status">
-                        <i class="fas fa-plane"></i>
+                    <button class="action-btn delete-btn" onclick="showNotification('Delete functionality coming soon', 'info')" data-tooltip="Delete Flight">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
@@ -165,7 +112,7 @@
                 </h3>
                 <p class="widget-subtitle">September 29, 2025 - Calgary to Washington</p>
             </div>
-            <button class="action-btn add-btn" onclick="openAddFlightModal('return')" data-tooltip="Add Flight">
+            <button class="action-btn add-btn" onclick="showNotification('Add flight functionality coming soon', 'info')" data-tooltip="Add Flight">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
@@ -197,18 +144,18 @@
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Status</div>
-                        <div class="detail-value {{ 'success' if flight.status == 'Confirmed' else 'pending' }}">
+                        <div class="detail-value {{ 'confirmed' if flight.status == 'Confirmed' else 'pending' }}">
                             {{ flight.status or 'Pending' }}
                         </div>
                     </div>
                 </div>
 
                 <div class="travel-actions">
-                    <button class="action-btn edit-btn" onclick="editTravel({{ flight.id }})" data-tooltip="Edit Flight">
+                    <button class="action-btn edit-btn" onclick="showNotification('Edit functionality coming soon', 'info')" data-tooltip="Edit Flight">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn status-btn" onclick="toggleFlightStatus({{ flight.id }})" data-tooltip="Update Status">
-                        <i class="fas fa-plane"></i>
+                    <button class="action-btn delete-btn" onclick="showNotification('Delete functionality coming soon', 'info')" data-tooltip="Delete Flight">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
@@ -226,7 +173,7 @@
                 </h3>
                 <p class="widget-subtitle">September 24-29, 2025 - Banff, AB</p>
             </div>
-            <button class="action-btn add-btn" onclick="openAddHotelModal()" data-tooltip="Add Hotel">
+            <button class="action-btn add-btn" onclick="showNotification('Add hotel functionality coming soon', 'info')" data-tooltip="Add Hotel">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
@@ -263,22 +210,20 @@
                         <div class="detail-value">{{ hotel.roomType or 'Standard' }}</div>
                     </div>
                     <div class="travel-detail">
-                        <div class="detail-label">Confirmation</div>
-                        <div class="detail-value editable" data-field="confirmation" data-id="{{ hotel.id }}">
-                            {{ hotel.confirmationNumber or 'Pending' }}
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value {{ 'confirmed' if hotel.status == 'Confirmed' else 'pending' }}">
+                            {{ hotel.status or 'Pending' }}
                         </div>
                     </div>
                 </div>
 
                 <div class="travel-actions">
-                    <button class="action-btn edit-btn" onclick="editTravel({{ hotel.id }})" data-tooltip="Edit Hotel">
+                    <button class="action-btn edit-btn" onclick="showNotification('Edit functionality coming soon', 'info')" data-tooltip="Edit Hotel">
                         <i class="fas fa-edit"></i>
                     </button>
-                    {% if hotel.phone %}
-                    <button class="action-btn phone-btn" onclick="callHotel('{{ hotel.phone }}')" data-tooltip="Call Hotel">
-                        <i class="fas fa-phone"></i>
+                    <button class="action-btn delete-btn" onclick="showNotification('Delete functionality coming soon', 'info')" data-tooltip="Delete Hotel">
+                        <i class="fas fa-trash"></i>
                     </button>
-                    {% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -293,9 +238,9 @@
                     <i class="fas fa-car"></i>
                     Ground Transportation
                 </h3>
-                <p class="widget-subtitle">Rental car and local transport</p>
+                <p class="widget-subtitle">Rental cars and local transport</p>
             </div>
-            <button class="action-btn add-btn" onclick="openAddTransportModal()" data-tooltip="Add Transport">
+            <button class="action-btn add-btn" onclick="showNotification('Add transport functionality coming soon', 'info')" data-tooltip="Add Transport">
                 <i class="fas fa-plus"></i>
             </button>
         </div>
@@ -305,11 +250,11 @@
             <div class="travel-card transport-card" data-travel-id="{{ transport.id }}">
                 <div class="travel-header">
                     <div class="transport-info">
-                        <div class="transport-provider">{{ transport.provider }}</div>
-                        <div class="transport-location">{{ transport.location }}</div>
-                        <div class="transport-type">
-                            <i class="fas fa-car"></i>
+                        <div class="transport-name">
                             {{ transport.carType.split('\n')[0] if transport.carType else 'Vehicle' }}
+                        </div>
+                        <div class="transport-location">
+                            {{ transport.location if transport.location else 'Location TBD' }}
                         </div>
                     </div>
                 </div>
@@ -320,29 +265,27 @@
                         <div class="detail-value">{{ transport.pickupDate if transport.pickupDate else 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
-                        <div class="detail-label">Status</div>
-                        <div class="detail-value {{ 'success' if transport.status == 'Confirmed' else 'pending' }}">
-                            {{ transport.status or 'Pending' }}
-                        </div>
+                        <div class="detail-label">Return</div>
+                        <div class="detail-value">{{ transport.returnDate if transport.returnDate else 'TBD' }}</div>
                     </div>
                     <div class="travel-detail">
                         <div class="detail-label">Vehicle</div>
                         <div class="detail-value">{{ transport.carType.split('\n')[1] if transport.carType and '\n' in transport.carType else 'SUV' }}</div>
                     </div>
                     <div class="travel-detail">
-                        <div class="detail-label">Confirmation</div>
-                        <div class="detail-value editable" data-field="confirmation" data-id="{{ transport.id }}">
-                            {{ transport.confirmationNumber or 'Pending' }}
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value {{ 'confirmed' if transport.status == 'Confirmed' else 'pending' }}">
+                            {{ transport.status or 'Pending' }}
                         </div>
                     </div>
                 </div>
 
                 <div class="travel-actions">
-                    <button class="action-btn edit-btn" onclick="editTravel({{ transport.id }})" data-tooltip="Edit Rental">
+                    <button class="action-btn edit-btn" onclick="showNotification('Edit functionality coming soon', 'info')" data-tooltip="Edit Rental">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="action-btn location-btn" onclick="showLocation('{{ transport.location }}')" data-tooltip="Show Location">
-                        <i class="fas fa-map-marker-alt"></i>
+                    <button class="action-btn delete-btn" onclick="showNotification('Delete functionality coming soon', 'info')" data-tooltip="Delete Rental">
+                        <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
@@ -350,6 +293,7 @@
         </div>
     </div>
 </div>
+
 
 {% endblock %}
 

@@ -15,12 +15,13 @@ function initializeDashboard() {
     setupInteractiveElements();
     setupKeyboardShortcuts();
     setupProgressAnimations();
+    setupFormSubmissions();
 
     console.log('✅ Dashboard initialized successfully');
 }
 
 // =============================================================================
-// MODAL MANAGEMENT
+// MODAL MANAGEMENT - RING PAGE PATTERN
 // =============================================================================
 
 function setupModals() {
@@ -42,8 +43,7 @@ function setupModals() {
         }
     });
 
-    // Setup form submissions
-    setupFormSubmissions();
+    console.log('✅ Modal system initialized with ring page pattern');
 }
 
 function openModal(modalId) {
@@ -52,11 +52,13 @@ function openModal(modalId) {
         modal.classList.add('show');
         document.body.style.overflow = 'hidden'; // Prevent background scroll
 
-        // Focus first input if available
-        const firstInput = modal.querySelector('input, textarea, select');
-        if (firstInput) {
-            setTimeout(() => firstInput.focus(), 100);
-        }
+        // Focus first input if available (but after modal is shown)
+        setTimeout(() => {
+            const firstInput = modal.querySelector('input, textarea, select');
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }, 100);
     }
 }
 
@@ -77,8 +79,206 @@ function closeModal(modalId) {
 }
 
 // =============================================================================
-// TASK MANAGEMENT
+// TASK MANAGEMENT - ENHANCED WITH RING PAGE PATTERN
 // =============================================================================
+
+function showAddTaskModal() {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('add-task-modal');
+    if (!modal) {
+        modal = createAddTaskModal();
+        document.body.appendChild(modal);
+    }
+    
+    // Clear form
+    const form = modal.querySelector('form');
+    if (form) form.reset();
+    
+    openModal('add-task-modal');
+}
+
+function createAddTaskModal() {
+    const modal = document.createElement('div');
+    modal.id = 'add-task-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add New Task</h3>
+                <button class="modal-close" type="button" onclick="closeModal('add-task-modal')">&times;</button>
+            </div>
+            <!-- CRITICAL: Form IS the modal-body for proper scrolling -->
+            <form id="add-task-form" class="modal-body" onsubmit="submitNewTask(event)">
+                <div class="form-group">
+                    <label class="form-label">Task Name</label>
+                    <input type="text" class="form-input" id="add-task-name" required placeholder="Enter task name...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Deadline</label>
+                    <input type="date" class="form-input" id="add-task-deadline" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="add-task-status">
+                        <option value="Not Started">Not Started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="In Progress, On Schedule">In Progress, On Schedule</option>
+                        <option value="In Progress, Behind Schedule">In Progress, Behind Schedule</option>
+                        <option value="Complete">Complete</option>
+                        <option value="Complete, On Schedule">Complete, On Schedule</option>
+                        <option value="Complete, Behind Schedule">Complete, Behind Schedule</option>
+                        <option value="Ahead Schedule, Complete">Ahead Schedule, Complete</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-textarea" id="add-task-notes" rows="4" placeholder="Add any additional notes about this task..."></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('add-task-modal')">Cancel</button>
+                <!-- Use form attribute to link to the form -->
+                <button type="submit" form="add-task-form" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    Add Task
+                </button>
+            </div>
+        </div>
+    `;
+    return modal;
+}
+
+function createTaskEditModal() {
+    const modal = document.createElement('div');
+    modal.id = 'edit-task-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Task</h3>
+                <button class="modal-close" type="button" onclick="closeModal('edit-task-modal')">&times;</button>
+            </div>
+            <!-- CRITICAL: Form IS the modal-body for proper scrolling -->
+            <form id="edit-task-form" class="modal-body" onsubmit="saveTaskChanges(event)">
+                <div class="form-group">
+                    <label class="form-label">Task Name</label>
+                    <input type="text" class="form-input" id="edit-task-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Deadline</label>
+                    <input type="date" class="form-input" id="edit-task-deadline" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="edit-task-status">
+                        <option value="Not Started">Not Started</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="In Progress, On Schedule">In Progress, On Schedule</option>
+                        <option value="In Progress, Behind Schedule">In Progress, Behind Schedule</option>
+                        <option value="Complete">Complete</option>
+                        <option value="Complete, On Schedule">Complete, On Schedule</option>
+                        <option value="Complete, Behind Schedule">Complete, Behind Schedule</option>
+                        <option value="Ahead Schedule, Complete">Ahead Schedule, Complete</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-textarea" id="edit-task-notes" rows="4" placeholder="Add any additional notes about this task..."></textarea>
+                </div>
+            </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('edit-task-modal')">Cancel</button>
+                <!-- Use form attribute to link to the form -->
+                <button type="submit" form="edit-task-form" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    `;
+    return modal;
+}
+
+function submitNewTask(event) {
+    if (event) {
+        event.preventDefault(); // Prevent form submission
+    }
+
+    const form = document.getElementById('add-task-form');
+    if (!form) {
+        showNotification('Add task form not found', 'error');
+        return;
+    }
+
+    const data = {
+        task: form.querySelector('#add-task-name').value.trim(),
+        deadline: form.querySelector('#add-task-deadline').value,
+        status: form.querySelector('#add-task-status').value,
+        notes: form.querySelector('#add-task-notes').value.trim()
+    };
+
+    // Validate required fields
+    if (!data.task) {
+        showNotification('Please enter a task name', 'warning');
+        form.querySelector('#add-task-name').focus();
+        return;
+    }
+
+    if (!data.deadline) {
+        showNotification('Please select a deadline', 'warning');
+        form.querySelector('#add-task-deadline').focus();
+        return;
+    }
+
+    // Disable submit button to prevent double submission
+    const submitBtn = document.querySelector('button[form="add-task-form"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+    }
+
+    fetch('/api/tasks/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Task added successfully!', 'success');
+            closeModal('add-task-modal');
+
+            // Add to global data
+            if (window.HERA_DATA && window.HERA_DATA.main && window.HERA_DATA.main.tasks) {
+                window.HERA_DATA.main.tasks.push(data.task);
+            }
+
+            // Refresh the page to show new task (or add dynamic insertion here)
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('Failed to add task: ' + (data.error || 'Unknown error'), 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error adding task:', error);
+        showNotification('Error adding task', 'error');
+    })
+    .finally(() => {
+        // Re-enable submit button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-plus"></i> Add Task';
+        }
+    });
+}
 
 function toggleTaskStatus(taskId) {
     console.log('Toggling task status:', taskId);
@@ -149,16 +349,34 @@ function toggleTaskStatus(taskId) {
 function editTask(taskId) {
     console.log('Editing task:', taskId);
 
-    // Find task data
-    const taskData = window.HERA_DATA?.tasks?.find(t => t.id === taskId);
+    // Find task data from the global HERA_DATA or from DOM
+    let taskData = null;
+    
+    // Try to get from global data first
+    if (window.HERA_DATA && window.HERA_DATA.main && window.HERA_DATA.main.tasks) {
+        taskData = window.HERA_DATA.main.tasks.find(t => t.id === taskId);
+    }
+    
+    // If not found in global data, extract from DOM
     if (!taskData) {
-        console.error('Task data not found:', taskId);
+        const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
+        if (taskElement) {
+            taskData = {
+                id: taskId,
+                task: taskElement.querySelector('.task-name')?.textContent || '',
+                deadline: taskElement.querySelector('.task-deadline')?.textContent.replace('Due: ', '') || '',
+                status: taskElement.querySelector('.task-status')?.textContent || '',
+                notes: taskElement.querySelector('.task-notes')?.textContent || ''
+            };
+        }
+    }
+    
+    if (!taskData) {
+        showNotification('Task data not found', 'error');
         return;
     }
 
     currentEditingTaskId = taskId;
-
-    // Populate edit modal (create if doesn't exist)
     showTaskEditModal(taskData);
 }
 
@@ -182,72 +400,51 @@ function showTaskEditModal(taskData) {
     openModal('edit-task-modal');
 }
 
-function createTaskEditModal() {
-    const modal = document.createElement('div');
-    modal.id = 'edit-task-modal';
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Edit Task</h3>
-                <button class="modal-close" onclick="closeModal('edit-task-modal')">&times;</button>
-            </div>
-            <form id="edit-task-form">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label class="form-label">Task Name</label>
-                        <input type="text" class="form-input" id="edit-task-name" required>
-                    </div>
+function saveTaskChanges(event) {
+    if (event) {
+        event.preventDefault(); // Prevent form submission
+    }
 
-                    <div class="form-group">
-                        <label class="form-label">Deadline</label>
-                        <input type="date" class="form-input" id="edit-task-deadline">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" id="edit-task-status">
-                            <option value="Not Started">Not Started</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="In Progress, On Schedule">In Progress, On Schedule</option>
-                            <option value="In Progress, Behind Schedule">In Progress, Behind Schedule</option>
-                            <option value="Complete">Complete</option>
-                            <option value="Complete, On Schedule">Complete, On Schedule</option>
-                            <option value="Ahead Schedule, Complete">Ahead Schedule, Complete</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="edit-task-notes" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-task-modal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
-                        Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-    `;
-    return modal;
-}
-
-function saveTaskChanges() {
-    if (!currentEditingTaskId) return;
+    if (!currentEditingTaskId) {
+        showNotification('No task selected for editing', 'error');
+        return;
+    }
 
     const form = document.getElementById('edit-task-form');
-    const formData = new FormData(form);
+    if (!form) {
+        showNotification('Edit form not found', 'error');
+        return;
+    }
 
+    // Get form data
     const data = {
-        task: form.querySelector('#edit-task-name').value,
+        task: form.querySelector('#edit-task-name').value.trim(),
         deadline: form.querySelector('#edit-task-deadline').value,
         status: form.querySelector('#edit-task-status').value,
-        notes: form.querySelector('#edit-task-notes').value
+        notes: form.querySelector('#edit-task-notes').value.trim()
     };
 
+    // Validate required fields
+    if (!data.task) {
+        showNotification('Please enter a task name', 'warning');
+        form.querySelector('#edit-task-name').focus();
+        return;
+    }
+
+    if (!data.deadline) {
+        showNotification('Please select a deadline', 'warning');
+        form.querySelector('#edit-task-deadline').focus();
+        return;
+    }
+
+    // Disable submit button to prevent double submission
+    const submitBtn = document.querySelector('button[form="edit-task-form"]');
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    }
+
+    // Make API call
     fetch(`/api/tasks/${currentEditingTaskId}/update`, {
         method: 'POST',
         headers: {
@@ -263,13 +460,31 @@ function saveTaskChanges() {
 
             // Update task display
             updateTaskDisplay(currentEditingTaskId, data.task);
+
+            // Update global data
+            if (window.HERA_DATA && window.HERA_DATA.main && window.HERA_DATA.main.tasks) {
+                const taskIndex = window.HERA_DATA.main.tasks.findIndex(t => t.id === currentEditingTaskId);
+                if (taskIndex !== -1) {
+                    Object.assign(window.HERA_DATA.main.tasks[taskIndex], data.task);
+                }
+            }
+
+            // Update progress after changes
+            updateTaskProgress();
         } else {
-            showNotification('Failed to update task', 'error');
+            showNotification('Failed to update task: ' + (data.error || 'Unknown error'), 'error');
         }
     })
     .catch(error => {
         console.error('Error updating task:', error);
         showNotification('Error updating task', 'error');
+    })
+    .finally(() => {
+        // Re-enable submit button
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+        }
     });
 }
 
@@ -337,6 +552,49 @@ function updateTaskProgress() {
     }
 }
 
+function deleteTask(taskId) {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+        return;
+    }
+
+    console.log('Deleting task:', taskId);
+
+    fetch(`/api/tasks/${taskId}/delete`, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Task deleted successfully!', 'success');
+
+            // Remove task from UI
+            const taskItem = document.querySelector(`[data-task-id="${taskId}"]`);
+            if (taskItem) {
+                taskItem.style.opacity = '0';
+                taskItem.style.transform = 'translateX(-100%)';
+                setTimeout(() => {
+                    taskItem.remove();
+                    updateTaskProgress();
+                }, 300);
+            }
+
+            // Update global data
+            if (window.HERA_DATA && window.HERA_DATA.main && window.HERA_DATA.main.tasks) {
+                window.HERA_DATA.main.tasks = window.HERA_DATA.main.tasks.filter(t => t.id !== taskId);
+            }
+        } else {
+            showNotification('Failed to delete task', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error deleting task:', error);
+        showNotification('Error deleting task', 'error');
+    });
+}
+
 // =============================================================================
 // BUDGET MANAGEMENT
 // =============================================================================
@@ -383,48 +641,83 @@ function createBudgetEditModal() {
                 <h3 class="modal-title">Edit Budget Item</h3>
                 <button class="modal-close" onclick="closeModal('edit-budget-modal')">&times;</button>
             </div>
-            <form id="edit-budget-form">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label class="form-label">Category</label>
-                        <input type="text" class="form-input" id="edit-budget-category" required>
-                    </div>
+            <form id="edit-budget-form" class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <input type="text" class="form-input" id="edit-budget-category" required>
+                </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label">Budget Amount</label>
-                            <input type="number" class="form-input" id="edit-budget-amount" step="0.01" min="0" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Amount Saved</label>
-                            <input type="number" class="form-input" id="edit-budget-saved" step="0.01" min="0">
-                        </div>
-                    </div>
-
+                <div class="form-row">
                     <div class="form-group">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" id="edit-budget-status">
-                            <option value="Outstanding">Outstanding</option>
-                            <option value="Paid">Paid</option>
-                        </select>
+                        <label class="form-label">Budget Amount</label>
+                        <input type="number" class="form-input" id="edit-budget-amount" step="0.01" min="0" required>
                     </div>
-
                     <div class="form-group">
-                        <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="edit-budget-notes" rows="3"></textarea>
+                        <label class="form-label">Amount Saved</label>
+                        <input type="number" class="form-input" id="edit-budget-saved" step="0.01" min="0">
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-budget-modal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
-                        Save Changes
-                    </button>
+
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="edit-budget-status">
+                        <option value="Outstanding">Outstanding</option>
+                        <option value="Paid">Paid</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-textarea" id="edit-budget-notes" rows="3"></textarea>
                 </div>
             </form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('edit-budget-modal')">Cancel</button>
+                <button type="submit" form="edit-budget-form" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Save Changes
+                </button>
+            </div>
         </div>
     `;
     return modal;
+}
+
+function saveBudgetChanges() {
+    if (!currentEditingBudgetId) return;
+
+    const form = document.getElementById('edit-budget-form');
+    const data = {
+        category: form.querySelector('#edit-budget-category').value,
+        budget_amount: parseFloat(form.querySelector('#edit-budget-amount').value),
+        budget_saved: parseFloat(form.querySelector('#edit-budget-saved').value),
+        status: form.querySelector('#edit-budget-status').value,
+        notes: form.querySelector('#edit-budget-notes').value
+    };
+
+    fetch(`/api/budget/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: currentEditingBudgetId, ...data })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('Budget item updated successfully!', 'success');
+            closeModal('edit-budget-modal');
+
+            // Refresh page or update display
+            setTimeout(() => window.location.reload(), 1000);
+        } else {
+            showNotification('Failed to update budget item', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error updating budget:', error);
+        showNotification('Error updating budget item', 'error');
+    });
 }
 
 // =============================================================================
@@ -489,59 +782,22 @@ function setupBudgetInteractions() {
 }
 
 // =============================================================================
-// FORM SUBMISSIONS
+// FORM SUBMISSIONS - SIMPLIFIED
 // =============================================================================
 
 function setupFormSubmissions() {
-    // Task edit form
+    // Form submissions are now handled by onsubmit attributes in the modal HTML
+    // This function is kept for compatibility but no longer needed for modal forms
+    
+    // Handle edit budget form
     document.addEventListener('submit', function(e) {
-        if (e.target.id === 'edit-task-form') {
-            e.preventDefault();
-            saveTaskChanges();
-        }
-
         if (e.target.id === 'edit-budget-form') {
             e.preventDefault();
             saveBudgetChanges();
         }
     });
-}
-
-function saveBudgetChanges() {
-    if (!currentEditingBudgetId) return;
-
-    const form = document.getElementById('edit-budget-form');
-    const data = {
-        category: form.querySelector('#edit-budget-category').value,
-        budget_amount: parseFloat(form.querySelector('#edit-budget-amount').value),
-        budget_saved: parseFloat(form.querySelector('#edit-budget-saved').value),
-        status: form.querySelector('#edit-budget-status').value,
-        notes: form.querySelector('#edit-budget-notes').value
-    };
-
-    fetch(`/api/budget/update`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id: currentEditingBudgetId, ...data })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Budget item updated successfully!', 'success');
-            closeModal('edit-budget-modal');
-
-            // Refresh page or update display
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showNotification('Failed to update budget item', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating budget:', error);
-        showNotification('Error updating budget item', 'error');
-    });
+    
+    console.log('✅ Form submission handlers ready');
 }
 
 // =============================================================================
@@ -879,13 +1135,17 @@ setInterval(refreshDashboardData, 5 * 60 * 1000);
 // =============================================================================
 
 // Make functions globally accessible
+window.showAddTaskModal = showAddTaskModal;
 window.toggleTaskStatus = toggleTaskStatus;
 window.editTask = editTask;
+window.deleteTask = deleteTask;
 window.openBudgetModal = openBudgetModal;
 window.toggleFamilyMemberStatus = toggleFamilyMemberStatus;
 window.showNotification = showNotification;
 window.closeModal = closeModal;
 window.openModal = openModal;
+window.saveTaskChanges = saveTaskChanges;
+window.submitNewTask = submitNewTask;
 
 // Dashboard utilities
 window.HERA_Dashboard = {
@@ -962,296 +1222,6 @@ style.textContent = `
     .progress-fill {
         transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
-
-    /* Modal form styling */
-    .form-row {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px;
-    }
-
-    .form-group {
-        margin-bottom: 16px;
-    }
-
-    .form-label {
-        display: block;
-        margin-bottom: 4px;
-        font-weight: 500;
-        color: var(--text-primary);
-        font-size: 13px;
-    }
-
-    .form-input,
-    .form-select,
-    .form-textarea {
-        width: 100%;
-        padding: 8px 12px;
-        border: 1px solid var(--border);
-        border-radius: 4px;
-        font-size: 14px;
-        transition: border-color 0.2s ease;
-    }
-
-    .form-input:focus,
-    .form-select:focus,
-    .form-textarea:focus {
-        outline: none;
-        border-color: var(--accent-gold);
-        box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
-    }
 `;
 
 document.head.appendChild(style);
-
-function deleteTask(taskId) {
-    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
-        return;
-    }
-
-    console.log('Deleting task:', taskId);
-
-    fetch(`/api/tasks/${taskId}/delete`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Task deleted successfully!', 'success');
-
-            // Remove task from UI
-            const taskItem = document.querySelector(`[data-task-id="${taskId}"]`);
-            if (taskItem) {
-                taskItem.style.opacity = '0';
-                taskItem.style.transform = 'translateX(-100%)';
-                setTimeout(() => {
-                    taskItem.remove();
-                    updateTaskProgress();
-                }, 300);
-            }
-
-            // Update global data
-            if (window.HERA_DATA && window.HERA_DATA.tasks) {
-                window.HERA_DATA.tasks = window.HERA_DATA.tasks.filter(t => t.id !== taskId);
-            }
-        } else {
-            showNotification('Failed to delete task', 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error deleting task:', error);
-        showNotification('Error deleting task', 'error');
-    });
-}
-
-// =============================================================================
-// COMPLETE FORM SUBMISSIONS SETUP
-// =============================================================================
-
-function setupFormSubmissions() {
-    // Wait for DOM to ensure forms are loaded
-    setTimeout(() => {
-        // Add task form
-        const addTaskForm = document.getElementById('add-task-form');
-        if (addTaskForm) {
-            addTaskForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                submitNewTask();
-            });
-        }
-
-        // Setup edit form when it gets created
-        document.addEventListener('submit', function(e) {
-            if (e.target && e.target.id === 'edit-task-form') {
-                e.preventDefault();
-                saveTaskChanges();
-            }
-        });
-    }, 100);
-}
-
-function submitNewTask() {
-    const form = document.getElementById('add-task-form');
-    if (!form) {
-        showNotification('Add task form not found', 'error');
-        return;
-    }
-
-    const data = {
-        task: form.querySelector('#add-task-name').value,
-        deadline: form.querySelector('#add-task-deadline').value,
-        status: form.querySelector('#add-task-status').value,
-        notes: form.querySelector('#add-task-notes').value
-    };
-
-    // Validate required fields
-    if (!data.task.trim()) {
-        showNotification('Please enter a task name', 'warning');
-        return;
-    }
-
-    if (!data.deadline) {
-        showNotification('Please select a deadline', 'warning');
-        return;
-    }
-
-    fetch('/api/tasks/add', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Task added successfully!', 'success');
-            closeModal('add-task-modal');
-
-            // Add to global data
-            if (window.HERA_DATA && window.HERA_DATA.tasks) {
-                window.HERA_DATA.tasks.push(data.task);
-            }
-
-            // Refresh the page to show new task
-            setTimeout(() => window.location.reload(), 1000);
-        } else {
-            showNotification('Failed to add task: ' + (data.error || 'Unknown error'), 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error adding task:', error);
-        showNotification('Error adding task', 'error');
-    });
-}
-
-// =============================================================================
-// ENHANCE EXISTING EDIT MODAL CREATION
-// =============================================================================
-
-function createTaskEditModal() {
-    const modal = document.createElement('div');
-    modal.id = 'edit-task-modal';
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">Edit Task</h3>
-                <button class="modal-close" type="button" onclick="closeModal('edit-task-modal')">&times;</button>
-            </div>
-            <form id="edit-task-form">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label class="form-label">Task Name</label>
-                        <input type="text" class="form-input" id="edit-task-name" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Deadline</label>
-                        <input type="date" class="form-input" id="edit-task-deadline" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Status</label>
-                        <select class="form-select" id="edit-task-status">
-                            <option value="Not Started">Not Started</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="In Progress, On Schedule">In Progress, On Schedule</option>
-                            <option value="In Progress, Behind Schedule">In Progress, Behind Schedule</option>
-                            <option value="Complete">Complete</option>
-                            <option value="Complete, On Schedule">Complete, On Schedule</option>
-                            <option value="Complete, Behind Schedule">Complete, Behind Schedule</option>
-                            <option value="Ahead Schedule, Complete">Ahead Schedule, Complete</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Notes</label>
-                        <textarea class="form-textarea" id="edit-task-notes" rows="3"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('edit-task-modal')">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save"></i>
-                        Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-    `;
-    return modal;
-}
-
-// =============================================================================
-// ENHANCED SAVE TASK CHANGES
-// =============================================================================
-
-function saveTaskChanges() {
-    if (!currentEditingTaskId) {
-        showNotification('No task selected for editing', 'error');
-        return;
-    }
-
-    const form = document.getElementById('edit-task-form');
-    if (!form) {
-        showNotification('Edit form not found', 'error');
-        return;
-    }
-
-    const data = {
-        task: form.querySelector('#edit-task-name').value.trim(),
-        deadline: form.querySelector('#edit-task-deadline').value,
-        status: form.querySelector('#edit-task-status').value,
-        notes: form.querySelector('#edit-task-notes').value.trim()
-    };
-
-    // Validate required fields
-    if (!data.task) {
-        showNotification('Please enter a task name', 'warning');
-        return;
-    }
-
-    if (!data.deadline) {
-        showNotification('Please select a deadline', 'warning');
-        return;
-    }
-
-    fetch(`/api/tasks/${currentEditingTaskId}/update`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Task updated successfully!', 'success');
-            closeModal('edit-task-modal');
-
-            // Update task display
-            updateTaskDisplay(currentEditingTaskId, data.task);
-
-            // Update global data
-            if (window.HERA_DATA && window.HERA_DATA.tasks) {
-                const taskIndex = window.HERA_DATA.tasks.findIndex(t => t.id === currentEditingTaskId);
-                if (taskIndex !== -1) {
-                    Object.assign(window.HERA_DATA.tasks[taskIndex], data.task);
-                }
-            }
-
-            // Update progress after changes
-            updateTaskProgress();
-        } else {
-            showNotification('Failed to update task: ' + (data.error || 'Unknown error'), 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Error updating task:', error);
-        showNotification('Error updating task', 'error');
-    });
-}

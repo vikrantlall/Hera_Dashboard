@@ -402,13 +402,18 @@ def travel():
                            ground_transport=ground_transport,
                            travel_data=HERA_DATA['travel'])
 
+
 @app.route('/itinerary')
 @login_required
 def itinerary():
     """Itinerary page with all 42 activities"""
+    # Sort activities by day, then by time
+    sorted_itinerary = sorted(HERA_DATA['itinerary'],
+                              key=lambda x: (x['day'], x['time']))
+
     return render_template('itinerary.html',
-                         itinerary_items=HERA_DATA['itinerary'],
-                         total_activities=len(HERA_DATA['itinerary']))
+                           itinerary_items=sorted_itinerary,
+                           total_activities=len(HERA_DATA['itinerary']))
 
 
 @app.route('/packing')
@@ -812,21 +817,32 @@ def update_ring():
 @app.route('/api/itinerary/add', methods=['POST'])
 @login_required
 def add_itinerary_item():
-    """Add new itinerary activity - ENHANCED"""
+    """Add new itinerary activity - with dynamic date calculation"""
     try:
         data = request.get_json()
 
         # Generate new ID
         max_id = max([item['id'] for item in HERA_DATA['itinerary']], default=0)
+
+        # Get trip start from your existing config
+        trip_dates = HERA_DATA['main']['tripDates']  # "9/24/2025 - 9/29/2025"
+        start_date_str = trip_dates.split(' - ')[0]  # "9/24/2025"
+        trip_start = datetime.strptime(start_date_str, '%m/%d/%Y')
+
+        # Calculate activity date dynamically
+        activity_day = int(data.get('day', 1))
+        activity_date = trip_start + timedelta(days=activity_day - 1)
+
         new_item = {
             'id': max_id + 1,
-            'day': int(data.get('day', 1)),  # ADD this line
+            'date': activity_date.strftime('%Y-%m-%d'),  # ← Calculated from config
+            'day': activity_day,
             'time': data['time'],
             'activity': data['activity'],
-            'location': data.get('location', ''),  # Make optional
+            'location': data.get('location', ''),
             'notes': data.get('notes', ''),
             'isProposal': data.get('isProposal', False),
-            'completed': False  # ADD this line
+            'completed': False
         }
 
         HERA_DATA['itinerary'].append(new_item)
@@ -837,10 +853,11 @@ def add_itinerary_item():
         return jsonify({'success': False, 'error': str(e)})
 
 
+# Also update the edit function to maintain date consistency
 @app.route('/api/itinerary/update', methods=['POST'])
 @login_required
 def update_itinerary_item():
-    """Update itinerary activity - ENHANCED"""
+    """Update itinerary activity - with dynamic date recalculation"""
     try:
         data = request.get_json()
         item_id = int(data['id'])
@@ -855,11 +872,19 @@ def update_itinerary_item():
             value = data['value']
             item[field] = value
         else:
-            # Handle full item updates (modal editing) - ADD this block
+            # Handle full item updates (modal editing)
             allowed_fields = ['day', 'time', 'activity', 'location', 'notes', 'isProposal']
             for field in allowed_fields:
                 if field in data:
                     item[field] = data[field]
+
+            # Recalculate date if day changed
+            if 'day' in data:
+                trip_dates = HERA_DATA['main']['tripDates']
+                start_date_str = trip_dates.split(' - ')[0]
+                trip_start = datetime.strptime(start_date_str, '%m/%d/%Y')
+                activity_date = trip_start + timedelta(days=int(data['day']) - 1)
+                item['date'] = activity_date.strftime('%Y-%m-%d')
 
         save_data()
         return jsonify({'success': True})
@@ -1332,7 +1357,7 @@ if __name__ == '__main__':
     print("=" * 60)
 
     try:
-        app.run(debug=debug_mode, host='0.0.0.0', port=8080)
+        app.run(debug=debug_mode, host='0.0.0.0', port=port)
     except KeyboardInterrupt:
         print("\n\n👋 Server stopped. Your data is saved in hera_data.json")
     except Exception as e:

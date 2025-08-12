@@ -461,7 +461,7 @@ function addActivityToDay(activityData) {
 
     for (let item of existingItems) {
         const itemTime = item.querySelector('.activity-time')?.textContent || '00:00';
-        if (activityData.time < itemTime) {
+        if (activityData.time.localeCompare(itemTime) < 0) {
             dayList.insertBefore(activityItem, item);
             inserted = true;
             break;
@@ -663,9 +663,12 @@ function updateOverallProgress() {
     const percentage = total > 0 ? (completed / total) * 100 : 0;
 
     // Update overall progress if element exists
-    const overallProgress = document.querySelector('.overall-progress-fill');
-    if (overallProgress) {
-        overallProgress.style.width = `${percentage}%`;
+    const overallProgress = document.querySelector('#trip-progress-fill');  // ← CORRECT ID
+
+    // Also need to update the percentage text:
+    const percentageText = document.querySelector('#trip-percentage');
+    if (percentageText) {
+        percentageText.textContent = `${Math.round(percentage)}%`;
     }
 
     const overallText = document.querySelector('.overall-completion');
