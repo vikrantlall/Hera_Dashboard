@@ -157,8 +157,8 @@ DAY 2 (Sept 25) - Exploration Day:
 
 DAY 3 (Sept 26) - 💍 PROPOSAL DAY:
 • 8:00am - Early breakfast & preparation
-• 9:30am - Drive to Moraine Lake
-• 10:00am - THE PROPOSAL at Moraine Lake ⭐
+• 9:30am - Drive to Emerald Lake
+• 10:00am - THE PROPOSAL at Emerald Lake ⭐
 • 11:00am - Celebration & photos
 • 1:00pm - Champagne lunch
 • 3:00pm - Couples spa treatment
