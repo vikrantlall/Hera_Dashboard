@@ -103,8 +103,8 @@ HERA_DATA = {
     "travel": [
         {"id": 1, "segment": "IAD - DEN", "airline": "United", "flightNumber": "UA419", "departureTime": "8:15 AM", "arrivalTime": "10:03 AM", "duration": "3h 48m", "date": "9/24/2025", "confirmationNumber": "AT9Z8V", "seat": "2E, 2F", "status": "Confirmed"},
         {"id": 2, "segment": "DEN - YYC", "airline": "United", "flightNumber": "UA2459", "departureTime": "11:22 AM", "arrivalTime": "1:53 PM", "duration": "2h 31m", "date": "9/24/2025", "confirmationNumber": "AT9Z8V", "seat": "1E, 1F", "status": "Confirmed"},
-        {"id": 3, "segment": "YYC - YYZ", "airline": "United", "flightNumber": "UA750", "departureTime": "1:55 PM", "arrivalTime": "7:04 PM", "duration": "4h 9m", "date": "9/29/2025", "confirmationNumber": "AT9Z8V", "seat": "2E, 2F", "status": "Confirmed"},
-        {"id": 4, "segment": "YYZ - DCA", "airline": "United", "flightNumber": "UA2224", "departureTime": "7:50 PM", "arrivalTime": "11:50 PM", "duration": "3h", "date": "9/29/2025", "confirmationNumber": "AT9Z8V", "seat": "2E, 2F", "status": "Confirmed"},
+        {"id": 3, "segment": "YYC - IAH", "airline": "United", "flightNumber": "UA750", "departureTime": "1:55 PM", "arrivalTime": "7:04 PM", "duration": "4h 9m", "date": "9/29/2025", "confirmationNumber": "AT9Z8V", "seat": "2E, 2F", "status": "Confirmed"},
+        {"id": 4, "segment": "IAH - DCA", "airline": "United", "flightNumber": "UA2224", "departureTime": "7:50 PM", "arrivalTime": "11:50 PM", "duration": "3h", "date": "9/29/2025", "confirmationNumber": "AT9Z8V", "seat": "2E, 2F", "status": "Confirmed"},
         {"id": 5, "segment": "Hotel - Canalta Lodge", "provider": "Canalta Lodge", "address": "545 Banff Ave #1B5, Banff, AB T1L 1B5, Canada", "phone": "403-762-2112", "checkIn": "4:00 PM", "checkOut": "11:00 AM", "confirmationNumber": "73022774416687", "roomType": "King Room w/ Balcony", "status": "Confirmed"},
         {"id": 6, "segment": "Rental Car - Alamo", "provider": "Alamo", "location": "YYC", "pickupDate": "2025-09-24", "confirmationNumber": "#1785932383", "carType": "Intermediate SUV\\nToyota RAV4 or similar", "status": "Confirmed"}
     ],
@@ -390,8 +390,11 @@ def travel():
     # Separate travel data by type
     outbound_flights = [t for t in HERA_DATA['travel'] if
                         'IAD - DEN' in t.get('segment', '') or 'DEN - YYC' in t.get('segment', '')]
+
+    # CHANGED: Updated to look for IAH instead of YYZ
     return_flights = [t for t in HERA_DATA['travel'] if
-                      'YYC - YYZ' in t.get('segment', '') or 'YYZ - DCA' in t.get('segment', '')]
+                      'YYC - IAH' in t.get('segment', '') or 'IAH - DCA' in t.get('segment', '')]
+
     hotels = [t for t in HERA_DATA['travel'] if 'Hotel' in t.get('segment', '')]
     ground_transport = [t for t in HERA_DATA['travel'] if 'Rental Car' in t.get('segment', '')]
 
@@ -929,6 +932,16 @@ def files():
     """Files management page"""
     files_data = HERA_DATA.get('files', [])
 
+    # FIX: Convert string dates to datetime objects for template usage
+    for file in files_data:
+        if file.get('upload_date'):
+            try:
+                # Convert ISO string to datetime object for template .strftime() usage
+                file['upload_date'] = datetime.fromisoformat(file['upload_date'].replace('Z', '+00:00'))
+            except (ValueError, TypeError):
+                # Handle any malformed dates
+                file['upload_date'] = None
+
     # Calculate statistics
     total_size = sum(file.get('size_bytes', 0) for file in files_data)
     total_size_formatted = format_file_size(total_size)
@@ -936,13 +949,13 @@ def files():
     # Get unique categories
     categories = list(set(file.get('category', 'other') for file in files_data))
 
-    # Count recent uploads (last 7 days)
+    # Count recent uploads (last 7 days) - use original string dates for this
     recent_count = 0
     week_ago = datetime.now() - timedelta(days=7)
     for file in files_data:
-        if file.get('upload_date'):
-            upload_date = datetime.fromisoformat(file['upload_date'].replace('Z', '+00:00'))
-            if upload_date > week_ago:
+        # Use the converted datetime object if available
+        if isinstance(file.get('upload_date'), datetime):
+            if file['upload_date'] > week_ago:
                 recent_count += 1
 
     # Count files by category
@@ -1100,38 +1113,59 @@ def delete_file(file_id):
 @app.route('/api/files/update/<int:file_id>', methods=['POST'])
 @login_required
 def update_file(file_id):
-    """Update file details"""
+    """Update file details (name, category, notes)"""
+    print(f"=== UPDATE FILE CALLED ===")
+    print(f"File ID: {file_id}")
+
     try:
         data = request.get_json()
+        print(f"Request data: {data}")
 
         # Find file record
         file_record = next((f for f in HERA_DATA['files'] if f['id'] == file_id), None)
         if not file_record:
+            print("ERROR: File not found")
             return jsonify({'success': False, 'error': 'File not found'})
 
-        # Update fields
-        if 'name' in data:
-            file_record['original_name'] = data['name']
+        print(f"Found file: {file_record['original_name']}")
+
+        # Update file details
+        if 'name' in data and data['name'].strip():
+            file_record['original_name'] = data['name'].strip()
+            print(f"Updated name to: {file_record['original_name']}")
+
         if 'category' in data:
             file_record['category'] = data['category']
+            print(f"Updated category to: {file_record['category']}")
+
         if 'notes' in data:
             file_record['notes'] = data['notes']
+            print(f"Updated notes (length: {len(data['notes'])})")
 
+        # Add updated timestamp
         file_record['updated_date'] = datetime.now().isoformat()
-        save_data()
 
-        return jsonify({
+        # Save changes
+        save_data()
+        print("Data saved successfully")
+
+        response_data = {
             'success': True,
             'message': 'File updated successfully',
             'file': {
+                'id': file_record['id'],
                 'name': file_record['original_name'],
                 'category': file_record['category'],
                 'notes': file_record.get('notes', '')
             }
-        })
+        }
+        print(f"Sending success response")
+        return jsonify(response_data)
 
     except Exception as e:
-        print(f"Update error: {e}")
+        print(f"ERROR: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': str(e)})
 
 

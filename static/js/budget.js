@@ -206,23 +206,23 @@ function addBudgetItem(event) {
 function updateBudgetItem(event) {
     event.preventDefault();
 
-    const itemId = document.getElementById('budget-item-id').value;
     const formData = {
-        id: parseInt(itemId),
+        id: document.getElementById('budget-item-id').value,
         category: document.getElementById('budget-category').value,
-        budget: parseFloat(document.getElementById('budget-amount').value),
-        saved: parseFloat(document.getElementById('budget-saved').value) || 0,
+        budget_amount: parseFloat(document.getElementById('budget-amount').value), // Changed from 'budget'
+        budget_saved: parseFloat(document.getElementById('budget-saved').value) || 0, // Changed from 'saved'
         status: document.getElementById('budget-status').value,
-        notes: document.getElementById('budget-notes').value
+        notes: document.getElementById('budget-notes').value,
+        priority: 'medium' // Default priority
     };
 
     // Validate data
-    if (!formData.category || !formData.budget) {
+    if (!formData.category || !formData.budget_amount) {
         showNotification('Please fill in all required fields', 'error');
         return;
     }
 
-    if (formData.saved > formData.budget) {
+    if (formData.budget_saved > formData.budget_amount) {
         showNotification('Amount saved cannot exceed budget amount', 'error');
         return;
     }
@@ -230,7 +230,7 @@ function updateBudgetItem(event) {
     // Show loading state
     const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
     submitBtn.disabled = true;
 
     // Make API call - using the budget update API structure
@@ -248,9 +248,18 @@ function updateBudgetItem(event) {
             closeBudgetModal();
 
             // Update local data
-            const itemIndex = window.BUDGET_DATA.items.findIndex(item => item.id === formData.id);
+            const itemIndex = window.BUDGET_DATA.items.findIndex(item => item.id === parseInt(formData.id));
             if (itemIndex > -1) {
-                window.BUDGET_DATA.items[itemIndex] = { ...window.BUDGET_DATA.items[itemIndex], ...formData };
+                // Update with correct field names for local storage
+                window.BUDGET_DATA.items[itemIndex] = {
+                    ...window.BUDGET_DATA.items[itemIndex],
+                    category: formData.category,
+                    budget: formData.budget_amount,
+                    saved: formData.budget_saved,
+                    remaining: formData.budget_amount - formData.budget_saved,
+                    status: formData.status,
+                    notes: formData.notes
+                };
             }
 
             // Refresh the page to show updates

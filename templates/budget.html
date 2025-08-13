@@ -136,115 +136,113 @@
     </div>
 </div>
 
-<!-- Add Budget Item Modal -->
+<!-- Add Budget Item Modal - FIXED STRUCTURE -->
 <div id="add-budget-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h3 class="modal-title">Add Budget Item</h3>
-            <button class="modal-close" onclick="closeAddBudgetModal()">&times;</button>
+            <button class="modal-close" type="button" onclick="closeAddBudgetModal()">&times;</button>
         </div>
-        <form id="add-budget-form" onsubmit="addBudgetItem(event)">
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Category</label>
-                    <input type="text" class="form-input" id="add-budget-category" placeholder="e.g., Photography, Transportation" required>
-                </div>
+        <!-- CRITICAL: Form IS the modal-body for proper scrolling -->
+        <form id="add-budget-form" class="modal-body" onsubmit="addBudgetItem(event)">
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <input type="text" class="form-input" id="add-budget-category" placeholder="e.g., Photography, Transportation" required>
+            </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Budget Amount</label>
-                        <div class="currency-input">
-                            <span class="currency-prefix">$</span>
-                            <input type="number" class="form-input with-prefix" id="add-budget-amount" step="0.01" min="0" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Amount Saved</label>
-                        <div class="currency-input">
-                            <span class="currency-prefix">$</span>
-                            <input type="number" class="form-input with-prefix" id="add-budget-saved" step="0.01" min="0" value="0">
-                        </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Budget Amount</label>
+                    <div class="currency-input">
+                        <span class="currency-prefix">$</span>
+                        <input type="number" class="form-input with-prefix" id="add-budget-amount" step="0.01" min="0" required>
                     </div>
                 </div>
-
                 <div class="form-group">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" id="add-budget-status">
-                        <option value="Outstanding">Outstanding</option>
-                        <option value="Paid">Paid</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Notes</label>
-                    <textarea class="form-textarea" id="add-budget-notes" rows="3" placeholder="Any additional details..."></textarea>
+                    <label class="form-label">Amount Saved</label>
+                    <div class="currency-input">
+                        <span class="currency-prefix">$</span>
+                        <input type="number" class="form-input with-prefix" id="add-budget-saved" step="0.01" min="0" value="0">
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeAddBudgetModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-plus"></i>
-                    Add Item
-                </button>
+
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="add-budget-status">
+                    <option value="Outstanding">Outstanding</option>
+                    <option value="Paid">Paid</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea class="form-textarea" id="add-budget-notes" rows="3" placeholder="Any additional details..."></textarea>
             </div>
         </form>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeAddBudgetModal()">Cancel</button>
+            <button type="submit" form="add-budget-form" class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Add Item
+            </button>
+        </div>
     </div>
 </div>
 
-<!-- Edit Budget Modal -->
+<!-- Edit Budget Modal - FIXED STRUCTURE -->
 <div id="budget-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h3 class="modal-title" id="budget-modal-title">Edit Budget Item</h3>
-            <button class="modal-close" onclick="closeBudgetModal()">&times;</button>
+            <button class="modal-close" type="button" onclick="closeBudgetModal()">&times;</button>
         </div>
-        <form id="budget-form" onsubmit="updateBudgetItem(event)">
-            <div class="modal-body">
-                <input type="hidden" id="budget-item-id">
+        <!-- CRITICAL: Form IS the modal-body for proper scrolling -->
+        <form id="budget-form" class="modal-body" onsubmit="updateBudgetItem(event)">
+            <input type="hidden" id="budget-item-id">
 
+            <div class="form-group">
+                <label class="form-label">Category</label>
+                <input type="text" class="form-input" id="budget-category" required>
+            </div>
+
+            <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Category</label>
-                    <input type="text" class="form-input" id="budget-category" required>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Budget Amount</label>
-                        <div class="currency-input">
-                            <span class="currency-prefix">$</span>
-                            <input type="number" class="form-input with-prefix" id="budget-amount" step="0.01" min="0" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Amount Saved</label>
-                        <div class="currency-input">
-                            <span class="currency-prefix">$</span>
-                            <input type="number" class="form-input with-prefix" id="budget-saved" step="0.01" min="0">
-                        </div>
+                    <label class="form-label">Budget Amount</label>
+                    <div class="currency-input">
+                        <span class="currency-prefix">$</span>
+                        <input type="number" class="form-input with-prefix" id="budget-amount" step="0.01" min="0" required>
                     </div>
                 </div>
-
                 <div class="form-group">
-                    <label class="form-label">Status</label>
-                    <select class="form-select" id="budget-status">
-                        <option value="Outstanding">Outstanding</option>
-                        <option value="Paid">Paid</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Notes</label>
-                    <textarea class="form-textarea" id="budget-notes" rows="3"></textarea>
+                    <label class="form-label">Amount Saved</label>
+                    <div class="currency-input">
+                        <span class="currency-prefix">$</span>
+                        <input type="number" class="form-input with-prefix" id="budget-saved" step="0.01" min="0">
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="closeBudgetModal()">Cancel</button>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i>
-                    Save Changes
-                </button>
+
+            <div class="form-group">
+                <label class="form-label">Status</label>
+                <select class="form-select" id="budget-status">
+                    <option value="Outstanding">Outstanding</option>
+                    <option value="Paid">Paid</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Notes</label>
+                <textarea class="form-textarea" id="budget-notes" rows="3"></textarea>
             </div>
         </form>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="closeBudgetModal()">Cancel</button>
+            <button type="submit" form="budget-form" class="btn btn-primary">
+                <i class="fas fa-save"></i>
+                Save Changes
+            </button>
+        </div>
     </div>
 </div>
 {% endblock %}

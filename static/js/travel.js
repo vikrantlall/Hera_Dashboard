@@ -9,12 +9,12 @@ const flights = [
         from: 'IAD', to: 'DEN',
         fromName: 'Washington Dulles Intl',
         toName: 'Denver International',
-        departure: '08:15', arrival: '10:03',
+        departure: '8:15 AM', arrival: '10:03 AM',
         duration: '3h 48m',
-        aircraft: 'Boeing 737-800',
+        aircraft: 'Boeing 757-300',
         registration: 'N73283',
         fromCoords: [38.9445, -77.4558],
-        toCoords: [39.8561, -104.6737],
+        toCoords: [39.8617, -104.6731],
         cruiseAlt: 37000,
         status: 'completed'
     },
@@ -23,40 +23,40 @@ const flights = [
         from: 'DEN', to: 'YYC',
         fromName: 'Denver International',
         toName: 'Calgary International',
-        departure: '11:22', arrival: '13:53',
+        departure: '11:22 AM', arrival: '1:53 PM',
         duration: '2h 31m',
-        aircraft: 'Airbus A320neo',
+        aircraft: 'Boeing 737-800',
         registration: 'N449UA',
-        fromCoords: [39.8561, -104.6737],
-        toCoords: [51.1225, -114.0119],
+        fromCoords: [39.8617, -104.6731],
+        toCoords: [51.1315, -114.0106],
         cruiseAlt: 38000,
         status: 'completed'
     },
     {
         id: 'UA750', type: 'return',
-        from: 'YYC', to: 'YYZ',
+        from: 'YYC', to: 'IAH',  // CHANGED
         fromName: 'Calgary International',
-        toName: 'Toronto Pearson Intl',
-        departure: '13:55', arrival: '19:04',
+        toName: 'Houston Intercontinental',  // CHANGED
+        departure: '1:55 PM', arrival: '7:04 PM',
         duration: '4h 9m',
-        aircraft: 'Boeing 787-8',
+        aircraft: 'Airbus A319',
         registration: 'N26906',
-        fromCoords: [51.1225, -114.0119],
-        toCoords: [43.6777, -79.6248],
+        fromCoords: [51.1315, -114.0106],
+        toCoords: [29.9844, -95.3414],  // CHANGED
         cruiseAlt: 41000,
         status: 'active'
     },
     {
         id: 'UA2224', type: 'return',
-        from: 'YYZ', to: 'DCA',
-        fromName: 'Toronto Pearson Intl',
+        from: 'IAH', to: 'DCA',  // CHANGED
+        fromName: 'Houston Intercontinental',  // CHANGED
         toName: 'Reagan National',
-        departure: '19:50', arrival: '23:50',
-        duration: '3h 0m',
-        aircraft: 'Airbus A319',
+        departure: '7:50 PM', arrival: '11:50 PM',
+        duration: '3h',
+        aircraft: 'Boeing 737-700',
         registration: 'N876UA',
-        fromCoords: [43.6777, -79.6248],
-        toCoords: [38.8521, -77.0377],
+        fromCoords: [29.9844, -95.3414],  // CHANGED
+        toCoords: [38.8512, -77.0402],
         cruiseAlt: 35000,
         status: 'scheduled'
     }
@@ -125,15 +125,15 @@ let activeLayer = 'route';
 const FLIGHT_ROUTES = [
     { from: 'IAD', to: 'DEN', status: 'confirmed', coords: [[38.9445, -77.4558], [39.8617, -104.6731]] },
     { from: 'DEN', to: 'YYC', status: 'confirmed', coords: [[39.8617, -104.6731], [51.1315, -114.0106]] },
-    { from: 'YYC', to: 'YYZ', status: 'pending', coords: [[51.1315, -114.0106], [43.6772, -79.6306]] },
-    { from: 'YYZ', to: 'DCA', status: 'pending', coords: [[43.6772, -79.6306], [38.8512, -77.0402]] }
+    { from: 'YYC', to: 'IAH', status: 'confirmed', coords: [[51.1315, -114.0106], [29.9844, -95.3414]] },  // CHANGED
+    { from: 'IAH', to: 'DCA', status: 'confirmed', coords: [[29.9844, -95.3414], [38.8512, -77.0402]] }   // CHANGED
 ];
 
 const AIRPORTS = {
     'IAD': { name: 'Washington Dulles', coords: [38.9445, -77.4558] },
     'DEN': { name: 'Denver International', coords: [39.8617, -104.6731] },
     'YYC': { name: 'Calgary International', coords: [51.1315, -114.0106] },
-    'YYZ': { name: 'Toronto Pearson', coords: [43.6772, -79.6306] },
+    'IAH': { name: 'Houston Intercontinental', coords: [29.9844, -95.3414] },  // CHANGED: Was YYZ
     'DCA': { name: 'Ronald Reagan Washington', coords: [38.8512, -77.0402] }
 };
 
