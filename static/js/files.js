@@ -20,12 +20,170 @@ function initializeFiles() {
     setupSearch();
     setupModals();
 
+    // CRITICAL FIX: Load files from JSON if they exist but aren't displayed
+    loadFilesFromData();
+
     // Debug: Check what elements exist on page load
     console.log('🔍 Debug - Filter buttons found:', document.querySelectorAll('.filter-badge, .category-filter').length);
-    console.log('📁 Debug - File items found:', document.querySelectorAll('.file-item').length);
+    console.log('🔍 Debug - File items found:', document.querySelectorAll('.file-item').length);
     console.log('🎨 Debug - File icons found:', document.querySelectorAll('.file-icon').length);
 
     console.log('✅ Files initialized');
+}
+
+// =============================================================================
+// NEW: LOAD FILES FROM JSON DATA
+// =============================================================================
+
+function loadFilesFromData() {
+    console.log('📄 Loading files from window.FILES_DATA...');
+
+    const filesContainer = document.getElementById('files-container');
+    const emptyState = document.querySelector('.empty-state');
+
+    if (!window.FILES_DATA || !Array.isArray(window.FILES_DATA)) {
+        console.log('❌ No FILES_DATA found or invalid format');
+        return;
+    }
+
+    console.log('📊 Found', window.FILES_DATA.length, 'files in data');
+
+    // If there are no existing file items but we have data, create them
+    const existingFiles = document.querySelectorAll('.file-item');
+    if (existingFiles.length === 0 && window.FILES_DATA.length > 0) {
+        console.log('🔧 No existing file elements found, creating from data...');
+        renderFilesFromData();
+    }
+
+    // Update empty state visibility
+    updateEmptyState(window.FILES_DATA.length > 0);
+}
+
+function renderFilesFromData() {
+    const filesContainer = document.getElementById('files-container');
+    if (!filesContainer) {
+        console.error('❌ Files container not found');
+        return;
+    }
+
+    // Clear existing content
+    filesContainer.innerHTML = '';
+
+    window.FILES_DATA.forEach(file => {
+        const fileElement = createFileElement(file);
+        filesContainer.appendChild(fileElement);
+    });
+
+    console.log('✅ Rendered', window.FILES_DATA.length, 'files from data');
+}
+
+function createFileElement(file) {
+    const fileDiv = document.createElement('div');
+    fileDiv.className = 'file-item';
+    fileDiv.dataset.category = file.category || 'other';
+    fileDiv.dataset.fileId = file.id;
+
+    // Determine file type
+    const fileType = getFileTypeFromExtension(file.filename);
+
+    fileDiv.innerHTML = `
+        <!-- Card View -->
+        <div class="file-card">
+            <div class="file-preview" data-action="view" data-file-id="${file.id}" data-file-name="${file.original_name}" data-file-type="${fileType}" data-filename="${file.filename}">
+                ${createFilePreview(file, fileType)}
+            </div>
+
+            <div class="file-info">
+                <div class="file-name" title="${file.original_name}">${file.original_name}</div>
+                <div class="file-meta">
+                    <span class="status-badge status-${file.category || 'other'}">
+                        ${(file.category || 'other').charAt(0).toUpperCase() + (file.category || 'other').slice(1)}
+                    </span>
+                    <span class="file-size">${formatFileSize(file.size)}</span>
+                </div>
+            </div>
+
+            <div class="file-actions">
+                <button class="action-btn edit-btn" data-action="edit" data-file-id="${file.id}" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn download-btn" data-action="download" data-filename="${file.filename}" data-original-name="${file.original_name}" title="Download">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="action-btn delete-btn" data-action="delete" data-file-id="${file.id}" data-file-name="${file.original_name}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- List View -->
+        <div class="file-row" style="display: none;">
+            <div class="row-icon">
+                ${createFilePreview(file, fileType, true)}
+            </div>
+
+            <div class="row-info" data-action="view" data-file-id="${file.id}" data-file-name="${file.original_name}" data-file-type="${fileType}" data-filename="${file.filename}">
+                <div class="row-name">${file.original_name}</div>
+                <div class="row-meta">
+                    <span class="status-badge status-${file.category || 'other'}">
+                        ${(file.category || 'other').charAt(0).toUpperCase() + (file.category || 'other').slice(1)}
+                    </span>
+                    <span class="row-size">${formatFileSize(file.size)}</span>
+                </div>
+            </div>
+
+            <div class="row-actions">
+                <button class="action-btn edit-btn" data-action="edit" data-file-id="${file.id}" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="action-btn download-btn" data-action="download" data-filename="${file.filename}" data-original-name="${file.original_name}" title="Download">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="action-btn delete-btn" data-action="delete" data-file-id="${file.id}" data-file-name="${file.original_name}" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `;
+
+    return fileDiv;
+}
+
+function createFilePreview(file, fileType, isListView = false) {
+    const fileUrl = `/static/uploads/files/${file.filename}`;
+    const thumbnailClass = isListView ? 'row-thumbnail' : 'file-thumbnail';
+
+    if (fileType === 'image') {
+        return `<img src="${fileUrl}" alt="${file.original_name}" class="${thumbnailClass}">`;
+    } else if (fileType === 'video') {
+        return `<video class="${thumbnailClass}" muted>
+                    <source src="${fileUrl}" type="video/${file.filename.split('.').pop()}">
+                </video>`;
+    } else {
+        // File icon for other types
+        const iconClass = isListView ? 'file-icon-small' : 'file-icon';
+        const icon = getFileIcon(file.filename);
+
+        return `<div class="${iconClass} file-icon-${fileType}">
+                    <i class="fas ${icon}"></i>
+                </div>`;
+    }
+}
+
+function getFileTypeFromExtension(filename) {
+    if (!filename) return 'other';
+
+    const ext = filename.split('.').pop().toLowerCase();
+
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return 'image';
+    if (['mov', 'mp4', 'avi', 'mkv', 'webm'].includes(ext)) return 'video';
+    if (ext === 'pdf') return 'pdf';
+    if (['doc', 'docx'].includes(ext)) return 'document';
+    if (['xls', 'xlsx'].includes(ext)) return 'spreadsheet';
+    if (ext === 'txt') return 'text';
+    if (ext === 'zip') return 'archive';
+
+    return 'other';
 }
 
 // =============================================================================
@@ -214,7 +372,7 @@ function filterFiles(category) {
     const items = document.querySelectorAll('.file-item');
     let visibleCount = 0;
 
-    console.log('📁 Found', items.length, 'file items to filter');
+    console.log('🔍 Found', items.length, 'file items to filter');
 
     items.forEach(item => {
         const itemCategory = item.dataset.category;
@@ -230,7 +388,7 @@ function filterFiles(category) {
         }
     });
 
-    console.log('👁️ Visible files:', visibleCount);
+    console.log('👀 Visible files:', visibleCount);
     updateEmptyState(visibleCount > 0);
 }
 
@@ -385,7 +543,7 @@ function startUpload() {
 
     selectedFiles.forEach(fileObj => {
         formData.append('files', fileObj.file);
-        formData.append('categories', fileObj.category);
+        formData.append('category', fileObj.category);  // Fixed: 'category' not 'categories'
         formData.append('notes', fileObj.notes || '');
     });
 
@@ -468,7 +626,7 @@ function editFile(fileId) {
         return;
     }
 
-    console.log('📝 Found file:', file.original_name, '| Category:', file.category);
+    console.log('🔍 Found file:', file.original_name, '| Category:', file.category);
 
     // Populate form with current values - matching the HTML element IDs
     const nameInput = document.getElementById('edit-name');
