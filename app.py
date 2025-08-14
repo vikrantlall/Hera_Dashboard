@@ -173,6 +173,8 @@ def get_file_type(filename):
 
     if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
         return 'image'
+    elif ext in ['mov', 'mp4', 'avi', 'mkv', 'webm']:  # ← ADD THIS LINE
+        return 'video'                                   # ← ADD THIS LINE
     elif ext == 'pdf':
         return 'pdf'
     elif ext in ['doc', 'docx']:
@@ -360,12 +362,13 @@ def budget():
 @login_required
 def ring():
     """Ring showcase page"""
-    # Check for ring images in uploads folder
+    # Check for ring media files (images + videos) in uploads folder
     ring_images = []
     ring_upload_path = os.path.join('static', 'uploads', 'ring')
     if os.path.exists(ring_upload_path):
         ring_images = [f for f in os.listdir(ring_upload_path)
-                       if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
+                       if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp',
+                                            '.mov', '.mp4', '.avi', '.mkv', '.webm'))]
 
     return render_template('ring.html',
                            ring=HERA_DATA['ring'],
@@ -511,25 +514,29 @@ def toggle_family_status(member_id):
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/ring/upload-photos', methods=['POST'])
+@app.route('/api/ring/upload-media', methods=['POST'])  # ← Changed from upload-photos to upload-media
 @login_required
-def upload_ring_photos():
-    """Handle ring photo uploads"""
+def upload_ring_media():  # ← Changed function name
+    """Handle ring photo and video uploads"""  # ← Updated description
     try:
         # Check if files were sent
-        if 'photos' not in request.files:
-            return jsonify({'success': False, 'error': 'No photos provided'})
+        if 'media' not in request.files:  # ← Changed from 'photos' to 'media'
+            return jsonify({'success': False, 'error': 'No media provided'})
 
-        files = request.files.getlist('photos')
+        files = request.files.getlist('media')  # ← Changed from 'photos' to 'media'
         if not files or files[0].filename == '':
-            return jsonify({'success': False, 'error': 'No photos selected'})
+            return jsonify({'success': False, 'error': 'No media selected'})
 
         # Create upload directory if it doesn't exist
         upload_dir = os.path.join(app.static_folder, 'uploads', 'ring')
         os.makedirs(upload_dir, exist_ok=True)
 
         uploaded_files = []
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+        # ← UPDATED: Allow both images and videos
+        allowed_extensions = {
+            'png', 'jpg', 'jpeg', 'gif', 'webp',  # Images
+            'mov', 'mp4', 'avi', 'mkv', 'webm'    # Videos
+        }
 
         for file in files:
             # Validate file type
@@ -551,23 +558,23 @@ def upload_ring_photos():
             uploaded_files.append(safe_filename)
 
         if not uploaded_files:
-            return jsonify({'success': False, 'error': 'No valid image files were uploaded'})
+            return jsonify({'success': False, 'error': 'No valid media files were uploaded'})  # ← Updated message
 
         return jsonify({
             'success': True,
-            'message': f'{len(uploaded_files)} photos uploaded successfully',
+            'message': f'{len(uploaded_files)} media files uploaded successfully',  # ← Updated message
             'files': uploaded_files
         })
 
     except Exception as e:
-        print(f"Upload error: {e}")  # For debugging
+        print(f"Upload error: {e}")
         return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
 
 
-@app.route('/api/ring/delete-photo/<filename>', methods=['DELETE'])
+@app.route('/api/ring/delete-media/<filename>', methods=['DELETE'])  # ← Changed from delete-photo to delete-media
 @login_required
-def delete_ring_photo(filename):
-    """Delete a ring photo"""
+def delete_ring_media(filename):  # ← Changed function name
+    """Delete a ring photo or video"""  # ← Updated description
     try:
         # Validate filename to prevent directory traversal
         safe_filename = secure_filename(filename)
@@ -580,33 +587,35 @@ def delete_ring_photo(filename):
         # Check if file exists and delete it
         if os.path.exists(file_path):
             os.remove(file_path)
-            return jsonify({'success': True, 'message': 'Photo deleted successfully'})
+            return jsonify({'success': True, 'message': 'Media deleted successfully'})  # ← Updated message
         else:
-            return jsonify({'success': False, 'error': 'Photo not found'})
+            return jsonify({'success': False, 'error': 'Media not found'})  # ← Updated message
 
     except Exception as e:
-        print(f"Delete error: {e}")  # For debugging
+        print(f"Delete error: {e}")
         return jsonify({'success': False, 'error': f'Delete failed: {str(e)}'})
 
 
-# Optional: Add route to get ring photo list (for refreshing without page reload)
-@app.route('/api/ring/photos', methods=['GET'])
+@app.route('/api/ring/media', methods=['GET'])  # ← Changed from /photos to /media
 @login_required
-def get_ring_photos():
-    """Get list of ring photos"""
+def get_ring_media():  # ← Changed function name
+    """Get list of ring photos and videos"""  # ← Updated description
     try:
         ring_upload_path = os.path.join(app.static_folder, 'uploads', 'ring')
         if not os.path.exists(ring_upload_path):
-            return jsonify({'success': True, 'photos': []})
+            return jsonify({'success': True, 'media': []})  # ← Changed from 'photos' to 'media'
 
-        photos = [f for f in os.listdir(ring_upload_path)
-                  if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))]
+        # ← UPDATED: Include video extensions
+        media_files = [f for f in os.listdir(ring_upload_path)
+                      if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp',
+                                           '.mov', '.mp4', '.avi', '.mkv', '.webm'))]
 
-        return jsonify({'success': True, 'photos': photos})
+        return jsonify({'success': True, 'media': media_files})  # ← Changed from 'photos' to 'media'
 
     except Exception as e:
-        print(f"Get photos error: {e}")
+        print(f"Get media error: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
 
 @app.route('/api/refresh_data', methods=['POST'])
 @login_required
@@ -959,10 +968,12 @@ def files():
                 recent_count += 1
 
     # Count files by category
+    # Count files by category
     category_counts = {
         'travel_docs_count': len([f for f in files_data if f.get('category') == 'travel']),
         'reservations_count': len([f for f in files_data if f.get('category') == 'reservations']),
         'photos_count': len([f for f in files_data if f.get('category') == 'photos']),
+        'videos_count': len([f for f in files_data if f.get('category') == 'videos']),
         'documents_count': len([f for f in files_data if f.get('category') == 'documents']),
         'other_count': len([f for f in files_data if f.get('category') == 'other']),
     }
@@ -978,7 +989,7 @@ def files():
 @app.route('/api/files/upload', methods=['POST'])
 @login_required
 def upload_files():
-    """Handle file uploads"""
+    """Handle file uploads with UUID-based IDs"""
     try:
         # Check if files were sent
         if 'files' not in request.files:
@@ -998,7 +1009,8 @@ def upload_files():
         uploaded_files = []
         allowed_extensions = {
             'pdf', 'doc', 'docx', 'txt', 'zip', 'xlsx', 'xls',
-            'jpg', 'jpeg', 'png', 'gif', 'webp'
+            'jpg', 'jpeg', 'png', 'gif', 'webp',
+            'mov', 'mp4', 'avi', 'mkv', 'webm'
         }
 
         for i, file in enumerate(files):
@@ -1009,6 +1021,9 @@ def upload_files():
             file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
             if file_ext not in allowed_extensions:
                 continue
+
+            # Generate UUID-based ID that never changes
+            file_uuid = str(uuid.uuid4())
 
             # Generate safe filename with timestamp to avoid conflicts
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -1023,17 +1038,18 @@ def upload_files():
             file_size = os.path.getsize(file_path)
             file_type = get_file_type(file.filename)
 
-            # Create file record
+            # Create file record with UUID-based ID
             file_record = {
-                'id': len(HERA_DATA['files']) + len(uploaded_files) + 1,
-                'filename': safe_filename,
-                'original_name': file.filename,
+                'id': file_uuid,  # UUID-based ID that never changes
+                'filename': safe_filename,  # Physical filename on disk
+                'original_name': file.filename,  # User-visible name (can be changed)
                 'size': format_file_size(file_size),
                 'size_bytes': file_size,
                 'type': file_type,
                 'category': categories[i] if i < len(categories) else 'other',
                 'notes': notes_list[i] if i < len(notes_list) else '',
                 'upload_date': datetime.now().isoformat(),
+                'updated_date': datetime.now().isoformat(),
                 'mimetype': file.mimetype
             }
 
@@ -1054,7 +1070,7 @@ def upload_files():
         })
 
     except Exception as e:
-        print(f"Upload error: {e}")  # For debugging
+        print(f"Upload error: {e}")
         return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
 
 
@@ -1084,12 +1100,12 @@ def download_file(filename):
         return jsonify({'error': str(e)}), 500
 
 
-@app.route('/api/files/delete/<int:file_id>', methods=['DELETE'])
+@app.route('/api/files/delete/<file_id>', methods=['DELETE'])
 @login_required
 def delete_file(file_id):
-    """Delete a file"""
+    """Delete a file using UUID-based ID"""
     try:
-        # Find file record
+        # Find file record by UUID
         file_record = next((f for f in HERA_DATA['files'] if f['id'] == file_id), None)
         if not file_record:
             return jsonify({'success': False, 'error': 'File not found'})
@@ -1099,7 +1115,7 @@ def delete_file(file_id):
         if os.path.exists(file_path):
             os.remove(file_path)
 
-        # Remove from data
+        # Remove from data using UUID
         HERA_DATA['files'] = [f for f in HERA_DATA['files'] if f['id'] != file_id]
         save_data()
 
@@ -1110,10 +1126,10 @@ def delete_file(file_id):
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/files/update/<int:file_id>', methods=['POST'])
+@app.route('/api/files/update/<file_id>', methods=['POST'])
 @login_required
 def update_file(file_id):
-    """Update file details (name, category, notes)"""
+    """Update file details using UUID-based ID"""
     print(f"=== UPDATE FILE CALLED ===")
     print(f"File ID: {file_id}")
 
@@ -1121,7 +1137,7 @@ def update_file(file_id):
         data = request.get_json()
         print(f"Request data: {data}")
 
-        # Find file record
+        # Find file record by UUID
         file_record = next((f for f in HERA_DATA['files'] if f['id'] == file_id), None)
         if not file_record:
             print("ERROR: File not found")
@@ -1129,7 +1145,7 @@ def update_file(file_id):
 
         print(f"Found file: {file_record['original_name']}")
 
-        # Update file details
+        # Update file details - original_name can be changed, but ID stays the same
         if 'name' in data and data['name'].strip():
             file_record['original_name'] = data['name'].strip()
             print(f"Updated name to: {file_record['original_name']}")
@@ -1142,7 +1158,7 @@ def update_file(file_id):
             file_record['notes'] = data['notes']
             print(f"Updated notes (length: {len(data['notes'])})")
 
-        # Add updated timestamp
+        # Update timestamp but keep original ID
         file_record['updated_date'] = datetime.now().isoformat()
 
         # Save changes
@@ -1153,10 +1169,11 @@ def update_file(file_id):
             'success': True,
             'message': 'File updated successfully',
             'file': {
-                'id': file_record['id'],
+                'id': file_record['id'],  # UUID stays the same
                 'name': file_record['original_name'],
                 'category': file_record['category'],
-                'notes': file_record.get('notes', '')
+                'notes': file_record.get('notes', ''),
+                'filename': file_record['filename']  # Physical filename unchanged
             }
         }
         print(f"Sending success response")
@@ -1391,7 +1408,7 @@ if __name__ == '__main__':
     print("=" * 60)
 
     try:
-        app.run(debug=debug_mode, host='0.0.0.0', port=port)
+        app.run(debug=debug_mode, host='0.0.0.0', port=8080)
     except KeyboardInterrupt:
         print("\n\n👋 Server stopped. Your data is saved in hera_data.json")
     except Exception as e:

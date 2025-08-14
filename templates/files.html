@@ -9,291 +9,431 @@
 
 {% block content %}
 <div class="files-container">
-    <!-- Upload Section -->
-    <div class="upload-section">
+    <!-- Hidden file input with video support -->
+    <input type="file" id="file-upload-input" multiple accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.webp,.zip,.xlsx,.xls,.mov,.mp4,.avi,.mkv,.webm" style="display: none;">
+
+    <!-- Stats Grid - Following dashboard pattern -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number" id="total-files">{{ files|length if files else 0 }}</div>
+            <div class="stat-label">Total Files</div>
+            <div class="stat-sublabel">{{ total_size or '0 B' }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-number">{{ travel_docs_count or 0 }}</div>
+            <div class="stat-label">Travel Docs</div>
+            <div class="stat-sublabel">Passports & Visas</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-number">{{ reservations_count or 0 }}</div>
+            <div class="stat-label">Reservations</div>
+            <div class="stat-sublabel">Hotels & Flights</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-number">{{ photos_count + documents_count + videos_count + (other_count or 0) }}</div>
+            <div class="stat-label">Media & Docs</div>
+            <div class="stat-sublabel">Photos, Videos & Files</div>
+        </div>
+    </div>
+
+    <!-- Content Grid - Main widget with sidebar -->
+    <div class="content-grid">
+        <!-- Main Files Widget -->
         <div class="widget">
             <div class="widget-header">
-                <h3 class="widget-title">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    Upload Documents
-                </h3>
-                <button class="btn btn-primary" onclick="openUploadModal()">
-                    <i class="fas fa-plus"></i>
-                    Add Files
-                </button>
-            </div>
-            
-            <div class="upload-drop-zone" id="file-drop-zone">
-                <div class="upload-icon">
-                    <i class="fas fa-file-upload"></i>
-                </div>
-                <div class="upload-text">
-                    <h4>Drag & Drop Files Here</h4>
-                    <p>Or click to browse and upload trip documents</p>
-                    <button class="btn btn-secondary" onclick="document.getElementById('file-upload-input').click()">
+                <div class="header-content">
+                    <h3 class="widget-title">
                         <i class="fas fa-folder-open"></i>
-                        Browse Files
+                        Trip Documents
+                    </h3>
+                    <div class="widget-subtitle">
+                        Manage and organize your travel files
+                        {% if recent_count > 0 %}
+                        • {{ recent_count }} recent uploads
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="widget-actions">
+                    <div class="view-toggle">
+                        <button class="btn btn-sm view-btn active" data-view="cards" title="Card View">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button class="btn btn-sm view-btn" data-view="list" title="List View">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="triggerFileSelect()">
+                        <i class="fas fa-plus"></i>
+                        Upload Files
                     </button>
                 </div>
-                <div class="upload-info">
-                    <span>Supports: PDF, DOC, DOCX, JPG, PNG, TXT</span>
-                    <span>Max file size: 25MB</span>
-                </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Files Overview Stats -->
-    <div class="files-stats">
-        <div class="stat-card">
-            <div class="stat-icon documents">
-                <i class="fas fa-file-alt"></i>
-            </div>
-            <div class="stat-info">
-                <div class="stat-number" id="total-files">{{ files|length if files else 0 }}</div>
-                <div class="stat-label">Total Files</div>
-            </div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon size">
-                <i class="fas fa-hdd"></i>
-            </div>
-            <div class="stat-info">
-                <div class="stat-number" id="total-size">{{ total_size or '0 MB' }}</div>
-                <div class="stat-label">Storage Used</div>
-            </div>
-        </div>
-        
-        <div class="stat-card">
-            <div class="stat-icon categories">
-                <i class="fas fa-layer-group"></i>
-            </div>
-            <div class="stat-info">
-                <div class="stat-number" id="total-categories">{{ categories|length if categories else 0 }}</div>
-                <div class="stat-label">Categories</div>
-            </div>
-        </div>
-
-        <div class="stat-card">
-            <div class="stat-icon recent">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="stat-info">
-                <div class="stat-number" id="recent-uploads">{{ recent_count or 0 }}</div>
-                <div class="stat-label">Recent Uploads</div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Category Filters -->
-    <div class="filter-section">
-        <div class="category-filters">
-            <button class="category-filter active" data-category="all">
-                <i class="fas fa-th-large"></i>
-                All Files <span class="count">{{ files|length if files else 0 }}</span>
-            </button>
-            
-            <button class="category-filter" data-category="travel">
-                <i class="fas fa-plane"></i>
-                Travel Documents <span class="count">{{ travel_docs_count or 0 }}</span>
-            </button>
-            
-            <button class="category-filter" data-category="reservations">
-                <i class="fas fa-calendar-check"></i>
-                Reservations <span class="count">{{ reservations_count or 0 }}</span>
-            </button>
-            
-            <button class="category-filter" data-category="photos">
-                <i class="fas fa-images"></i>
-                Photos <span class="count">{{ photos_count or 0 }}</span>
-            </button>
-            
-            <button class="category-filter" data-category="documents">
-                <i class="fas fa-file-alt"></i>
-                Documents <span class="count">{{ documents_count or 0 }}</span>
-            </button>
-            
-            <button class="category-filter" data-category="other">
-                <i class="fas fa-folder"></i>
-                Other <span class="count">{{ other_count or 0 }}</span>
-            </button>
-        </div>
-        
-        <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search files..." id="file-search">
-        </div>
-    </div>
-
-    <!-- Files Grid -->
-    <div class="files-grid" id="files-grid">
-        {% if files and files|length > 0 %}
-            {% for file in files %}
-            <div class="file-card" data-category="{{ file.category }}" data-file-id="{{ file.id }}">
-                <div class="file-preview">
-                    {% if file.type == 'image' %}
-                        <img src="{{ url_for('static', filename='uploads/files/' + file.filename) }}" alt="{{ file.original_name }}" class="file-thumbnail">
-                    {% elif file.type == 'pdf' %}
-                        <div class="file-icon pdf">
-                            <i class="fas fa-file-pdf"></i>
-                        </div>
-                    {% elif file.type == 'document' %}
-                        <div class="file-icon document">
-                            <i class="fas fa-file-word"></i>
-                        </div>
-                    {% else %}
-                        <div class="file-icon general">
-                            <i class="fas fa-file"></i>
-                        </div>
+            <!-- Filters Bar -->
+            <div class="filters-bar">
+                <div class="category-filters">
+                    <button class="filter-badge active" data-category="all">
+                        All <span class="badge-count">{{ files|length if files else 0 }}</span>
+                    </button>
+                    <button class="filter-badge" data-category="travel">
+                        Travel <span class="badge-count">{{ travel_docs_count or 0 }}</span>
+                    </button>
+                    <button class="filter-badge" data-category="reservations">
+                        Bookings <span class="badge-count">{{ reservations_count or 0 }}</span>
+                    </button>
+                    <button class="filter-badge" data-category="photos">
+                        Photos <span class="badge-count">{{ photos_count or 0 }}</span>
+                    </button>
+                    <button class="filter-badge" data-category="videos">
+                        Videos <span class="badge-count">{{ videos_count or 0 }}</span>
+                    </button>
+                    <button class="filter-badge" data-category="documents">
+                        Docs <span class="badge-count">{{ documents_count or 0 }}</span>
+                    </button>
+                    {% if other_count > 0 %}
+                    <button class="filter-badge" data-category="other">
+                        Other <span class="badge-count">{{ other_count }}</span>
+                    </button>
                     {% endif %}
                 </div>
-                
-                <div class="file-info">
-                    <div class="file-name" title="{{ file.original_name }}">
-                        {{ file.original_name }}
-                    </div>
-                    <div class="file-details">
-                        <span class="file-size">{{ file.size }}</span>
-                        <span class="file-date">{{ file.upload_date.strftime('%b %d, %Y') if file.upload_date else 'Unknown' }}</span>
-                    </div>
-                    <div class="file-category">
-                        <span class="category-badge category-{{ file.category }}">
-                            {{ file.category.title() }}
-                        </span>
+
+                <div class="search-section">
+                    <div class="search-input">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search files..." id="file-search">
+                        <button class="clear-search" id="clear-search" style="display: none;">
+                            <i class="fas fa-times"></i>
+                        </button>
                     </div>
                 </div>
-                
-                <div class="file-actions">
-                    <button class="action-btn download-btn" onclick="downloadFile('{{ file.filename }}')" title="Download">
-                        <i class="fas fa-download"></i>
+            </div>
+
+            <!-- Files Display Area -->
+            <div class="files-display">
+                {% if files and files|length > 0 %}
+                    <div class="files-grid view-cards" id="files-container">
+                        {% for file in files %}
+                        <div class="file-item" data-category="{{ file.category or 'other' }}" data-file-id="{{ file.id }}">
+                            <!-- Card View -->
+                            <div class="file-card">
+                                <div class="file-preview" data-action="view" data-file-id="{{ file.id }}" data-file-name="{{ file.original_name }}" data-file-type="{{ file.type }}" data-filename="{{ file.filename }}">
+                                    {% if file.type == 'image' %}
+                                        <img src="{{ url_for('static', filename='uploads/files/' + file.filename) }}"
+                                             alt="{{ file.original_name }}" class="file-thumbnail">
+                                    {% elif file.type == 'video' %}
+                                        <video class="file-thumbnail" muted>
+                                            <source src="{{ url_for('static', filename='uploads/files/' + file.filename) }}"
+                                                    type="video/{{ file.filename.split('.')[-1] }}">
+                                        </video>
+                                    {% else %}
+                                        <div class="file-icon file-icon-{{ file.type }}">
+                                            {% if file.type == 'pdf' %}
+                                                <i class="fas fa-file-pdf"></i>
+                                            {% elif file.type == 'document' %}
+                                                <i class="fas fa-file-word"></i>
+                                            {% elif file.type == 'spreadsheet' %}
+                                                <i class="fas fa-file-excel"></i>
+                                            {% elif file.type == 'video' %}
+                                                <i class="fas fa-file-video"></i>
+                                            {% else %}
+                                                <i class="fas fa-file"></i>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="file-overlay">
+                                        <i class="fas fa-eye"></i>
+                                    </div>
+                                </div>
+
+                                <div class="file-info">
+                                    <div class="file-name" title="{{ file.original_name }}">{{ file.original_name }}</div>
+                                    <div class="file-meta">
+                                        <span class="file-size">{{ file.size or 'Unknown' }}</span>
+                                        <span class="file-date">{{ file.upload_date.strftime('%b %d') if file.upload_date else 'Unknown' }}</span>
+                                    </div>
+                                    <div class="file-category">
+                                        <span class="status-badge status-{{ file.category or 'other' }}">
+                                            {{ (file.category or 'other').title() }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="file-actions">
+                                    <button class="action-btn edit-btn" data-action="edit" data-file-id="{{ file.id }}" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="action-btn" data-action="download" data-filename="{{ file.filename }}" data-original-name="{{ file.original_name }}" title="Download">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    <button class="action-btn delete-btn" data-action="delete" data-file-id="{{ file.id }}" data-file-name="{{ file.original_name }}" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- List View -->
+                            <div class="file-row" style="display: none;">
+                                <div class="row-icon">
+                                    {% if file.type == 'image' %}
+                                        <img src="{{ url_for('static', filename='uploads/files/' + file.filename) }}"
+                                             alt="{{ file.original_name }}" class="row-thumbnail">
+                                    {% elif file.type == 'video' %}
+                                        <video class="row-thumbnail" muted>
+                                            <source src="{{ url_for('static', filename='uploads/files/' + file.filename) }}"
+                                                    type="video/{{ file.filename.split('.')[-1] }}">
+                                        </video>
+                                    {% else %}
+                                        <div class="file-icon-small file-icon-{{ file.type }}">
+                                            {% if file.type == 'pdf' %}
+                                                <i class="fas fa-file-pdf"></i>
+                                            {% elif file.type == 'document' %}
+                                                <i class="fas fa-file-word"></i>
+                                            {% elif file.type == 'spreadsheet' %}
+                                                <i class="fas fa-file-excel"></i>
+                                            {% elif file.type == 'video' %}
+                                                <i class="fas fa-file-video"></i>
+                                            {% else %}
+                                                <i class="fas fa-file"></i>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="row-info" data-action="view" data-file-id="{{ file.id }}" data-file-name="{{ file.original_name }}" data-file-type="{{ file.type }}" data-filename="{{ file.filename }}">
+                                    <div class="row-name">{{ file.original_name }}</div>
+                                    <div class="row-meta">
+                                        <span class="status-badge status-{{ file.category or 'other' }}">
+                                            {{ (file.category or 'other').title() }}
+                                        </span>
+                                        <span class="row-size">{{ file.size or 'Unknown' }}</span>
+                                        <span class="row-date">{{ file.upload_date.strftime('%b %d, %Y') if file.upload_date else 'Unknown' }}</span>
+                                    </div>
+                                </div>
+
+                                <div class="row-actions">
+                                    <button class="task-action-btn edit" data-action="edit" data-file-id="{{ file.id }}" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="task-action-btn" data-action="download" data-filename="{{ file.filename }}" data-original-name="{{ file.original_name }}" title="Download">
+                                        <i class="fas fa-download"></i>
+                                    </button>
+                                    <button class="task-action-btn delete" data-action="delete" data-file-id="{{ file.id }}" data-file-name="{{ file.original_name }}" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <div class="empty-content">
+                            <i class="fas fa-folder-open empty-icon"></i>
+                            <h3>No files uploaded yet</h3>
+                            <p>Upload your first trip document to get started organizing your files</p>
+                            <button class="btn btn-primary" onclick="triggerFileSelect()">
+                                <i class="fas fa-upload"></i> Upload Files
+                            </button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Sidebar Widgets -->
+        <div class="sidebar-widgets">
+            <div class="widget">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-chart-pie"></i>
+                        Storage Overview
+                    </h3>
+                </div>
+                <div class="storage-stats">
+                    <div class="storage-item">
+                        <div class="storage-label">Used Storage</div>
+                        <div class="storage-value">{{ total_size or '0 B' }}</div>
+                    </div>
+                    {% if recent_count > 0 %}
+                    <div class="storage-item">
+                        <div class="storage-label">Recent Uploads</div>
+                        <div class="storage-value">{{ recent_count }}</div>
+                        <div class="storage-sublabel">Last 7 days</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="widget">
+                <div class="widget-header">
+                    <h3 class="widget-title">
+                        <i class="fas fa-bolt"></i>
+                        Quick Actions
+                    </h3>
+                </div>
+                <div class="quick-actions-list">
+                    <button class="quick-action-item" onclick="triggerFileSelect()">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Upload New Files</span>
                     </button>
-                    <button class="action-btn view-btn" onclick="viewFile('{{ file.filename }}', '{{ file.type }}')" title="View">
-                        <i class="fas fa-eye"></i>
+                    <button class="quick-action-item" onclick="filterFiles('travel')">
+                        <i class="fas fa-passport"></i>
+                        <span>View Travel Docs</span>
                     </button>
-                    <button class="action-btn edit-btn" onclick="editFile({{ file.id }})" title="Edit Details">
-                        <i class="fas fa-edit"></i>
+                    <button class="quick-action-item" onclick="filterFiles('photos')">
+                        <i class="fas fa-camera"></i>
+                        <span>Browse Photos</span>
                     </button>
-                    <button class="action-btn delete-btn" onclick="deleteFile({{ file.id }}, '{{ file.original_name }}')" title="Delete">
-                        <i class="fas fa-trash"></i>
+                    <button class="quick-action-item" onclick="filterFiles('videos')">
+                        <i class="fas fa-video"></i>
+                        <span>Browse Videos</span>
                     </button>
                 </div>
             </div>
-            {% endfor %}
-        {% else %}
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="fas fa-folder-open"></i>
-                </div>
-                <h3>No Documents Yet</h3>
-                <p>Upload your first trip document to get started</p>
-                <button class="btn btn-primary" onclick="openUploadModal()">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    Upload Files
-                </button>
-            </div>
-        {% endif %}
+        </div>
+    </div>
+
+    <!-- Drag & Drop Overlay -->
+    <div class="drop-overlay" id="drop-overlay">
+        <div class="drop-content">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <h3>Drop files to upload</h3>
+            <p>Release to add them to your trip documents</p>
+        </div>
     </div>
 </div>
 
-<!-- Hidden file input -->
-<input type="file" id="file-upload-input" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.txt,.zip,.xlsx,.xls" multiple style="display: none;">
-
 <!-- Upload Modal -->
 <div id="upload-modal" class="modal">
-    <div class="modal-content modal-large">
+    <div class="modal-content">
         <div class="modal-header">
             <h3 class="modal-title">Upload Files</h3>
             <button class="modal-close" onclick="closeUploadModal()">&times;</button>
         </div>
+
         <div class="modal-body">
-            <div class="upload-area" id="modal-drop-zone">
-                <i class="fas fa-cloud-upload-alt"></i>
+            <div class="upload-zone" id="modal-upload-zone">
+                <i class="fas fa-plus-circle upload-icon"></i>
+                <h4>Select files to upload</h4>
                 <p>Drag & drop files here or click to browse</p>
-                <button type="button" class="btn btn-primary" onclick="document.getElementById('file-upload-input').click()">
-                    <i class="fas fa-folder-open"></i>
-                    Choose Files
+                <p style="font-size: 12px; color: var(--text-light); margin-top: 8px;">
+                    Supports: Documents, Images, Videos (PDF, DOC, JPG, PNG, MOV, MP4, etc.)
+                </p>
+                <button class="btn btn-secondary" onclick="triggerFileSelect()">
+                    <i class="fas fa-folder-open"></i> Browse Files
                 </button>
             </div>
 
-            <div class="file-list" id="upload-file-list" style="display: none;">
-                <h4>Files to Upload</h4>
-                <div class="upload-files" id="upload-files-container"></div>
+            <div class="selected-files" id="selected-files" style="display: none;">
+                <h4>Selected Files</h4>
+                <div class="files-list" id="files-list"></div>
+
+                <div class="upload-actions">
+                    <button class="btn btn-secondary" onclick="clearSelectedFiles()">Clear All</button>
+                    <button class="btn btn-primary" onclick="startUpload()" id="upload-btn">
+                        <i class="fas fa-upload"></i> Upload <span id="file-count">0</span> Files
+                    </button>
+                </div>
             </div>
 
             <div class="upload-progress" id="upload-progress" style="display: none;">
+                <div class="progress-info">
+                    <span>Uploading files...</span>
+                    <span id="progress-text">0%</span>
+                </div>
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill"></div>
                 </div>
-                <p id="progress-text">Uploading files...</p>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeUploadModal()">Cancel</button>
-            <button type="button" class="btn btn-primary" id="upload-files-btn" onclick="uploadFiles()" style="display: none;">
-                <i class="fas fa-upload"></i>
-                Upload Files
-            </button>
         </div>
     </div>
 </div>
 
-<!-- File Edit Modal -->
-<div id="edit-file-modal" class="modal">
+<!-- Edit File Modal -->
+<div id="edit-modal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
-            <h3 class="modal-title">Edit File Details</h3>
+            <h3 class="modal-title">Edit File</h3>
             <button class="modal-close" onclick="closeEditModal()">&times;</button>
         </div>
-        <form class="modal-body" id="edit-file-form">
-            <div class="form-group">
-                <label class="form-label">File Name</label>
-                <input type="text" class="form-input" id="edit-file-name" placeholder="Enter file name">
+
+        <form id="edit-form">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">File Name</label>
+                    <input type="text" class="form-input" id="edit-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select class="form-select" id="edit-category">
+                        <option value="travel">Travel Documents</option>
+                        <option value="reservations">Reservations</option>
+                        <option value="photos">Photos</option>
+                        <option value="videos">Videos</option>
+                        <option value="documents">Documents</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-textarea" id="edit-notes" rows="3" placeholder="Add notes about this file..."></textarea>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label class="form-label">Category</label>
-                <select class="form-select" id="edit-file-category">
-                    <option value="travel">Travel Documents</option>
-                    <option value="reservations">Reservations</option>
-                    <option value="photos">Photos</option>
-                    <option value="documents">Documents</option>
-                    <option value="other">Other</option>
-                </select>
-            </div>
-            
-            <div class="form-group">
-                <label class="form-label">Notes</label>
-                <textarea class="form-textarea" id="edit-file-notes" rows="3" placeholder="Add any notes about this file..."></textarea>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="save-btn">
+                    <i class="fas fa-save"></i> Save Changes
+                </button>
             </div>
         </form>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
-            <button type="submit" form="edit-file-form" class="btn btn-primary">
-                <i class="fas fa-save"></i>
-                Save Changes
-            </button>
-        </div>
     </div>
 </div>
 
 <!-- File Viewer Modal -->
-<div id="file-viewer-modal" class="modal modal-fullscreen">
-    <div class="modal-content">
+<div id="viewer-modal" class="modal">
+    <div class="modal-content modal-large">
         <div class="modal-header">
             <h3 class="modal-title" id="viewer-title">File Viewer</h3>
-            <button class="modal-close" onclick="closeViewerModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div id="file-viewer-content">
-                <!-- File content will be loaded here -->
+            <div class="viewer-actions">
+                <button class="btn btn-secondary btn-sm" id="download-btn-viewer">
+                    <i class="fas fa-download"></i> Download
+                </button>
+                <button class="modal-close" onclick="closeViewerModal()">&times;</button>
             </div>
         </div>
+
+        <div class="modal-body">
+            <div id="viewer-content">
+                <!-- File content loads here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Confirm Delete</h3>
+            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+        </div>
+
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="delete-filename">this file</strong>?</p>
+            <p style="color: var(--text-secondary); font-size: 13px; margin-top: 8px;">This action cannot be undone.</p>
+        </div>
+
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closeViewerModal()">Close</button>
-            <button type="button" class="btn btn-primary" id="download-from-viewer">
-                <i class="fas fa-download"></i>
-                Download
+            <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="executeDelete()" id="confirm-delete-btn">
+                <i class="fas fa-trash"></i> Delete File
             </button>
         </div>
     </div>
@@ -304,12 +444,6 @@
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/files.js') }}"></script>
 <script>
-    // Pass Flask data to JavaScript
     window.FILES_DATA = {{ files | tojson if files else [] }};
-
-    // Initialize files page functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        initializeFilesPage();
-    });
 </script>
 {% endblock %}

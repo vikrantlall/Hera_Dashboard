@@ -14,25 +14,34 @@
         <div class="ring-gallery">
             <div class="ring-main-image">
                 {% if ring_images and ring_images|length > 0 %}
-                    <img src="{{ url_for('static', filename='uploads/ring/' + ring_images[0]) }}" alt="Engagement Ring" id="main-ring-image">
+                    {% set first_file = ring_images[0] %}
+                    {% set file_ext = first_file.split('.')[-1].lower() %}
+                    {% if file_ext in ['mov', 'mp4', 'avi', 'mkv', 'webm'] %}
+                        <video controls id="main-ring-media" class="ring-media-element">
+                            <source src="{{ url_for('static', filename='uploads/ring/' + first_file) }}" type="video/{{ 'mp4' if file_ext == 'mp4' else 'quicktime' if file_ext == 'mov' else file_ext }}">
+                            Your browser does not support video playback.
+                        </video>
+                    {% else %}
+                        <img src="{{ url_for('static', filename='uploads/ring/' + first_file) }}" alt="Engagement Ring" id="main-ring-media" class="ring-media-element">
+                    {% endif %}
                     <div class="image-overlay">
-                        <button class="image-action-btn" onclick="openPhotoLightbox('{{ ring_images[0] }}')" title="View Full Size">
+                        <button class="image-action-btn" onclick="openMediaLightbox('{{ first_file }}')" title="View Full Size">
                             <i class="fas fa-expand"></i>
                         </button>
-                        <button class="image-action-btn" onclick="openImageUpload()" title="Upload More Images">
+                        <button class="image-action-btn" onclick="openMediaUpload()" title="Upload More Media">
                             <i class="fas fa-camera"></i>
                         </button>
-                        <button class="image-action-btn" onclick="deleteRingImage('{{ ring_images[0] }}')" title="Delete Image">
+                        <button class="image-action-btn" onclick="deleteRingMedia('{{ first_file }}')" title="Delete Media">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 {% else %}
-                    <div class="ring-image-placeholder" onclick="openImageUpload()">
+                    <div class="ring-image-placeholder" onclick="openMediaUpload()">
                         <i class="fas fa-gem"></i>
-                        <p>Click to upload ring photos</p>
+                        <p>Click to upload ring photos & videos</p>
                         <button class="btn btn-primary">
                             <i class="fas fa-camera"></i>
-                            Upload Photos
+                            Upload Media
                         </button>
                     </div>
                 {% endif %}
@@ -40,10 +49,20 @@
 
             {% if ring_images and ring_images|length > 1 %}
             <div class="ring-thumbnails">
-                {% for image in ring_images %}
-                <div class="ring-thumbnail {{ 'active' if loop.first else '' }}" onclick="changeMainImage('{{ image }}')">
-                    <img src="{{ url_for('static', filename='uploads/ring/' + image) }}" alt="Ring Image {{ loop.index }}">
-                    <button class="thumbnail-delete" onclick="deleteRingImage('{{ image }}')" title="Delete">
+                {% for media_file in ring_images %}
+                {% set file_ext = media_file.split('.')[-1].lower() %}
+                <div class="ring-thumbnail {{ 'active' if loop.first else '' }}" onclick="changeMainMedia('{{ media_file }}')">
+                    {% if file_ext in ['mov', 'mp4', 'avi', 'mkv', 'webm'] %}
+                        <video class="thumbnail-video">
+                            <source src="{{ url_for('static', filename='uploads/ring/' + media_file) }}" type="video/{{ 'mp4' if file_ext == 'mp4' else 'quicktime' if file_ext == 'mov' else file_ext }}">
+                        </video>
+                        <div class="video-play-icon">
+                            <i class="fas fa-play"></i>
+                        </div>
+                    {% else %}
+                        <img src="{{ url_for('static', filename='uploads/ring/' + media_file) }}" alt="Ring Media {{ loop.index }}">
+                    {% endif %}
+                    <button class="thumbnail-delete" onclick="event.stopPropagation(); deleteRingMedia('{{ media_file }}')" title="Delete">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -54,7 +73,7 @@
 
         <div class="ring-details">
             <h1 class="ring-title">{{ ring['Stone(s)'] or 'Diamond' }} Ring</h1>
-            <p class="ring-subtitle">{{ ring.Metal or '18k Gold' }} • {{ ring.Jeweler or 'Custom Jeweler' }}</p>
+            <p class="ring-subtitle">{{ ring.Metal or '18k Gold' }} â€¢ {{ ring.Jeweler or 'Custom Jeweler' }}</p>
 
             <div class="ring-specs">
                 <div class="spec-item">
@@ -103,21 +122,16 @@
                 {% endif %}
             </div>
 
+
             <div class="ring-actions">
-                <button class="btn btn-primary" onclick="openRingEditModal()">
+                <button class="btn btn-primary" onclick="openMediaUpload()">
+                    <i class="fas fa-camera"></i>
+                    Add Media
+                </button>
+                <button class="btn btn-outline" onclick="openRingEditModal()">
                     <i class="fas fa-edit"></i>
                     Edit Details
                 </button>
-                <button class="btn btn-secondary" onclick="openImageUpload()">
-                    <i class="fas fa-camera"></i>
-                    Add Photos
-                </button>
-                {% if ring.Insured != 'Yes' %}
-                <button class="btn btn-outline" onclick="updateInsuranceStatus()">
-                    <i class="fas fa-shield-alt"></i>
-                    Mark Insured
-                </button>
-                {% endif %}
             </div>
         </div>
     </div>
@@ -203,28 +217,28 @@
     </div>
 </div>
 
-<!-- Hidden file input for photo uploads -->
-<input type="file" id="photo-upload-input" accept="image/*" multiple style="display: none;">
+<!-- Hidden file input for media uploads -->
+<input type="file" id="media-upload-input" accept="image/*,video/*" multiple style="display: none;">
 
-<!-- Photo Upload Modal -->
-<div id="photo-upload-modal" class="modal">
+<!-- Media Upload Modal -->
+<div id="media-upload-modal" class="modal">
     <div class="modal-content modal-large">
         <div class="modal-header">
-            <h3 class="modal-title">Upload Ring Photos</h3>
-            <button class="modal-close" onclick="closePhotoUploadModal()">&times;</button>
+            <h3 class="modal-title">Upload Ring Photos & Videos</h3>
+            <button class="modal-close" onclick="closeMediaUploadModal()">&times;</button>
         </div>
         <div class="modal-body">
             <div class="upload-drop-zone" id="upload-drop-zone">
                 <i class="fas fa-cloud-upload-alt"></i>
-                <p>Drag & drop photos here or click to browse</p>
-                <button type="button" class="btn btn-primary" onclick="document.getElementById('photo-upload-input').click()">
+                <p>Drag & drop photos/videos here or click to browse</p>
+                <button type="button" class="btn btn-primary" onclick="document.getElementById('media-upload-input').click()">
                     <i class="fas fa-camera"></i>
-                    Choose Photos
+                    Choose Media
                 </button>
             </div>
 
             <div class="upload-preview" id="upload-preview" style="display: none;">
-                <h4>Photos to Upload</h4>
+                <h4>Media to Upload</h4>
                 <div class="preview-grid" id="preview-grid"></div>
             </div>
 
@@ -232,14 +246,14 @@
                 <div class="progress-bar">
                     <div class="progress-fill" id="progress-fill"></div>
                 </div>
-                <p id="progress-text">Uploading photos...</p>
+                <p id="progress-text">Uploading media...</p>
             </div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="closePhotoUploadModal()">Cancel</button>
-            <button type="button" class="btn btn-primary" id="upload-photos-btn" onclick="uploadSelectedPhotos()" style="display: none;">
+            <button type="button" class="btn btn-secondary" onclick="closeMediaUploadModal()">Cancel</button>
+            <button type="button" class="btn btn-primary" id="upload-media-btn" onclick="uploadSelectedMedia()" style="display: none;">
                 <i class="fas fa-upload"></i>
-                Upload Photos
+                Upload Media
             </button>
         </div>
     </div>
@@ -341,17 +355,23 @@
 </div>
 
 
-<!-- Photo Lightbox -->
-<div id="photo-lightbox" class="lightbox">
+<!-- Media Lightbox -->
+<div id="media-lightbox" class="lightbox">
     <div class="lightbox-content">
         <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
-        <img id="lightbox-image" src="" alt="Ring Photo">
+        <div id="lightbox-media-container">
+            <img id="lightbox-image" src="" alt="Ring Media" style="display: none;">
+            <video id="lightbox-video" controls style="display: none;">
+                <source src="" type="video/mp4">
+                Your browser does not support video playback.
+            </video>
+        </div>
         {% if ring_images and ring_images|length > 1 %}
         <div class="lightbox-nav">
-            <button class="lightbox-nav-btn" onclick="previousPhoto()">
+            <button class="lightbox-nav-btn" onclick="previousMedia()">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <button class="lightbox-nav-btn" onclick="nextPhoto()">
+            <button class="lightbox-nav-btn" onclick="nextMedia()">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
