@@ -1,8 +1,9 @@
-// Ring JavaScript functionality - UPDATED FOR VIDEO SUPPORT
+// Ring JavaScript functionality - UPDATED VERSION WITH GALLERY NAVIGATION
 // This file should be saved as static/js/ring.js
 
 let selectedFiles = [];
 let currentMediaIndex = 0;
+let currentGalleryIndex = 0; // New: track main gallery position
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Initializing ring page...');
@@ -15,70 +16,184 @@ function initializeRingPage() {
     setupMediaGallery();
     setupModals();
     setupDragAndDrop();
+    setupGalleryNavigation(); // New: setup main gallery navigation
     console.log('Ring page initialized successfully');
 }
 
-// Media Upload System (replaces photo upload)
+// NEW: Setup Gallery Navigation with button cleanup
+function setupGalleryNavigation() {
+    // Initialize gallery index based on first media
+    if (window.RING_IMAGES && window.RING_IMAGES.length > 0) {
+        currentGalleryIndex = 0;
+        console.log('Gallery initialized with', window.RING_IMAGES.length, 'media files:', window.RING_IMAGES);
+
+        // Remove expand buttons from all overlays since we don't want fullscreen
+        removeExpandButtons();
+
+        // Add navigation arrows to main gallery if more than 1 media
+        if (window.RING_IMAGES.length > 1) {
+            addGalleryNavigationArrows();
+            console.log('Gallery navigation arrows added');
+        }
+
+        // Set initial active thumbnail
+        updateThumbnailActiveState(window.RING_IMAGES[0]);
+    } else {
+        console.log('No media files found or RING_IMAGES not available');
+    }
+}
+
+// NEW: Remove expand buttons from overlays
+function removeExpandButtons() {
+    const expandButtons = document.querySelectorAll('[onclick*="openMediaLightbox"], [title*="View Full Size"], [title*="Expand"]');
+    expandButtons.forEach(btn => btn.remove());
+}
+
+// NEW: Add navigation arrows to main gallery
+function addGalleryNavigationArrows() {
+    const mainImageContainer = document.querySelector('.ring-main-image');
+    if (!mainImageContainer || document.querySelector('.gallery-nav-arrows')) {
+        return; // Already exists or container not found
+    }
+
+    const navContainer = document.createElement('div');
+    navContainer.className = 'gallery-nav-arrows';
+
+    const prevBtn = document.createElement('button');
+    prevBtn.className = 'gallery-nav-btn gallery-nav-prev';
+    prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+    prevBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        previousGalleryMedia();
+    };
+
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'gallery-nav-btn gallery-nav-next';
+    nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+    nextBtn.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        nextGalleryMedia();
+    };
+
+    navContainer.appendChild(prevBtn);
+    navContainer.appendChild(nextBtn);
+    mainImageContainer.appendChild(navContainer);
+}
+
+// NEW: Navigate to previous media in main gallery
+function previousGalleryMedia() {
+    if (!window.RING_IMAGES || window.RING_IMAGES.length <= 1) {
+        console.log('Cannot navigate: insufficient media files');
+        return;
+    }
+
+    currentGalleryIndex = currentGalleryIndex > 0 ? currentGalleryIndex - 1 : window.RING_IMAGES.length - 1;
+    const mediaName = window.RING_IMAGES[currentGalleryIndex];
+    console.log('Navigating to previous media:', mediaName, 'at index:', currentGalleryIndex);
+    changeMainMedia(mediaName);
+}
+
+// NEW: Navigate to next media in main gallery
+function nextGalleryMedia() {
+    if (!window.RING_IMAGES || window.RING_IMAGES.length <= 1) {
+        console.log('Cannot navigate: insufficient media files');
+        return;
+    }
+
+    currentGalleryIndex = currentGalleryIndex < window.RING_IMAGES.length - 1 ? currentGalleryIndex + 1 : 0;
+    const mediaName = window.RING_IMAGES[currentGalleryIndex];
+    console.log('Navigating to next media:', mediaName, 'at index:', currentGalleryIndex);
+    changeMainMedia(mediaName);
+}
+
+// Media Upload System (FIXED - prevents duplicate handlers)
 function setupMediaUpload() {
     const fileInput = document.getElementById('media-upload-input');
     if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-            handleFileSelection(e.target.files);
-        });
+        // Clear any existing event listeners
+        fileInput.replaceWith(fileInput.cloneNode(true));
+        const newFileInput = document.getElementById('media-upload-input');
+        newFileInput.addEventListener('change', handleFileInputChange);
     }
 
-    // Setup upload buttons
-    const uploadButtons = document.querySelectorAll('[onclick*="openMediaUpload"]');
-    uploadButtons.forEach(btn => {
-        btn.onclick = function(e) {
-            e.preventDefault();
-            openMediaUpload();
-        };
-    });
+    // Use event delegation to prevent duplicates
+    document.removeEventListener('click', handleUploadButtonClick);
+    document.addEventListener('click', handleUploadButtonClick);
+}
+
+// Separate handler functions to prevent duplicates
+function handleFileInputChange(e) {
+    handleFileSelection(e.target.files);
+    // Clear the input to allow re-uploading the same files if needed
+    e.target.value = '';
+}
+
+function handleUploadButtonClick(e) {
+    if (e.target.closest('[onclick*="openMediaUpload"], .btn[data-action="upload"]')) {
+        e.preventDefault();
+        e.stopPropagation();
+        openMediaUpload();
+    }
+    // Handle upload selected button
+    if (e.target.closest('#upload-media-btn')) {
+        e.preventDefault();
+        e.stopPropagation();
+        uploadSelectedMedia();
+    }
 }
 
 function setupDragAndDrop() {
     const dropZone = document.getElementById('upload-drop-zone');
     if (!dropZone) return;
 
-    dropZone.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.classList.add('drag-over');
-    });
+    // Remove existing listeners to prevent duplicates
+    dropZone.removeEventListener('dragover', handleDragOver);
+    dropZone.removeEventListener('dragleave', handleDragLeave);
+    dropZone.removeEventListener('drop', handleDrop);
 
-    dropZone.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.classList.remove('drag-over');
-    });
+    dropZone.addEventListener('dragover', handleDragOver);
+    dropZone.addEventListener('dragleave', handleDragLeave);
+    dropZone.addEventListener('drop', handleDrop);
+}
 
-    dropZone.addEventListener('drop', function(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        this.classList.remove('drag-over');
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.add('drag-over');
+}
 
-        const files = Array.from(e.dataTransfer.files);
-        const mediaFiles = files.filter(file =>
-            file.type.startsWith('image/') || file.type.startsWith('video/')
-        );
+function handleDragLeave(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('drag-over');
+}
 
-        if (mediaFiles.length > 0) {
-            handleFileSelection(mediaFiles);
-        }
-    });
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    this.classList.remove('drag-over');
 
-    dropZone.addEventListener('click', function() {
-        document.getElementById('media-upload-input').click();
-    });
+    const files = Array.from(e.dataTransfer.files);
+    const mediaFiles = files.filter(file =>
+        file.type.startsWith('image/') || file.type.startsWith('video/')
+    );
+
+    if (mediaFiles.length > 0) {
+        handleFileSelection(mediaFiles);
+    }
 }
 
 function openMediaUpload() {
+    // Clear previous selections to prevent accumulation
+    selectedFiles = [];
+    clearPreviewGrid();
+
     const modal = document.getElementById('media-upload-modal');
     if (modal) {
+        modal.style.display = 'flex';
         modal.classList.add('show');
-        selectedFiles = [];
-        updateUploadPreview();
     }
 }
 
@@ -86,91 +201,155 @@ function closeMediaUploadModal() {
     const modal = document.getElementById('media-upload-modal');
     if (modal) {
         modal.classList.remove('show');
-        selectedFiles = [];
-        updateUploadPreview();
+        setTimeout(() => {
+            modal.style.display = 'none';
+            // Clear selections and preview when closing
+            selectedFiles = [];
+            clearPreviewGrid();
+            const fileInput = document.getElementById('media-upload-input');
+            if (fileInput) fileInput.value = '';
+        }, 300);
     }
 }
 
+function clearPreviewGrid() {
+    const previewSection = document.getElementById('upload-preview');
+    const previewGrid = document.getElementById('preview-grid');
+    const uploadBtn = document.getElementById('upload-media-btn');
+
+    if (previewSection) previewSection.style.display = 'none';
+    if (previewGrid) previewGrid.innerHTML = '';
+    if (uploadBtn) uploadBtn.style.display = 'none';
+}
+
 function handleFileSelection(files) {
-    selectedFiles = Array.from(files).filter(file =>
-        file.type.startsWith('image/') || file.type.startsWith('video/')
-    );
+    // Clear previous selections to prevent duplicates
+    selectedFiles = [];
+
+    const validFiles = Array.from(files).filter(file => {
+        const validTypes = [
+            'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+            'video/mp4', 'video/quicktime', 'video/webm', 'video/avi'
+        ];
+        return validTypes.includes(file.type);
+    });
+
+    if (validFiles.length === 0) {
+        showNotification('Please select valid image or video files', 'warning');
+        return;
+    }
+
+    // Add files to selection (no duplicates since we cleared above)
+    selectedFiles = [...validFiles];
+
     updateUploadPreview();
 }
 
 function updateUploadPreview() {
     const previewSection = document.getElementById('upload-preview');
     const previewGrid = document.getElementById('preview-grid');
-    const uploadBtn = document.getElementById('upload-media-btn');
 
     if (!previewSection || !previewGrid) return;
 
     if (selectedFiles.length === 0) {
         previewSection.style.display = 'none';
-        if (uploadBtn) uploadBtn.style.display = 'none';
         return;
     }
 
-    previewSection.style.display = 'block';
-    if (uploadBtn) uploadBtn.style.display = 'inline-flex';
-
+    // Clear existing preview items
     previewGrid.innerHTML = '';
 
     selectedFiles.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const previewItem = document.createElement('div');
-            previewItem.className = 'preview-item';
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+        previewItem.dataset.index = index;
 
-            if (file.type.startsWith('video/')) {
-                previewItem.innerHTML = `
-                    <video muted>
-                        <source src="${e.target.result}" type="${file.type}">
-                    </video>
-                    <button class="preview-remove" onclick="removeSelectedFile(${index})">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-            } else {
-                previewItem.innerHTML = `
-                    <img src="${e.target.result}" alt="Preview ${index + 1}">
-                    <button class="preview-remove" onclick="removeSelectedFile(${index})">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-            }
-            previewGrid.appendChild(previewItem);
+        const isVideo = file.type.startsWith('video/');
+        let mediaElement;
+
+        if (isVideo) {
+            mediaElement = document.createElement('video');
+            mediaElement.muted = true;
+            mediaElement.loop = true;
+        } else {
+            mediaElement = document.createElement('img');
+        }
+
+        mediaElement.src = URL.createObjectURL(file);
+        mediaElement.alt = file.name;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-preview-btn';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            removeFromSelection(index);
         };
-        reader.readAsDataURL(file);
+
+        previewItem.appendChild(mediaElement);
+        previewItem.appendChild(removeBtn);
+        previewGrid.appendChild(previewItem);
+
+        if (isVideo) {
+            mediaElement.onloadedmetadata = () => mediaElement.play();
+        }
     });
+
+    previewSection.style.display = 'block';
+
+    // Show upload button
+    const uploadBtn = document.getElementById('upload-media-btn');
+    if (uploadBtn) {
+        uploadBtn.style.display = 'inline-block';
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Media';
+    }
 }
 
-function removeSelectedFile(index) {
-    selectedFiles.splice(index, 1);
-    updateUploadPreview();
+function removeFromSelection(index) {
+    if (index >= 0 && index < selectedFiles.length) {
+        // Revoke object URL to prevent memory leaks
+        const previewItem = document.querySelector(`.preview-item[data-index="${index}"]`);
+        if (previewItem) {
+            const mediaElement = previewItem.querySelector('img, video');
+            if (mediaElement && mediaElement.src.startsWith('blob:')) {
+                URL.revokeObjectURL(mediaElement.src);
+            }
+        }
+
+        selectedFiles.splice(index, 1);
+        updateUploadPreview();
+    }
 }
 
 function uploadSelectedMedia() {
     if (selectedFiles.length === 0) {
-        showNotification('No files selected', 'error');
+        showNotification('Please select files to upload', 'warning');
         return;
     }
 
-    const uploadBtn = document.getElementById('upload-media-btn');
-    const progressSection = document.getElementById('upload-progress');
-    const progressFill = document.getElementById('progress-fill');
-    const progressText = document.getElementById('progress-text');
+    const uploadBtn = document.querySelector('#upload-media-btn');
+    const progressSection = document.querySelector('.upload-progress');
+    const progressFill = document.querySelector('.progress-fill');
 
-    // Show progress
-    if (progressSection) progressSection.style.display = 'block';
+    // Prevent multiple uploads
+    if (uploadBtn && uploadBtn.disabled) {
+        return;
+    }
+
     if (uploadBtn) {
         uploadBtn.disabled = true;
         uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
     }
 
+    if (progressSection) {
+        progressSection.style.display = 'block';
+    }
+
     const formData = new FormData();
-    selectedFiles.forEach((file, index) => {
-        formData.append('media', file);  // Backend expects 'media' key
+    selectedFiles.forEach(file => {
+        formData.append('media', file);
     });
 
     fetch('/api/ring/upload-media', {
@@ -179,15 +358,30 @@ function uploadSelectedMedia() {
     })
     .then(response => {
         if (!response.ok) {
-            throw new Error(`Upload failed: ${response.status}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
+        if (progressFill) progressFill.style.width = '100%';
+
         if (data.success) {
-            showNotification('Media uploaded successfully!', 'success');
+            showNotification(`Successfully uploaded ${data.files.length} file(s)`, 'success');
+
+            // Clean up object URLs
+            selectedFiles.forEach((file, index) => {
+                const previewItem = document.querySelector(`.preview-item[data-index="${index}"]`);
+                if (previewItem) {
+                    const mediaElement = previewItem.querySelector('img, video');
+                    if (mediaElement && mediaElement.src.startsWith('blob:')) {
+                        URL.revokeObjectURL(mediaElement.src);
+                    }
+                }
+            });
+
             closeMediaUploadModal();
-            // Refresh the page to show new media
+
+            // Reload page to show new media
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
@@ -197,10 +391,10 @@ function uploadSelectedMedia() {
     })
     .catch(error => {
         console.error('Upload error:', error);
-        showNotification('Failed to upload media', 'error');
+        showNotification('Failed to upload media: ' + error.message, 'error');
     })
     .finally(() => {
-        // Reset UI
+        // Reset UI state
         if (progressSection) progressSection.style.display = 'none';
         if (uploadBtn) {
             uploadBtn.disabled = false;
@@ -210,32 +404,64 @@ function uploadSelectedMedia() {
     });
 }
 
-// Media Gallery Functions (replaces image gallery)
+// Media Gallery Functions (UPDATED - with improved video/image support)
 function setupMediaGallery() {
-    // Setup thumbnail clicks
-    const thumbnails = document.querySelectorAll('.ring-thumbnail');
-    thumbnails.forEach(thumbnail => {
-        if (!thumbnail.onclick) {
-            thumbnail.addEventListener('click', function() {
-                const mediaElement = this.querySelector('img, video');
-                if (mediaElement) {
-                    const mediaName = mediaElement.src.split('/').pop();
-                    changeMainMedia(mediaName);
-                }
-            });
-        }
-    });
+    // Use event delegation for thumbnail clicks to prevent duplicates
+    document.removeEventListener('click', handleThumbnailClick);
+    document.addEventListener('click', handleThumbnailClick);
 
     // Setup main media click for lightbox
     const mainMedia = document.getElementById('main-ring-media');
     if (mainMedia) {
-        mainMedia.addEventListener('click', function() {
-            const mediaName = this.src.split('/').pop();
-            openMediaLightbox(mediaName);
-        });
+        mainMedia.removeEventListener('click', handleMainMediaClick);
+        mainMedia.addEventListener('click', handleMainMediaClick);
     }
 }
 
+function handleThumbnailClick(e) {
+    const thumbnail = e.target.closest('.ring-thumbnail');
+    if (thumbnail && !thumbnail.hasAttribute('data-processed')) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const mediaElement = thumbnail.querySelector('img, video');
+        if (mediaElement) {
+            let mediaName = null;
+
+            // Handle different media element types
+            if (mediaElement.tagName === 'IMG') {
+                mediaName = mediaElement.src.split('/').pop();
+            } else if (mediaElement.tagName === 'VIDEO') {
+                // For video elements, get the src from the source element
+                const source = mediaElement.querySelector('source');
+                if (source && source.src) {
+                    mediaName = source.src.split('/').pop();
+                } else if (mediaElement.src) {
+                    mediaName = mediaElement.src.split('/').pop();
+                }
+            }
+
+            if (mediaName) {
+                // Update gallery index when thumbnail is clicked
+                if (window.RING_IMAGES) {
+                    currentGalleryIndex = window.RING_IMAGES.indexOf(mediaName);
+                    if (currentGalleryIndex === -1) currentGalleryIndex = 0;
+                }
+
+                changeMainMedia(mediaName);
+            }
+        }
+    }
+}
+
+function handleMainMediaClick(e) {
+    // Disabled - no fullscreen/lightbox functionality
+    // Users can only navigate using arrows and thumbnails
+    e.preventDefault();
+    return false;
+}
+
+// UPDATED: Enhanced changeMainMedia function with better video support
 function changeMainMedia(mediaName) {
     const mainMediaContainer = document.querySelector('.ring-main-image');
     if (!mainMediaContainer) return;
@@ -246,6 +472,10 @@ function changeMainMedia(mediaName) {
     // Remove existing media element
     const existingMedia = mainMediaContainer.querySelector('#main-ring-media');
     if (existingMedia) {
+        // Pause video if it's playing
+        if (existingMedia.tagName === 'VIDEO') {
+            existingMedia.pause();
+        }
         existingMedia.remove();
     }
 
@@ -254,26 +484,52 @@ function changeMainMedia(mediaName) {
     if (isVideo) {
         newMediaElement = document.createElement('video');
         newMediaElement.controls = true;
+        newMediaElement.muted = false; // Allow sound
+        newMediaElement.preload = 'metadata';
         newMediaElement.className = 'ring-media-element';
         newMediaElement.id = 'main-ring-media';
 
         const source = document.createElement('source');
         source.src = `/static/uploads/ring/${mediaName}`;
-        source.type = `video/${fileExt === 'mov' ? 'quicktime' : fileExt}`;
+
+        // Better MIME type detection
+        const mimeTypes = {
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'avi': 'video/x-msvideo',
+            'mov': 'video/quicktime',
+            'mkv': 'video/x-matroska'
+        };
+        source.type = mimeTypes[fileExt] || 'video/mp4';
+
         newMediaElement.appendChild(source);
+        newMediaElement.addEventListener('click', handleMainMediaClick);
+
+        // Add error handling for videos
+        newMediaElement.addEventListener('error', function() {
+            console.error('Error loading video:', mediaName);
+            showNotification('Error loading video file', 'error');
+        });
+
+        // Add loaded event for better UX
+        newMediaElement.addEventListener('loadedmetadata', function() {
+            console.log('Video loaded successfully:', mediaName);
+        });
+
     } else {
         newMediaElement = document.createElement('img');
         newMediaElement.src = `/static/uploads/ring/${mediaName}`;
         newMediaElement.alt = 'Engagement Ring';
         newMediaElement.className = 'ring-media-element';
         newMediaElement.id = 'main-ring-media';
-    }
+        newMediaElement.addEventListener('click', handleMainMediaClick);
 
-    // Add click event for lightbox
-    newMediaElement.addEventListener('click', function() {
-        const mediaName = this.src.split('/').pop();
-        openMediaLightbox(mediaName);
-    });
+        // Add error handling for images
+        newMediaElement.addEventListener('error', function() {
+            console.error('Error loading image:', mediaName);
+            showNotification('Error loading image file', 'error');
+        });
+    }
 
     // Insert before overlay
     const overlay = mainMediaContainer.querySelector('.image-overlay');
@@ -283,449 +539,321 @@ function changeMainMedia(mediaName) {
         mainMediaContainer.appendChild(newMediaElement);
     }
 
-    // Update active thumbnail
-    const thumbnails = document.querySelectorAll('.ring-thumbnail');
-    thumbnails.forEach(thumb => {
-        thumb.classList.remove('active');
-        const mediaElement = thumb.querySelector('img, video');
-        if (mediaElement && mediaElement.src.includes(mediaName)) {
-            thumb.classList.add('active');
-        }
-    });
+    // Update thumbnails active state
+    updateThumbnailActiveState(mediaName);
 
-    // Update current index for lightbox navigation
-    if (window.RING_IMAGES) {
-        currentMediaIndex = window.RING_IMAGES.indexOf(mediaName);
+    // Update overlay actions to reflect current media
+    updateOverlayActions(mediaName);
+}
+
+// NEW: Update overlay action buttons for current media (removed expand button entirely)
+function updateOverlayActions(mediaName) {
+    const overlay = document.querySelector('.image-overlay');
+    if (!overlay) return;
+
+    // Remove the expand button completely
+    const expandBtn = overlay.querySelector('[onclick*="openMediaLightbox"]');
+    if (expandBtn) {
+        expandBtn.remove();
+    }
+
+    // Keep only upload and delete buttons
+    const deleteBtn = overlay.querySelector('[onclick*="deleteRingMedia"]');
+    if (deleteBtn) {
+        deleteBtn.onclick = () => deleteRingMedia(mediaName);
     }
 }
 
+function updateThumbnailActiveState(activeMediaName) {
+    const thumbnails = document.querySelectorAll('.ring-thumbnail');
+    thumbnails.forEach(thumb => {
+        const media = thumb.querySelector('img, video');
+        if (media) {
+            let mediaSrc = null;
+
+            // Handle different media element types
+            if (media.tagName === 'IMG') {
+                mediaSrc = media.src.split('/').pop();
+            } else if (media.tagName === 'VIDEO') {
+                // For video elements, get the src from the source element
+                const source = media.querySelector('source');
+                if (source && source.src) {
+                    mediaSrc = source.src.split('/').pop();
+                } else if (media.src) {
+                    mediaSrc = media.src.split('/').pop();
+                }
+            }
+
+            thumb.classList.toggle('active', mediaSrc === activeMediaName);
+        }
+    });
+}
+
+// Notification system
+function showNotification(message, type = 'info') {
+    // Remove existing notifications
+    const existing = document.querySelectorAll('.notification');
+    existing.forEach(n => n.remove());
+
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.textContent = message;
+
+    document.body.appendChild(notification);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.remove();
+        }
+    }, 5000);
+}
+
+// Modal setup with proper event delegation (disabled lightbox)
+function setupModals() {
+    // Close upload modal when clicking outside
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('modal')) {
+            const modal = e.target;
+            if (modal.id === 'media-upload-modal') {
+                closeMediaUploadModal();
+            }
+            // Lightbox functionality disabled
+        }
+    });
+}
+
+// DISABLED: Lightbox functionality removed
+function openMediaLightbox(mediaName) {
+    // Fullscreen/lightbox disabled - users can only view media in main gallery
+    console.log('Lightbox disabled - use gallery navigation instead');
+    return false;
+}
+
+function closeLightbox() {
+    // Lightbox disabled
+    return false;
+}
+
+function previousMedia() {
+    // Lightbox navigation disabled - use gallery navigation instead
+    return false;
+}
+
+function nextMedia() {
+    // Lightbox navigation disabled - use gallery navigation instead
+    return false;
+}
+
+// Media deletion functionality
 function deleteRingMedia(mediaName) {
-    if (!confirm('Are you sure you want to delete this media?')) {
-        return;
-    }
+    if (!mediaName) return;
+
+    const confirmDelete = confirm(`Are you sure you want to delete this media file?\n\n${mediaName}`);
+    if (!confirmDelete) return;
 
     fetch(`/api/ring/delete-media/${mediaName}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json',
+        }
     })
     .then(response => response.json())
     .then(data => {
         if (data.success) {
             showNotification('Media deleted successfully', 'success');
-
-            // Remove from UI
-            const thumbnail = document.querySelector(`[onclick*="${mediaName}"]`);
-            if (thumbnail) {
-                thumbnail.remove();
-            }
-
-            // If this was the main media, switch to another one or show placeholder
-            const mainMedia = document.getElementById('main-ring-media');
-            if (mainMedia && mainMedia.src.includes(mediaName)) {
-                const remainingThumbnails = document.querySelectorAll('.ring-thumbnail');
-                if (remainingThumbnails.length > 0) {
-                    const firstThumbnail = remainingThumbnails[0];
-                    const firstMediaElement = firstThumbnail.querySelector('img, video');
-                    if (firstMediaElement) {
-                        const newMediaName = firstMediaElement.src.split('/').pop();
-                        changeMainMedia(newMediaName);
-                    }
-                } else {
-                    // No media left, reload to show placeholder
-                    window.location.reload();
-                }
-            }
-
-            // Update RING_IMAGES array
-            if (window.RING_IMAGES) {
-                const index = window.RING_IMAGES.indexOf(mediaName);
-                if (index > -1) {
-                    window.RING_IMAGES.splice(index, 1);
-                }
-            }
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
         } else {
-            showNotification('Failed to delete media', 'error');
+            throw new Error(data.error || 'Failed to delete media');
         }
     })
     .catch(error => {
         console.error('Delete error:', error);
-        showNotification('Failed to delete media', 'error');
+        showNotification('Failed to delete media: ' + error.message, 'error');
     });
 }
 
-// Media Lightbox Functions (replaces photo lightbox)
-function openMediaLightbox(mediaName) {
-    const lightbox = document.getElementById('media-lightbox');
-    const lightboxImage = document.getElementById('lightbox-image');
-    const lightboxVideo = document.getElementById('lightbox-video');
-
-    if (!lightbox || !lightboxImage || !lightboxVideo) return;
-
-    const fileExt = mediaName.split('.').pop().toLowerCase();
-    const isVideo = ['mov', 'mp4', 'avi', 'mkv', 'webm'].includes(fileExt);
-
-    if (isVideo) {
-        // Show video, hide image
-        lightboxImage.style.display = 'none';
-        lightboxVideo.style.display = 'block';
-
-        // Update video source
-        const videoSource = lightboxVideo.querySelector('source');
-        if (videoSource) {
-            videoSource.src = `/static/uploads/ring/${mediaName}`;
-            videoSource.type = `video/${fileExt === 'mov' ? 'quicktime' : fileExt}`;
-        }
-        lightboxVideo.load(); // Reload video with new source
-    } else {
-        // Show image, hide video
-        lightboxVideo.style.display = 'none';
-        lightboxImage.style.display = 'block';
-        lightboxImage.src = `/static/uploads/ring/${mediaName}`;
-    }
-
-    lightbox.classList.add('show');
-
-    // Set current index for navigation
-    if (window.RING_IMAGES) {
-        currentMediaIndex = window.RING_IMAGES.indexOf(mediaName);
-    }
-
-    // Prevent body scroll
-    document.body.style.overflow = 'hidden';
-}
-
-function closeLightbox() {
-    const lightbox = document.getElementById('media-lightbox');
-    if (lightbox) {
-        lightbox.classList.remove('show');
-        document.body.style.overflow = '';
-
-        // Pause video if playing
-        const lightboxVideo = document.getElementById('lightbox-video');
-        if (lightboxVideo && !lightboxVideo.paused) {
-            lightboxVideo.pause();
-        }
-    }
-}
-
-function previousMedia() {
-    if (!window.RING_IMAGES || window.RING_IMAGES.length === 0) return;
-
-    currentMediaIndex = (currentMediaIndex - 1 + window.RING_IMAGES.length) % window.RING_IMAGES.length;
-    const mediaName = window.RING_IMAGES[currentMediaIndex];
-
-    const lightboxImage = document.getElementById('lightbox-image');
-    const lightboxVideo = document.getElementById('lightbox-video');
-
-    if (!lightboxImage || !lightboxVideo) return;
-
-    const fileExt = mediaName.split('.').pop().toLowerCase();
-    const isVideo = ['mov', 'mp4', 'avi', 'mkv', 'webm'].includes(fileExt);
-
-    if (isVideo) {
-        lightboxImage.style.display = 'none';
-        lightboxVideo.style.display = 'block';
-
-        const videoSource = lightboxVideo.querySelector('source');
-        if (videoSource) {
-            videoSource.src = `/static/uploads/ring/${mediaName}`;
-            videoSource.type = `video/${fileExt === 'mov' ? 'quicktime' : fileExt}`;
-        }
-        lightboxVideo.load();
-    } else {
-        lightboxVideo.style.display = 'none';
-        lightboxImage.style.display = 'block';
-        lightboxImage.src = `/static/uploads/ring/${mediaName}`;
-    }
-}
-
-function nextMedia() {
-    if (!window.RING_IMAGES || window.RING_IMAGES.length === 0) return;
-
-    currentMediaIndex = (currentMediaIndex + 1) % window.RING_IMAGES.length;
-    const mediaName = window.RING_IMAGES[currentMediaIndex];
-
-    const lightboxImage = document.getElementById('lightbox-image');
-    const lightboxVideo = document.getElementById('lightbox-video');
-
-    if (!lightboxImage || !lightboxVideo) return;
-
-    const fileExt = mediaName.split('.').pop().toLowerCase();
-    const isVideo = ['mov', 'mp4', 'avi', 'mkv', 'webm'].includes(fileExt);
-
-    if (isVideo) {
-        lightboxImage.style.display = 'none';
-        lightboxVideo.style.display = 'block';
-
-        const videoSource = lightboxVideo.querySelector('source');
-        if (videoSource) {
-            videoSource.src = `/static/uploads/ring/${mediaName}`;
-            videoSource.type = `video/${fileExt === 'mov' ? 'quicktime' : fileExt}`;
-        }
-        lightboxVideo.load();
-    } else {
-        lightboxVideo.style.display = 'none';
-        lightboxImage.style.display = 'block';
-        lightboxImage.src = `/static/uploads/ring/${mediaName}`;
-    }
-}
-
-// Ring Details Management
+// Editable fields functionality
 function setupEditableFields() {
-    const editableElements = document.querySelectorAll('.editable-text');
-    editableElements.forEach(element => {
-        element.addEventListener('click', function() {
-            makeElementEditable(this);
+    const editableFields = document.querySelectorAll('.editable-field');
+
+    editableFields.forEach(field => {
+        const editBtn = field.querySelector('.edit-btn');
+        const saveBtn = field.querySelector('.save-btn');
+        const cancelBtn = field.querySelector('.cancel-btn');
+        const displayValue = field.querySelector('.field-value');
+        const inputElement = field.querySelector('input, select, textarea');
+
+        if (!editBtn || !saveBtn || !cancelBtn || !displayValue || !inputElement) return;
+
+        let originalValue = inputElement.value;
+
+        editBtn.addEventListener('click', () => {
+            field.classList.add('editing');
+            inputElement.focus();
+            originalValue = inputElement.value;
+        });
+
+        cancelBtn.addEventListener('click', () => {
+            inputElement.value = originalValue;
+            displayValue.textContent = originalValue || 'Not set';
+            field.classList.remove('editing');
+        });
+
+        saveBtn.addEventListener('click', () => {
+            const newValue = inputElement.value.trim();
+            const fieldName = field.dataset.field;
+
+            if (!fieldName) {
+                showNotification('Invalid field configuration', 'error');
+                return;
+            }
+
+            // Save the field value
+            saveRingField(fieldName, newValue).then(success => {
+                if (success) {
+                    displayValue.textContent = newValue || 'Not set';
+                    field.classList.remove('editing');
+                    originalValue = newValue;
+                    showNotification('Field updated successfully', 'success');
+                }
+            });
+        });
+
+        // Handle Enter key in inputs
+        inputElement.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && inputElement.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+                saveBtn.click();
+            } else if (e.key === 'Escape') {
+                cancelBtn.click();
+            }
         });
     });
 }
 
-function makeElementEditable(element) {
-    if (element.classList.contains('editing')) return;
-
-    const originalValue = element.textContent.trim();
-    const field = element.dataset.field;
-
-    element.classList.add('editing');
-    element.contentEditable = true;
-    element.focus();
-
-    // Select all text
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    const selection = window.getSelection();
-    selection.removeAllRanges();
-    selection.addRange(range);
-
-    function finishEditing() {
-        const newValue = element.textContent.trim();
-        element.classList.remove('editing');
-        element.contentEditable = false;
-
-        if (newValue !== originalValue && newValue !== '') {
-            updateRingField(field, newValue, element);
-        } else {
-            element.textContent = originalValue;
-        }
-    }
-
-    element.addEventListener('blur', finishEditing);
-    element.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            finishEditing();
-        } else if (e.key === 'Escape') {
-            element.textContent = originalValue;
-            finishEditing();
-        }
-    });
-}
-
-function updateRingField(field, value, element) {
-    fetch('/api/ring/update', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            field: field,
-            value: value
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showNotification('Ring details updated', 'success');
-        } else {
-            showNotification('Failed to update ring details', 'error');
-            element.textContent = element.dataset.originalValue || 'Not specified';
-        }
-    })
-    .catch(error => {
-        console.error('Update error:', error);
-        showNotification('Failed to update ring details', 'error');
-        element.textContent = element.dataset.originalValue || 'Not specified';
-    });
-}
-
-// Modal Functions
-function setupModals() {
-    // Close modals when clicking outside
-    document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('modal')) {
-            if (e.target.id === 'media-upload-modal') {
-                closeMediaUploadModal();
-            } else if (e.target.id === 'ring-edit-modal') {
-                closeRingEditModal();
-            } else if (e.target.id === 'media-lightbox') {
-                closeLightbox();
-            }
-        }
-    });
-
-    // ESC key to close modals
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeMediaUploadModal();
-            closeRingEditModal();
-            closeLightbox();
-        }
-    });
-}
-
-function openRingEditModal() {
-    const modal = document.getElementById('ring-edit-modal');
-    if (modal) {
-        modal.classList.add('show');
-
-        // Populate form with current data
-        if (window.RING_DATA) {
-            const jewelerInput = document.getElementById('edit-jeweler');
-            const metalInput = document.getElementById('edit-metal');
-            const stoneInput = document.getElementById('edit-stone');
-            const deliveredSelect = document.getElementById('edit-delivered');
-            const insuredSelect = document.getElementById('edit-insured');
-            const insuranceDetailsInput = document.getElementById('edit-insurance-details');
-            const engravingInput = document.getElementById('edit-engraving');
-            const deliveryInput = document.getElementById('edit-estimated-delivery');
-
-            if (jewelerInput) jewelerInput.value = window.RING_DATA.Jeweler || '';
-            if (metalInput) metalInput.value = window.RING_DATA.Metal || '';
-            if (stoneInput) stoneInput.value = window.RING_DATA['Stone(s)'] || '';
-            if (deliveredSelect) deliveredSelect.value = window.RING_DATA.Delivered || 'Pending';
-            if (insuredSelect) insuredSelect.value = window.RING_DATA.Insured || 'No';
-            if (insuranceDetailsInput) insuranceDetailsInput.value = window.RING_DATA['Insurance Details'] || '';
-            if (engravingInput) engravingInput.value = window.RING_DATA.Engraving || '';
-            if (deliveryInput) deliveryInput.value = window.RING_DATA['Estimated Delivery'] || '';
-        }
-    }
-}
-
-function closeRingEditModal() {
-    const modal = document.getElementById('ring-edit-modal');
-    if (modal) {
-        modal.classList.remove('show');
-    }
-}
-
-function saveRingDetails(event) {
-    event.preventDefault();
-
-    const formData = {
-        jeweler: document.getElementById('edit-jeweler').value,
-        metal: document.getElementById('edit-metal').value,
-        stone: document.getElementById('edit-stone').value,
-        delivered: document.getElementById('edit-delivered').value,
-        insured: document.getElementById('edit-insured').value,
-        insurance_details: document.getElementById('edit-insurance-details').value,
-        engraving: document.getElementById('edit-engraving').value,
-        estimated_delivery: document.getElementById('edit-estimated-delivery').value
-    };
-
-    const submitBtn = document.querySelector('#ring-edit-form button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    }
-
-    // Save each field individually
-    const updates = Object.entries(formData).map(([field, value]) => {
-        return fetch('/api/ring/update', {
+async function saveRingField(fieldName, value) {
+    try {
+        const response = await fetch('/api/ring/update-field', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ field, value })
-        }).then(response => response.json());
+            body: JSON.stringify({
+                field: fieldName,
+                value: value
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Failed to update field');
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Save field error:', error);
+        showNotification('Failed to save field: ' + error.message, 'error');
+        return false;
+    }
+}
+
+// UPDATED: Enhanced keyboard navigation (lightbox disabled)
+document.addEventListener('keydown', function(e) {
+    const uploadModal = document.getElementById('media-upload-modal');
+    if (uploadModal && uploadModal.style.display === 'flex' && e.key === 'Escape') {
+        closeMediaUploadModal();
+    }
+
+    // Gallery navigation with keyboard (Alt + Arrow keys)
+    if (e.key === 'ArrowLeft' && e.altKey) {
+        e.preventDefault();
+        previousGalleryMedia();
+    } else if (e.key === 'ArrowRight' && e.altKey) {
+        e.preventDefault();
+        nextGalleryMedia();
+    }
+});
+
+// Touch/swipe support for mobile gallery navigation (lightbox disabled)
+let touchStartX = null;
+let touchStartY = null;
+
+document.addEventListener('touchstart', function(e) {
+    // Only enable touch navigation on the main gallery area
+    const mainImage = document.querySelector('.ring-main-image');
+    if (mainImage && mainImage.contains(e.target)) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }
+});
+
+document.addEventListener('touchend', function(e) {
+    const mainImage = document.querySelector('.ring-main-image');
+    if (mainImage && mainImage.contains(e.target) && touchStartX !== null && touchStartY !== null) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = touchEndY - touchStartY;
+
+        // Only handle horizontal swipes (ignore vertical scrolling)
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+            if (deltaX > 0) {
+                previousGalleryMedia(); // Swipe right = previous
+            } else {
+                nextGalleryMedia(); // Swipe left = next
+            }
+        }
+
+        touchStartX = null;
+        touchStartY = null;
+    }
+});
+
+// Utility function to format file sizes
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Initialize drag and drop visual feedback
+function initializeDragVisuals() {
+    let dragCounter = 0;
+
+    document.addEventListener('dragenter', function(e) {
+        dragCounter++;
+        const dropZone = document.getElementById('upload-drop-zone');
+        if (dropZone && document.getElementById('media-upload-modal').style.display === 'flex') {
+            dropZone.classList.add('drag-active');
+        }
     });
 
-    Promise.all(updates)
-        .then(results => {
-            const allSuccessful = results.every(result => result.success);
-            if (allSuccessful) {
-                showNotification('Ring details saved successfully', 'success');
-                closeRingEditModal();
-                // Refresh page to show updated data
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            } else {
-                showNotification('Some details could not be saved', 'error');
+    document.addEventListener('dragleave', function(e) {
+        dragCounter--;
+        if (dragCounter === 0) {
+            const dropZone = document.getElementById('upload-drop-zone');
+            if (dropZone) {
+                dropZone.classList.remove('drag-active');
             }
-        })
-        .catch(error => {
-            console.error('Save error:', error);
-            showNotification('Failed to save ring details', 'error');
-        })
-        .finally(() => {
-            if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
-            }
-        });
+        }
+    });
+
+    document.addEventListener('drop', function(e) {
+        dragCounter = 0;
+        const dropZone = document.getElementById('upload-drop-zone');
+        if (dropZone) {
+            dropZone.classList.remove('drag-active');
+        }
+    });
 }
 
-// Utility Functions
-function showNotification(message, type = 'info') {
-    // Remove any existing notifications
-    const existingNotifications = document.querySelectorAll('.notification');
-    existingNotifications.forEach(notification => notification.remove());
-
-    // Create new notification
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-
-    document.body.appendChild(notification);
-
-    // Show notification
-    setTimeout(() => {
-        notification.classList.add('show');
-    }, 100);
-
-    // Hide and remove notification
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.remove();
-            }
-        }, 300);
-    }, 3000);
-}
-
-// Legacy function aliases for backward compatibility
-function openImageUpload() {
-    openMediaUpload();
-}
-
-function openPhotoUploadModal() {
-    openMediaUpload();
-}
-
-function closePhotoUploadModal() {
-    closeMediaUploadModal();
-}
-
-function openPhotoLightbox(mediaName) {
-    openMediaLightbox(mediaName);
-}
-
-function changeMainImage(mediaName) {
-    changeMainMedia(mediaName);
-}
-
-function deleteRingImage(mediaName) {
-    deleteRingMedia(mediaName);
-}
-
-function uploadSelectedPhotos() {
-    uploadSelectedMedia();
-}
-
-function previousPhoto() {
-    previousMedia();
-}
-
-function nextPhoto() {
-    nextMedia();
-}
+// Call initialization functions when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    initializeDragVisuals();
+});

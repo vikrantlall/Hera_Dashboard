@@ -973,3 +973,127 @@
 .notification.info {
     background: var(--info);
 }
+
+/* Gallery Navigation Arrows - Add this to your ring.css file */
+
+/* Gallery Navigation Container */
+.gallery-nav-arrows {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Navigation Buttons */
+.gallery-nav-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    border: none;
+    color: var(--white);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    opacity: 0;
+    pointer-events: auto;
+    transform: scale(0.9);
+}
+
+/* Show navigation buttons on hover */
+.ring-main-image:hover .gallery-nav-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.gallery-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+    color: var(--accent-gold);
+    transform: scale(1.1);
+}
+
+/* Position buttons with some margin from edges */
+.gallery-nav-prev {
+    margin-left: 12px;
+}
+
+.gallery-nav-next {
+    margin-right: 12px;
+}
+
+/* Hide arrows when only one media item */
+.ring-main-image[data-single-media="true"] .gallery-nav-arrows {
+    display: none;
+}
+
+/* Enhanced video controls styling */
+.ring-media-element[controls] {
+    outline: none;
+}
+
+/* Ensure video controls don't interfere with navigation */
+.ring-main-image video {
+    position: relative;
+    z-index: 1;
+}
+
+/* Mobile responsive navigation */
+@media (max-width: 768px) {
+    .gallery-nav-btn {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+
+    .gallery-nav-prev {
+        margin-left: 8px;
+    }
+
+    .gallery-nav-next {
+        margin-right: 8px;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .gallery-nav-btn {
+        transition: none;
+    }
+
+    .ring-main-image:hover .gallery-nav-btn {
+        transform: scale(1);
+    }
+
+    .gallery-nav-btn:hover {
+        transform: scale(1);
+    }
+}
+
+/* Focus states for keyboard navigation */
+.gallery-nav-btn:focus {
+    outline: 2px solid var(--accent-gold);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .gallery-nav-btn {
+        background: rgba(0, 0, 0, 0.9);
+        border: 1px solid var(--white);
+    }
+
+    .gallery-nav-btn:hover {
+        background: var(--accent-gold);
+        color: var(--text-primary);
+    }
+}

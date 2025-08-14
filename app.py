@@ -989,54 +989,69 @@ def files():
 @app.route('/api/files/upload', methods=['POST'])
 @login_required
 def upload_files():
-    """Handle file uploads with UUID-based IDs"""
+    """Handle file uploads with proper database saving"""
     try:
+        print("=== FILE UPLOAD STARTED ===")
+
         # Check if files were sent
         if 'files' not in request.files:
+            print("ERROR: No files in request")
             return jsonify({'success': False, 'error': 'No files provided'})
 
         files = request.files.getlist('files')
-        categories = request.form.getlist('categories')
+        if not files or files[0].filename == '':
+            print("ERROR: No files selected")
+            return jsonify({'success': False, 'error': 'No files selected'})
+
+        # Get form data
+        categories = request.form.getlist('category')
         notes_list = request.form.getlist('notes')
 
-        if not files or files[0].filename == '':
-            return jsonify({'success': False, 'error': 'No files selected'})
+        print(f"Files to upload: {len(files)}")
+        print(f"Categories: {categories}")
+        print(f"Notes: {notes_list}")
 
         # Create upload directory if it doesn't exist
         upload_dir = os.path.join(app.static_folder, 'uploads', 'files')
         os.makedirs(upload_dir, exist_ok=True)
+        print(f"Upload directory: {upload_dir}")
 
         uploaded_files = []
-        allowed_extensions = {
-            'pdf', 'doc', 'docx', 'txt', 'zip', 'xlsx', 'xls',
-            'jpg', 'jpeg', 'png', 'gif', 'webp',
-            'mov', 'mp4', 'avi', 'mkv', 'webm'
-        }
+        allowed_extensions = {'pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'xlsx', 'xls',
+                              'mov', 'mp4', 'avi', 'mkv', 'webm'}
 
         for i, file in enumerate(files):
+            print(f"\nProcessing file {i + 1}: {file.filename}")
+
+            # Validate file
             if not file.filename:
+                print("Skipping: No filename")
                 continue
 
-            # Validate file type
             file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
             if file_ext not in allowed_extensions:
+                print(f"Skipping: Extension '{file_ext}' not allowed")
                 continue
 
             # Generate UUID-based ID that never changes
             file_uuid = str(uuid.uuid4())
+            print(f"Generated UUID: {file_uuid}")
 
             # Generate safe filename with timestamp to avoid conflicts
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             random_id = str(uuid.uuid4())[:8]
             safe_filename = f"file_{timestamp}_{random_id}.{file_ext}"
+            print(f"Safe filename: {safe_filename}")
 
-            # Save file
+            # Save file to disk
             file_path = os.path.join(upload_dir, safe_filename)
             file.save(file_path)
+            print(f"File saved to: {file_path}")
 
             # Get file info
             file_size = os.path.getsize(file_path)
             file_type = get_file_type(file.filename)
+            print(f"File size: {file_size} bytes, Type: {file_type}")
 
             # Create file record with UUID-based ID
             file_record = {
@@ -1050,17 +1065,34 @@ def upload_files():
                 'notes': notes_list[i] if i < len(notes_list) else '',
                 'upload_date': datetime.now().isoformat(),
                 'updated_date': datetime.now().isoformat(),
-                'mimetype': file.mimetype
+                'mimetype': file.mimetype or 'application/octet-stream'
             }
 
             uploaded_files.append(file_record)
+            print(f"File record created: {file_record}")
 
         if not uploaded_files:
+            print("ERROR: No valid files were uploaded")
             return jsonify({'success': False, 'error': 'No valid files were uploaded'})
 
+        # CRITICAL: Initialize files array if it doesn't exist
+        if 'files' not in HERA_DATA:
+            HERA_DATA['files'] = []
+            print("Initialized empty files array in HERA_DATA")
+
         # Add to HERA_DATA and save
+        print(f"Adding {len(uploaded_files)} files to database")
+        print(f"Current files in database: {len(HERA_DATA['files'])}")
+
         HERA_DATA['files'].extend(uploaded_files)
+
+        print(f"Files in database after adding: {len(HERA_DATA['files'])}")
+
+        # CRITICAL: Actually save the data
         save_data()
+        print("Data saved to hera_data.json")
+
+        print("=== FILE UPLOAD COMPLETED SUCCESSFULLY ===")
 
         return jsonify({
             'success': True,
@@ -1071,8 +1103,19 @@ def upload_files():
 
     except Exception as e:
         print(f"Upload error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
 
+@app.route('/api/debug/files', methods=['GET'])
+@login_required
+def debug_files():
+    """Debug endpoint to check files in database"""
+    return jsonify({
+        'files_count': len(HERA_DATA.get('files', [])),
+        'files': HERA_DATA.get('files', []),
+        'hera_data_keys': list(HERA_DATA.keys())
+    })
 
 @app.route('/api/files/download/<filename>')
 @login_required
