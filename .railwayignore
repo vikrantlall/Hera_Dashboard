@@ -92,9 +92,9 @@ dmypy.json
 *.sln
 *.sw?
 
-# Local uploads folder contents (keep structure but ignore uploaded files)
-static/uploads/*
-!static/uploads/.gitkeep
+# REMOVED: Upload folder exclusions - Keep all uploads for deployment
+# static/uploads/*
+# !static/uploads/.gitkeep
 
 # Development database files (if you add SQLite later)
 *.db
@@ -127,15 +127,12 @@ settings.local.py
 ~$*.xlsx
 ~$*.xls
 
-# Large files that shouldn't be deployed
-*.mov
-*.mp4
-*.avi
-*.mkv
-*.zip
-*.rar
-*.7z
-*.tar.gz
+# OPTIONAL: Only exclude very large video files if they cause deployment issues
+# Uncomment these lines if deployment fails due to file size limits
+# *.mov
+# *.mp4
+# *.avi
+# *.mkv
 
 # Local development scripts
 local_*.py
