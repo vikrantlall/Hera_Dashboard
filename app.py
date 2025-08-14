@@ -1117,6 +1117,74 @@ def debug_files():
         'hera_data_keys': list(HERA_DATA.keys())
     })
 
+
+
+@app.route('/debug/data')
+@login_required
+def debug_data():
+    """Simple debug endpoint to check server-side data"""
+    import os
+
+    # Check if file exists and read it directly
+    file_exists = os.path.exists('hera_data.json')
+    file_content = None
+    file_size = 0
+
+    if file_exists:
+        file_size = os.path.getsize('hera_data.json')
+        try:
+            with open('hera_data.json', 'r') as f:
+                file_content = f.read()[:500]  # First 500 chars
+        except Exception as e:
+            file_content = f"Error reading: {e}"
+
+    debug_info = {
+        'hera_data_json_exists': file_exists,
+        'hera_data_json_size': file_size,
+        'hera_data_json_preview': file_content,
+        'HERA_DATA_keys': list(HERA_DATA.keys()) if HERA_DATA else [],
+        'HERA_DATA_files_count': len(HERA_DATA.get('files', [])),
+        'HERA_DATA_files_sample': HERA_DATA.get('files', [])[:2],
+        'current_working_directory': os.getcwd(),
+        'files_in_template_context': len(HERA_DATA.get('files', []))
+    }
+
+    return f"""
+    <html>
+    <head><title>HERA Debug</title></head>
+    <body style="font-family: monospace; padding: 20px;">
+        <h1>HERA Data Debug</h1>
+        <h2>JSON File Status:</h2>
+        <p><strong>File exists:</strong> {debug_info['hera_data_json_exists']}</p>
+        <p><strong>File size:</strong> {debug_info['hera_data_json_size']} bytes</p>
+
+        <h2>File Preview (first 500 chars):</h2>
+        <pre style="background: #f0f0f0; padding: 10px; overflow-x: auto;">{debug_info['hera_data_json_preview']}</pre>
+
+        <h2>Loaded HERA_DATA:</h2>
+        <p><strong>Keys:</strong> {debug_info['HERA_DATA_keys']}</p>
+        <p><strong>Files count:</strong> {debug_info['HERA_DATA_files_count']}</p>
+
+        <h2>Sample Files:</h2>
+        <pre style="background: #f0f0f0; padding: 10px;">{debug_info['HERA_DATA_files_sample']}</pre>
+
+        <h2>Working Directory:</h2>
+        <p>{debug_info['current_working_directory']}</p>
+
+        <h2>JavaScript Check:</h2>
+        <p>window.FILES_DATA should have: <strong>{debug_info['files_in_template_context']} files</strong></p>
+
+        <script>
+            console.log('Server says FILES_DATA should have:', {debug_info['files_in_template_context']}, 'files');
+            console.log('Browser has:', window.FILES_DATA ? window.FILES_DATA.length : 'undefined', 'files');
+            if (window.FILES_DATA) {{
+                console.log('FILES_DATA content:', window.FILES_DATA);
+            }}
+        </script>
+    </body>
+    </html>
+    """
+
 @app.route('/api/files/download/<filename>')
 @login_required
 def download_file(filename):
