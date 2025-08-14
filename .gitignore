@@ -32,7 +32,6 @@ wheels/
 *.egg
 
 # Personal Data
-hera_data.json
 *.db
 *.sqlite
 
