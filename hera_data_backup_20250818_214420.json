@@ -1,0 +1,947 @@
+{
+  "main": {
+    "tripDates": "9/24/2025 - 9/29/2025",
+    "totalBudget": 11691.2,
+    "totalSaved": 7511.2,
+    "totalRemaining": 4180,
+    "proposalDate": "2025-09-26",
+    "savingsTimeline": [
+      {
+        "amount": 5000,
+        "month": "march"
+      },
+      {
+        "amount": 5000,
+        "month": "april"
+      },
+      {
+        "amount": 5000,
+        "month": "may"
+      },
+      {
+        "amount": 5000,
+        "month": "june"
+      },
+      {
+        "amount": 5000,
+        "month": "july"
+      },
+      {
+        "amount": 5000,
+        "month": "august"
+      },
+      {
+        "amount": 5000,
+        "month": "september"
+      }
+    ],
+    "tasks": [
+      {
+        "id": 1,
+        "task": "Save for Key Expenses",
+        "deadline": "2025-06-01",
+        "status": "In Progress, Behind Schedule",
+        "notes": "Enough for ring, flights, and hotels. ($8,000)"
+      },
+      {
+        "id": 2,
+        "task": "Get Family Permissions",
+        "deadline": "2025-08-03",
+        "status": "In Progress, On Schedule",
+        "notes": "All permissions secured before booking major items."
+      },
+      {
+        "id": 3,
+        "task": "Book Flights",
+        "deadline": "2025-07-01",
+        "status": "Ahead Schedule, Complete",
+        "notes": "Ensure best deals for travel."
+      },
+      {
+        "id": 4,
+        "task": "Reserve Hotels",
+        "deadline": "2025-07-01",
+        "status": "Ahead Schedule, Complete",
+        "notes": "Accommodations finalized."
+      },
+      {
+        "id": 5,
+        "task": "Confirm Transportation",
+        "deadline": "2025-07-01",
+        "status": "Complete, Ahead Schedule",
+        "notes": "Rental car booked; gas budget estimated."
+      },
+      {
+        "id": 6,
+        "task": "Plan Proposal Details",
+        "deadline": "2025-06-28",
+        "status": "Complete, On Schedule",
+        "notes": "Includes location, timing, and backup plans."
+      },
+      {
+        "id": 7,
+        "task": "Confirm Photographer",
+        "deadline": "2025-07-01",
+        "status": "Complete, On Schedule",
+        "notes": "Research local options; book by this date."
+      },
+      {
+        "id": 8,
+        "task": "Finalize Daily Itinerary",
+        "deadline": "2025-08-03",
+        "status": "On Schedule, Complete",
+        "notes": "Reflect finalized bookings and activities."
+      },
+      {
+        "id": 9,
+        "task": "Reserve Dining",
+        "deadline": "2025-08-01",
+        "status": "On Schedule, In Progress",
+        "notes": "Key reservations for proposal and celebration."
+      },
+      {
+        "id": 10,
+        "task": "Pack Essentials",
+        "deadline": "2025-09-28",
+        "status": "Not Started, On Schedule",
+        "notes": "Ensure everything is ready, including the ring."
+      }
+    ]
+  },
+  "budget": [
+    {
+      "id": 1,
+      "category": "Ring",
+      "budget": 6400,
+      "saved": 6400,
+      "remaining": 0,
+      "notes": "Custom Made",
+      "status": "Paid",
+      "priority": "critical"
+    },
+    {
+      "id": 2,
+      "category": "Flights",
+      "budget": 11.2,
+      "saved": 11.2,
+      "remaining": 0,
+      "notes": "Booked on United",
+      "status": "Paid",
+      "priority": "high"
+    },
+    {
+      "id": 3,
+      "category": "Hotels",
+      "budget": 2130,
+      "saved": 0,
+      "remaining": 2130,
+      "notes": "Canalta Lodge, includes breakfast (expedia)\\nconsidering reaching out to hotel for an upgrade",
+      "status": "Outstanding",
+      "priority": "high"
+    },
+    {
+      "id": 4,
+      "category": "Transportation",
+      "budget": 450,
+      "saved": 0,
+      "remaining": 450,
+      "notes": "Rental Car (400) + Gas (50) [Alamo]",
+      "status": "Outstanding",
+      "priority": "medium"
+    },
+    {
+      "id": 5,
+      "category": "Meals/Dining",
+      "budget": 900,
+      "saved": 0,
+      "remaining": 900,
+      "notes": "9 Meals",
+      "status": "Outstanding",
+      "priority": "medium"
+    },
+    {
+      "id": 6,
+      "category": "Photographer",
+      "budget": 1100,
+      "saved": 1100,
+      "remaining": 0,
+      "notes": "Banff Photography",
+      "status": "Paid",
+      "priority": "critical"
+    },
+    {
+      "id": 7,
+      "category": "Activities/Excursions",
+      "budget": 400,
+      "saved": 0,
+      "remaining": 400,
+      "notes": "Gondala,",
+      "status": "Outstanding",
+      "priority": "low"
+    },
+    {
+      "id": 8,
+      "category": "Miscellaneous",
+      "budget": 300,
+      "saved": 0,
+      "remaining": 300,
+      "notes": "",
+      "status": "Outstanding",
+      "priority": "low"
+    }
+  ],
+  "ring": {
+    "Jeweler": "GWFJ",
+    "Ring Style (Inspiration)": "https://sofiazakia.com/products/diamond-tethys-ring",
+    "Metal": "Yellow Gold, 18k",
+    "Stone(s)": "Lab Grown Diamond, 2.98ct",
+    "Engraving": null,
+    "Design Approved": "YES, 50% deposit placed",
+    "Order Placed": "Yes, 50% deposit placed",
+    "Estimated Delivery": null,
+    "Delivered": "YES, delivered",
+    "Insured": "Yes",
+    "Insurance Details": "Jewelers Mutual, $68/year $0 deductible",
+    "Status": "Reached out via Instagram, will have to put in request via website\\n -- Process takes about 8-12 weeks for custom orders, (June would be the latest i could order it)\\n\\n3/18 - Emailed to start process, details and diamond selected, deposit placed"
+  },
+  "family": [
+    {
+      "id": 1,
+      "name": "Papa",
+      "status": "Approved",
+      "notes": "Was not an issue, a little confused on timeline"
+    },
+    {
+      "id": 2,
+      "name": "Mama",
+      "status": "Approved",
+      "notes": "Not as much of an issue, claimed to have known about it already"
+    },
+    {
+      "id": 3,
+      "name": "Shreya",
+      "status": "Approved",
+      "notes": "Seemed fine"
+    },
+    {
+      "id": 4,
+      "name": "Gina",
+      "status": "Approved",
+      "notes": "Was happy"
+    },
+    {
+      "id": 5,
+      "name": "Grandpa Rhodes",
+      "status": "Approved",
+      "notes": "Was Happy, making jokes"
+    },
+    {
+      "id": 6,
+      "name": "Grandma Rhodes",
+      "status": "Approved",
+      "notes": "Was happy, seems very excited"
+    },
+    {
+      "id": 7,
+      "name": "Graden",
+      "status": "Not Asked",
+      "notes": "Need to text"
+    }
+  ],
+  "travel": [
+    {
+      "id": 1,
+      "segment": "IAD - DEN",
+      "airline": "United",
+      "flightNumber": "UA419",
+      "departureTime": "8:15 AM",
+      "arrivalTime": "10:03 AM",
+      "duration": "3h 48m",
+      "date": "9/24/2025",
+      "confirmationNumber": "AT9Z8V",
+      "seat": "2E, 2F",
+      "status": "Confirmed"
+    },
+    {
+      "id": 2,
+      "segment": "DEN - YYC",
+      "airline": "United",
+      "flightNumber": "UA2459",
+      "departureTime": "11:22 AM",
+      "arrivalTime": "1:53 PM",
+      "duration": "2h 31m",
+      "date": "9/24/2025",
+      "confirmationNumber": "AT9Z8V",
+      "seat": "1E, 1F",
+      "status": "Confirmed"
+    },
+    {
+      "id": 3,
+      "segment": "YYC - IAH",
+      "airline": "United",
+      "flightNumber": "UA750",
+      "departureTime": "1:55 PM",
+      "arrivalTime": "7:04 PM",
+      "duration": "4h 9m",
+      "date": "9/29/2025",
+      "confirmationNumber": "AT9Z8V",
+      "seat": "2E, 2F",
+      "status": "Confirmed"
+    },
+    {
+      "id": 4,
+      "segment": "IAH - DCA",
+      "airline": "United",
+      "flightNumber": "UA2224",
+      "departureTime": "7:50 PM",
+      "arrivalTime": "11:50 PM",
+      "duration": "3h",
+      "date": "9/29/2025",
+      "confirmationNumber": "AT9Z8V",
+      "seat": "2E, 2F",
+      "status": "Confirmed"
+    },
+    {
+      "id": 5,
+      "segment": "Hotel - Canalta Lodge",
+      "provider": "Canalta Lodge",
+      "address": "545 Banff Ave #1B5, Banff, AB T1L 1B5, Canada",
+      "phone": "403-762-2112",
+      "checkIn": "4:00 PM",
+      "checkOut": "11:00 AM",
+      "confirmationNumber": "73022774416687",
+      "roomType": "King Room w/ Balcony",
+      "status": "Confirmed"
+    },
+    {
+      "id": 6,
+      "segment": "Rental Car - Alamo",
+      "provider": "Alamo",
+      "location": "YYC",
+      "pickupDate": "2025-09-24",
+      "confirmationNumber": "#1785932383",
+      "carType": "Intermediate SUV\\nToyota RAV4 or similar",
+      "status": "Confirmed"
+    }
+  ],
+  "itinerary": [
+    {
+      "id": 2,
+      "date": "2025-09-24",
+      "day": 1,
+      "time": "15:15",
+      "activity": "Drive to Banff",
+      "location": "YYC to Canalta Lodge",
+      "notes": "Approx. 1.5-hour scenic drive"
+    },
+    {
+      "id": 3,
+      "date": "2025-09-24",
+      "day": 1,
+      "time": "16:15",
+      "activity": "Hotel check-in and unwind",
+      "location": "Canalta Lodge, Banff",
+      "notes": "Relax after travel"
+    },
+    {
+      "id": 4,
+      "date": "2025-09-24",
+      "day": 1,
+      "time": "17:45",
+      "activity": "Dinner",
+      "location": "Farm & Fire or Lupo, Banff",
+      "notes": "Reservation recommended"
+    },
+    {
+      "id": 5,
+      "date": "2025-09-24",
+      "day": 1,
+      "time": "19:15",
+      "activity": "Relaxation",
+      "location": "Canalta Lodge",
+      "notes": "Use hot tub, fireplace lounge"
+    },
+    {
+      "id": 6,
+      "date": "2025-09-25",
+      "day": 2,
+      "time": "08:00",
+      "activity": "Breakfast",
+      "location": "Canalta Lodge or Whitebark Caf\u00e9",
+      "notes": "Casual breakfast, local options"
+    },
+    {
+      "id": 7,
+      "date": "2025-09-25",
+      "day": 2,
+      "time": "11:30",
+      "activity": "Ride Banff Gondola and explore summit",
+      "location": "Sulphur Mountain Summit",
+      "notes": "Uplift at 11:30 AM, download at 2:30 PM"
+    },
+    {
+      "id": 8,
+      "date": "2025-09-25",
+      "day": 2,
+      "time": "12:30",
+      "activity": "Lunch at summit",
+      "location": "Sky Bistro",
+      "notes": "Reserved at 12:30 PM"
+    },
+    {
+      "id": 9,
+      "date": "2025-09-25",
+      "day": 2,
+      "time": "14:00",
+      "activity": "Explore summit boardwalk",
+      "location": "Sulphur Mountain",
+      "notes": "Interpretive signage, scenic views"
+    },
+    {
+      "id": 10,
+      "date": "2025-09-25",
+      "day": 2,
+      "time": "15:00",
+      "activity": "Nap or rest break",
+      "location": "Canalta Lodge",
+      "notes": "Recharge"
+    },
+    {
+      "id": 11,
+      "date": "2025-09-25",
+      "day": 2,
+      "time": "16:15",
+      "activity": "Spa session",
+      "location": "Cedar + Sage Co",
+      "notes": "60-minute Couples' Massage"
+    },
+    {
+      "id": 12,
+      "date": "2025-09-25",
+      "day": 2,
+      "time": "18:00",
+      "activity": "Dinner",
+      "location": "Bear Street Tavern or similar",
+      "notes": "Walk-in possible, reservations good"
+    },
+    {
+      "id": 13,
+      "date": "2025-09-25",
+      "day": 2,
+      "time": "19:30",
+      "activity": "Evening at lodge",
+      "location": "Canalta Lodge",
+      "notes": "Optional hot tub or early night"
+    },
+    {
+      "id": 14,
+      "date": "2025-09-26",
+      "day": 3,
+      "time": "07:00",
+      "activity": "Drive to Emerald Lake",
+      "location": "Banff to Emerald Lake",
+      "notes": "~1-hour scenic drive"
+    },
+    {
+      "id": 15,
+      "date": "2025-09-26",
+      "day": 3,
+      "time": "08:00",
+      "activity": "Proposal + Photoshoot",
+      "location": "Emerald Lake",
+      "notes": "2-hour session with photographer",
+      "isProposal": true
+    },
+    {
+      "id": 16,
+      "date": "2025-09-26",
+      "day": 3,
+      "time": "12:00",
+      "activity": "Lunch",
+      "location": "Around Banff",
+      "notes": "Flexible lunch stop"
+    },
+    {
+      "id": 17,
+      "date": "2025-09-26",
+      "day": 3,
+      "time": "15:30",
+      "activity": "Distillery Tour",
+      "location": "Park Distillery, Banff",
+      "notes": "Arrive 5\u201310 mins early for check-in"
+    },
+    {
+      "id": 18,
+      "date": "2025-09-26",
+      "day": 3,
+      "time": "18:30",
+      "activity": "Dinner",
+      "location": "1888 Chop House, Fairmont Banff Springs",
+      "notes": "Reservation at 6:30 PM"
+    },
+    {
+      "id": 19,
+      "date": "2025-09-26",
+      "day": 3,
+      "time": "20:30",
+      "activity": "Wind down",
+      "location": "Canalta Lodge",
+      "notes": "Relax, hot tub, or fireplace lounge"
+    },
+    {
+      "id": 20,
+      "date": "2025-09-27",
+      "day": 4,
+      "time": "08:00",
+      "activity": "Breakfast",
+      "location": "Canalta Lodge",
+      "notes": "Light breakfast to start the day"
+    },
+    {
+      "id": 21,
+      "date": "2025-09-27",
+      "day": 4,
+      "time": "12:00",
+      "activity": "Lake Minnewanka Cruise",
+      "location": "Lake Minnewanka",
+      "notes": "Arrive at dock by 11:45 AM"
+    },
+    {
+      "id": 22,
+      "date": "2025-09-27",
+      "day": 4,
+      "time": "13:00",
+      "activity": "Lunch",
+      "location": "Minnewanka or Banff",
+      "notes": "Optional caf\u00e9 nearby or pack a picnic"
+    },
+    {
+      "id": 23,
+      "date": "2025-09-27",
+      "day": 4,
+      "time": "14:00",
+      "activity": "Return & prep for afternoon",
+      "location": "Canalta Lodge",
+      "notes": "Change or rest briefly"
+    },
+    {
+      "id": 24,
+      "date": "2025-09-27",
+      "day": 4,
+      "time": "14:30",
+      "activity": "Lake Louise Visit (incl. drive)",
+      "location": "Lake Louise",
+      "notes": "~1 hr drive each way, ~2 hrs at the lake"
+    },
+    {
+      "id": 25,
+      "date": "2025-09-27",
+      "day": 4,
+      "time": "19:30",
+      "activity": "Dinner",
+      "location": "The Bison",
+      "notes": "Reservation at 7:30 PM"
+    },
+    {
+      "id": 26,
+      "date": "2025-09-27",
+      "day": 4,
+      "time": "20:00",
+      "activity": "Evening rest",
+      "location": "Canalta Lodge",
+      "notes": "Hot tub, fireplace lounge, or early night"
+    },
+    {
+      "id": 27,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "09:00",
+      "activity": "Breakfast",
+      "location": "Canalta Lodge",
+      "notes": "Start slowly after several busy days"
+    },
+    {
+      "id": 28,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "10:00",
+      "activity": "Drive to Peyto Lake",
+      "location": "Banff \u2192 Bow Summit (Icefields Pkwy)",
+      "notes": "~75-minute scenic drive (peytolake.ca)"
+    },
+    {
+      "id": 29,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "11:15",
+      "activity": "Short walk to Peyto Viewpoint",
+      "location": "Paved ~1.5 km round-trip",
+      "notes": "Easy walk to iconic viewpoint"
+    },
+    {
+      "id": 30,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "12:00",
+      "activity": "Drive to Field, BC",
+      "location": "Peyto \u2192 Field via Trans-Canada Hwy",
+      "notes": "~1-hour drive"
+    },
+    {
+      "id": 31,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "13:15",
+      "activity": "Lunch at Truffle Pigs Bistro",
+      "location": "Field, BC",
+      "notes": "Opens at 11 am\u2014great timing for a relaxed meal"
+    },
+    {
+      "id": 32,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "14:45",
+      "activity": "Drive to Takakkaw Falls",
+      "location": "Field \u2192 Yoho Valley Rd turnoff",
+      "notes": "~30 minutes scenic through Kicking Horse Pass"
+    },
+    {
+      "id": 33,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "15:15",
+      "activity": "Visit Takakkaw Falls",
+      "location": "Yoho National Park",
+      "notes": "300 m paved walk to base\u2014easy family-friendly trail"
+    },
+    {
+      "id": 34,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "16:00",
+      "activity": "Return drive to Banff",
+      "location": "Yoho \u2192 Banff",
+      "notes": "~60-minute drive back via Trans-Canada Hwy"
+    },
+    {
+      "id": 35,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "17:00",
+      "activity": "Optional rest/spa or nap",
+      "location": "Canalta Lodge",
+      "notes": "Rejuvenate before evening"
+    },
+    {
+      "id": 36,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "18:30",
+      "activity": "Farewell dinner",
+      "location": "Eden, The Bison, or Saltlik",
+      "notes": "Reservation recommended"
+    },
+    {
+      "id": 37,
+      "date": "2025-09-28",
+      "day": 5,
+      "time": "20:00",
+      "activity": "Final evening wind-down",
+      "location": "Canalta Lodge",
+      "notes": "Hot tub, fireplace lounge, finalize packing"
+    },
+    {
+      "id": 38,
+      "date": "2025-09-29",
+      "day": 6,
+      "time": "08:30",
+      "activity": "Breakfast and packing",
+      "location": "Canalta Lodge",
+      "notes": "Light breakfast included or grab coffee/pastries"
+    },
+    {
+      "id": 39,
+      "date": "2025-09-29",
+      "day": 6,
+      "time": "09:30",
+      "activity": "Drive to Calgary International Airport (YYC)",
+      "location": "Banff \u2192 YYC",
+      "notes": "~1 hr 45 min drive with traffic buffer"
+    },
+    {
+      "id": 40,
+      "date": "2025-09-29",
+      "day": 6,
+      "time": "11:15",
+      "activity": "Return rental car",
+      "location": "Calgary Airport rental desk",
+      "notes": "Budget 20\u201330 minutes"
+    },
+    {
+      "id": 41,
+      "date": "2025-09-29",
+      "day": 6,
+      "time": "11:45",
+      "activity": "Security and boarding",
+      "location": "YYC Departures Terminal",
+      "notes": "Recommended 2 hours before international flight"
+    },
+    {
+      "id": 42,
+      "date": "2025-09-29",
+      "day": 6,
+      "time": "13:55",
+      "activity": "Flight departs",
+      "location": "YYC",
+      "notes": "Bon voyage!"
+    }
+  ],
+  "packing": [
+    {
+      "id": 1,
+      "item": "Engagement Ring",
+      "packed": false,
+      "notes": "",
+      "category": "Essential"
+    },
+    {
+      "id": 2,
+      "item": "Travel Documents",
+      "packed": false,
+      "notes": "",
+      "category": "Essential"
+    },
+    {
+      "id": 3,
+      "item": "Clothes",
+      "packed": false,
+      "notes": "",
+      "category": "Clothing"
+    },
+    {
+      "id": 4,
+      "item": "Hiking Gear",
+      "packed": false,
+      "notes": "",
+      "category": "Equipment"
+    },
+    {
+      "id": 5,
+      "item": "Camera/Tripod",
+      "packed": false,
+      "notes": "",
+      "category": "Equipment"
+    },
+    {
+      "id": 6,
+      "item": "Toiletries",
+      "packed": false,
+      "notes": "",
+      "category": "Personal Care"
+    },
+    {
+      "id": 7,
+      "item": "Daypack",
+      "packed": false,
+      "notes": "",
+      "category": "General"
+    }
+  ],
+  "files": [
+    {
+      "id": "1e912dcf-fece-4c83-ad3a-82d0748f380c",
+      "filename": "file_20250814_104303_4010e5c5.xlsx",
+      "original_name": "Hera Master Doc.xlsx",
+      "size": "27.4 KB",
+      "size_bytes": 28058,
+      "type": "spreadsheet",
+      "category": "videos",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T18:40:10.084266",
+      "mimetype": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    },
+    {
+      "id": "f63b4709-ff0f-46a4-91c7-e05331221a47",
+      "filename": "file_20250814_135838_00dbde42.mp4",
+      "original_name": "Vikrant.mp4",
+      "size": "5.8 MB",
+      "size_bytes": 6083245,
+      "type": "video",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T13:58:38.766518",
+      "mimetype": "video/mp4"
+    },
+    {
+      "id": "2c35790f-8455-4d8b-a25d-fe60bba4b9ba",
+      "filename": "file_20250814_135838_e92bbb9f.mp4",
+      "original_name": "IMG_6309.mp4",
+      "size": "4.25 MB",
+      "size_bytes": 4458287,
+      "type": "video",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T13:58:38.780825",
+      "mimetype": "video/mp4"
+    },
+    {
+      "id": "deb33607-27c0-403b-93e1-bf67d1adf85a",
+      "filename": "file_20250814_135838_416ea9d7.mp4",
+      "original_name": "IMG_7920.mp4",
+      "size": "3.36 MB",
+      "size_bytes": 3525618,
+      "type": "video",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T13:58:38.788828",
+      "mimetype": "video/mp4"
+    },
+    {
+      "id": "9abd47ba-8702-48e7-80d8-57f355993fd4",
+      "filename": "file_20250814_140229_b616e97c.docx",
+      "original_name": "Vice _ Banff, Canada _ September 2025.docx",
+      "size": "12.15 KB",
+      "size_bytes": 12440,
+      "type": "document",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:02:29.949069",
+      "mimetype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    },
+    {
+      "id": "d33270c0-0131-4d97-a664-f6c607d84ac9",
+      "filename": "file_20250814_140316_19d1b35f.pdf",
+      "original_name": "Confirmation - Alamo Rent a Car.pdf",
+      "size": "94.52 KB",
+      "size_bytes": 96787,
+      "type": "pdf",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:03:16.270201",
+      "mimetype": "application/pdf"
+    },
+    {
+      "id": "bea47d84-0b59-4250-84bc-be5190d12155",
+      "filename": "file_20250814_140316_a3f4d95e.pdf",
+      "original_name": "Invoice - 0360 2.pdf",
+      "size": "344.04 KB",
+      "size_bytes": 352294,
+      "type": "pdf",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:03:16.271200",
+      "mimetype": "application/pdf"
+    },
+    {
+      "id": "057df0cc-90c8-4e99-b627-56df77ece129",
+      "filename": "file_20250814_140316_f6a9c525.pdf",
+      "original_name": "order-BAN-68400854.pdf",
+      "size": "171.85 KB",
+      "size_bytes": 175973,
+      "type": "pdf",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:03:16.273202",
+      "mimetype": "application/pdf"
+    },
+    {
+      "id": "5f71ba4c-9606-486d-985b-8f689497402b",
+      "filename": "file_20250814_140316_58b8c5ad.pdf",
+      "original_name": "parkPassReceipts_receipt-LU9Va2xjQlNnMFVjay04d3FFX1k.pdf",
+      "size": "31.24 KB",
+      "size_bytes": 31986,
+      "type": "pdf",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:03:16.274199",
+      "mimetype": "application/pdf"
+    },
+    {
+      "id": "0f9197fe-aaa3-4748-8e16-51d3d3e03d8c",
+      "filename": "file_20250814_140316_18b73ef7.pdf",
+      "original_name": "Pursuit Tickets - 3476161.pdf",
+      "size": "92.85 KB",
+      "size_bytes": 95076,
+      "type": "pdf",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:03:16.275201",
+      "mimetype": "application/pdf"
+    },
+    {
+      "id": "1586b327-da05-4ff9-b042-99d1bf667cf3",
+      "filename": "file_20250814_140316_7ae9fdfe.png",
+      "original_name": "Screenshot 2025-03-18 at 4.39.09 PM.png",
+      "size": "825.59 KB",
+      "size_bytes": 845408,
+      "type": "image",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:03:16.279267",
+      "mimetype": "image/png"
+    },
+    {
+      "id": "95eb42c0-9b58-4a0c-af11-dca2e2dc8788",
+      "filename": "file_20250814_140316_4f704bf0.pdf",
+      "original_name": "ticket-BAN-T100774197.pdf",
+      "size": "177.55 KB",
+      "size_bytes": 181808,
+      "type": "pdf",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:03:16.281266",
+      "mimetype": "application/pdf"
+    },
+    {
+      "id": "9a47ddbd-3d14-4a3a-9eba-b36f4f749fa5",
+      "filename": "file_20250814_140316_497b0489.jpg",
+      "original_name": "TY63408-(Gemma-Vikrant L)-Y-R1.jpg",
+      "size": "82.85 KB",
+      "size_bytes": 84841,
+      "type": "image",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T14:03:16.283265",
+      "mimetype": "image/jpeg"
+    },
+    {
+      "id": "4a10133f-af80-4e9c-b8cd-7dba0fb5566b",
+      "filename": "file_20250814_173045_06a5d069.pdf",
+      "original_name": "Canalta Expedia - (Itinerary # 73022774416687).pdf",
+      "size": "430.02 KB",
+      "size_bytes": 440339,
+      "type": "pdf",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T17:30:45.842339",
+      "mimetype": "application/pdf"
+    },
+    {
+      "id": "3546a072-366c-464f-9d08-c6931d9077fe",
+      "filename": "file_20250814_173045_357c0d83.pdf",
+      "original_name": "United Airlines \u2013 AT9Z8V.pdf",
+      "size": "359.4 KB",
+      "size_bytes": 368023,
+      "type": "pdf",
+      "category": "other",
+      "notes": "",
+      "upload_date": null,
+      "updated_date": "2025-08-14T17:30:45.845338",
+      "mimetype": "application/pdf"
+    }
+  ]
+}

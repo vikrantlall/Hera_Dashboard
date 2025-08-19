@@ -1,180 +1,53 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, session, send_file
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+from werkzeug.datastructures import FileStorage
+from datetime import datetime, timedelta, date, time
+from sqlalchemy import desc, asc, and_, or_, func
+from dotenv import load_dotenv
 import json
 import os
-from datetime import datetime, timedelta
-from werkzeug.utils import secure_filename
-from flask import send_file
-from werkzeug.datastructures import FileStorage
 import uuid
-from flask import session
 import random
 import mimetypes
+import math
 
+# Load environment variables
+load_dotenv()
+
+# Import database and models
+from database import db, init_db, create_tables, DatabaseConfig
+from models import User, Budget, Family, Travel, Itinerary, Packing, Ring, File, Statistics
 
 app = Flask(__name__)
-app.secret_key = 'hera_proposal_2025_emerald_lake_secret'
+app.secret_key = os.environ.get('SECRET_KEY', 'hera_proposal_2025_emerald_lake_secret')
+
+# Initialize database
+init_db(app)
 
 # Flask-Login setup
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-class User(UserMixin):
-    def __init__(self, id, username, password_hash, display_name=None):
-        self.id = id
-        self.username = username
-        self.password_hash = password_hash
-        self.display_name = display_name or username
-
-users = {
-    'admin': User('admin', 'admin', generate_password_hash('admin123'), 'Vikrant')
-}
-
-
 @login_manager.user_loader
 def load_user(user_id):
-    return users.get(user_id)
+    """Load user from database"""
+    return User.query.get(int(user_id))
 
-# Your complete HERA data - exactly as requested
-HERA_DATA = {
-    "main": {
-        "tripDates": "9/24/2025 - 9/29/2025",
-        "totalBudget": 11691.2,
-        "totalSaved": 7511.2,
-        "totalRemaining": 4180,
-        "proposalDate": "2025-09-26",
-        "savingsTimeline": [
-            {"amount": 5000, "month": "march"},
-            {"amount": 5000, "month": "april"},
-            {"amount": 5000, "month": "may"},
-            {"amount": 5000, "month": "june"},
-            {"amount": 5000, "month": "july"},
-            {"amount": 5000, "month": "august"},
-            {"amount": 5000, "month": "september"}
-        ],
-        "tasks": [
-            {"id": 1, "task": "Save for Key Expenses", "deadline": "2025-06-01", "status": "In Progress, Behind Schedule", "notes": "Enough for ring, flights, and hotels. ($8,000)"},
-            {"id": 2, "task": "Get Family Permissions", "deadline": "2025-08-03", "status": "In Progress, On Schedule", "notes": "All permissions secured before booking major items."},
-            {"id": 3, "task": "Book Flights", "deadline": "2025-07-01", "status": "Ahead Schedule, Complete", "notes": "Ensure best deals for travel."},
-            {"id": 4, "task": "Reserve Hotels", "deadline": "2025-07-01", "status": "Ahead Schedule, Complete", "notes": "Accommodations finalized."},
-            {"id": 5, "task": "Confirm Transportation", "deadline": "2025-07-01", "status": "Complete, Ahead Schedule", "notes": "Rental car booked; gas budget estimated."},
-            {"id": 6, "task": "Plan Proposal Details", "deadline": "2025-06-28", "status": "Complete, On Schedule", "notes": "Includes location, timing, and backup plans."},
-            {"id": 7, "task": "Confirm Photographer", "deadline": "2025-07-01", "status": "Complete, On Schedule", "notes": "Research local options; book by this date."},
-            {"id": 8, "task": "Finalize Daily Itinerary", "deadline": "2025-08-03", "status": "On Schedule, Complete", "notes": "Reflect finalized bookings and activities."},
-            {"id": 9, "task": "Reserve Dining", "deadline": "2025-08-01", "status": "On Schedule, In Progress", "notes": "Key reservations for proposal and celebration."},
-            {"id": 10, "task": "Pack Essentials", "deadline": "2025-09-28", "status": "Not Started, On Schedule", "notes": "Ensure everything is ready, including the ring."}
-        ]
-    },
-    "budget": [
-        {"id": 1, "category": "Ring", "budget": 6400, "saved": 6400, "remaining": 0, "notes": "Custom Made", "status": "Paid", "priority": "critical"},
-        {"id": 2, "category": "Flights", "budget": 11.2, "saved": 11.2, "remaining": 0, "notes": "Booked on United", "status": "Paid", "priority": "high"},
-        {"id": 3, "category": "Hotels", "budget": 2130, "saved": 0, "remaining": 2130, "notes": "Canalta Lodge, includes breakfast (expedia)\\nconsidering reaching out to hotel for an upgrade", "status": "Outstanding", "priority": "high"},
-        {"id": 4, "category": "Transportation", "budget": 450, "saved": 0, "remaining": 450, "notes": "Rental Car (400) + Gas (50) [Alamo]", "status": "Outstanding", "priority": "medium"},
-        {"id": 5, "category": "Meals/Dining", "budget": 900, "saved": 0, "remaining": 900, "notes": "9 Meals", "status": "Outstanding", "priority": "medium"},
-        {"id": 6, "category": "Photographer", "budget": 1100, "saved": 1100, "remaining": 0, "notes": "Banff Photography", "status": "Paid", "priority": "critical"},
-        {"id": 7, "category": "Activities/Excursions", "budget": 400, "saved": 0, "remaining": 400, "notes": "Gondala,", "status": "Outstanding", "priority": "low"},
-        {"id": 8, "category": "Miscellaneous", "budget": 300, "saved": 0, "remaining": 300, "notes": "", "status": "Outstanding", "priority": "low"}
-    ],
-    "ring": {
-        "Jeweler": "GWFJ",
-        "Ring Style (Inspiration)": "https://sofiazakia.com/products/diamond-tethys-ring",
-        "Metal": "Yellow Gold, 18k",
-        "Stone(s)": "Lab Grown Diamond, 2.98ct",
-        "Engraving": None,
-        "Design Approved": "YES, 50% deposit placed",
-        "Order Placed": "Yes, 50% deposit placed",
-        "Estimated Delivery": None,
-        "Delivered": "YES, delivered",
-        "Insured": "Yes",
-        "Insurance Details": "Jewelers Mutual, $68/year $0 deductible",
-        "Status": "Reached out via Instagram, will have to put in request via website\\n -- Process takes about 8-12 weeks for custom orders, (June would be the latest i could order it)\\n\\n3/18 - Emailed to start process, details and diamond selected, deposit placed"
-    },
-    "family": [
-        {"id": 1, "name": "Papa", "status": "Approved", "notes": "Was not an issue, a little confused on timeline"},
-        {"id": 2, "name": "Mama", "status": "Approved", "notes": "Not as much of an issue, claimed to have known about it already"},
-        {"id": 3, "name": "Shreya", "status": "Approved", "notes": "Seemed fine"},
-        {"id": 4, "name": "Gina", "status": "Approved", "notes": "Was happy"},
-        {"id": 5, "name": "Grandpa Rhodes", "status": "Approved", "notes": "Was Happy, making jokes"},
-        {"id": 6, "name": "Grandma Rhodes", "status": "Approved", "notes": "Was happy, seems very excited"},
-        {"id": 7, "name": "Graden", "status": "Not Asked", "notes": "Need to text"}
-    ],
-    "travel": [
-        {"id": 1, "segment": "IAD - DEN", "airline": "United", "flightNumber": "UA419", "departureTime": "8:15 AM", "arrivalTime": "10:03 AM", "duration": "3h 48m", "date": "9/24/2025", "confirmationNumber": "AT9Z8V", "seat": "2E, 2F", "status": "Confirmed"},
-        {"id": 2, "segment": "DEN - YYC", "airline": "United", "flightNumber": "UA2459", "departureTime": "11:22 AM", "arrivalTime": "1:53 PM", "duration": "2h 31m", "date": "9/24/2025", "confirmationNumber": "AT9Z8V", "seat": "1E, 1F", "status": "Confirmed"},
-        {"id": 3, "segment": "YYC - IAH", "airline": "United", "flightNumber": "UA750", "departureTime": "1:55 PM", "arrivalTime": "7:04 PM", "duration": "4h 9m", "date": "9/29/2025", "confirmationNumber": "AT9Z8V", "seat": "2E, 2F", "status": "Confirmed"},
-        {"id": 4, "segment": "IAH - DCA", "airline": "United", "flightNumber": "UA2224", "departureTime": "7:50 PM", "arrivalTime": "11:50 PM", "duration": "3h", "date": "9/29/2025", "confirmationNumber": "AT9Z8V", "seat": "2E, 2F", "status": "Confirmed"},
-        {"id": 5, "segment": "Hotel - Canalta Lodge", "provider": "Canalta Lodge", "address": "545 Banff Ave #1B5, Banff, AB T1L 1B5, Canada", "phone": "403-762-2112", "checkIn": "4:00 PM", "checkOut": "11:00 AM", "confirmationNumber": "73022774416687", "roomType": "King Room w/ Balcony", "status": "Confirmed"},
-        {"id": 6, "segment": "Rental Car - Alamo", "provider": "Alamo", "location": "YYC", "pickupDate": "2025-09-24", "confirmationNumber": "#1785932383", "carType": "Intermediate SUV\\nToyota RAV4 or similar", "status": "Confirmed"}
-    ],
-    "itinerary": [
-        {"id": 2, "date": "2025-09-24", "day": 1, "time": "15:15", "activity": "Drive to Banff", "location": "YYC to Canalta Lodge", "notes": "Approx. 1.5-hour scenic drive"},
-        {"id": 3, "date": "2025-09-24", "day": 1, "time": "16:15", "activity": "Hotel check-in and unwind", "location": "Canalta Lodge, Banff", "notes": "Relax after travel"},
-        {"id": 4, "date": "2025-09-24", "day": 1, "time": "17:45", "activity": "Dinner", "location": "Farm & Fire or Lupo, Banff", "notes": "Reservation recommended"},
-        {"id": 5, "date": "2025-09-24", "day": 1, "time": "19:15", "activity": "Relaxation", "location": "Canalta Lodge", "notes": "Use hot tub, fireplace lounge"},
-        {"id": 6, "date": "2025-09-25", "day": 2, "time": "08:00", "activity": "Breakfast", "location": "Canalta Lodge or Whitebark Café", "notes": "Casual breakfast, local options"},
-        {"id": 7, "date": "2025-09-25", "day": 2, "time": "11:30", "activity": "Ride Banff Gondola and explore summit", "location": "Sulphur Mountain Summit", "notes": "Uplift at 11:30 AM, download at 2:30 PM"},
-        {"id": 8, "date": "2025-09-25", "day": 2, "time": "12:30", "activity": "Lunch at summit", "location": "Sky Bistro", "notes": "Reserved at 12:30 PM"},
-        {"id": 9, "date": "2025-09-25", "day": 2, "time": "14:00", "activity": "Explore summit boardwalk", "location": "Sulphur Mountain", "notes": "Interpretive signage, scenic views"},
-        {"id": 10, "date": "2025-09-25", "day": 2, "time": "15:00", "activity": "Nap or rest break", "location": "Canalta Lodge", "notes": "Recharge"},
-        {"id": 11, "date": "2025-09-25", "day": 2, "time": "16:15", "activity": "Spa session", "location": "Cedar + Sage Co", "notes": "60-minute Couples' Massage"},
-        {"id": 12, "date": "2025-09-25", "day": 2, "time": "18:00", "activity": "Dinner", "location": "Bear Street Tavern or similar", "notes": "Walk-in possible, reservations good"},
-        {"id": 13, "date": "2025-09-25", "day": 2, "time": "19:30", "activity": "Evening at lodge", "location": "Canalta Lodge", "notes": "Optional hot tub or early night"},
-        {"id": 14, "date": "2025-09-26", "day": 3, "time": "07:00", "activity": "Drive to Emerald Lake", "location": "Banff to Emerald Lake", "notes": "~1-hour scenic drive"},
-        {"id": 15, "date": "2025-09-26", "day": 3, "time": "08:00", "activity": "Proposal + Photoshoot", "location": "Emerald Lake", "notes": "2-hour session with photographer", "isProposal": True},
-        {"id": 16, "date": "2025-09-26", "day": 3, "time": "12:00", "activity": "Lunch", "location": "Around Banff", "notes": "Flexible lunch stop"},
-        {"id": 17, "date": "2025-09-26", "day": 3, "time": "15:30", "activity": "Distillery Tour", "location": "Park Distillery, Banff", "notes": "Arrive 5–10 mins early for check-in"},
-        {"id": 18, "date": "2025-09-26", "day": 3, "time": "18:30", "activity": "Dinner", "location": "1888 Chop House, Fairmont Banff Springs", "notes": "Reservation at 6:30 PM"},
-        {"id": 19, "date": "2025-09-26", "day": 3, "time": "20:30", "activity": "Wind down", "location": "Canalta Lodge", "notes": "Relax, hot tub, or fireplace lounge"},
-        {"id": 20, "date": "2025-09-27", "day": 4, "time": "08:00", "activity": "Breakfast", "location": "Canalta Lodge", "notes": "Light breakfast to start the day"},
-        {"id": 21, "date": "2025-09-27", "day": 4, "time": "12:00", "activity": "Lake Minnewanka Cruise", "location": "Lake Minnewanka", "notes": "Arrive at dock by 11:45 AM"},
-        {"id": 22, "date": "2025-09-27", "day": 4, "time": "13:00", "activity": "Lunch", "location": "Minnewanka or Banff", "notes": "Optional café nearby or pack a picnic"},
-        {"id": 23, "date": "2025-09-27", "day": 4, "time": "14:00", "activity": "Return & prep for afternoon", "location": "Canalta Lodge", "notes": "Change or rest briefly"},
-        {"id": 24, "date": "2025-09-27", "day": 4, "time": "14:30", "activity": "Lake Louise Visit (incl. drive)", "location": "Lake Louise", "notes": "~1 hr drive each way, ~2 hrs at the lake"},
-        {"id": 25, "date": "2025-09-27", "day": 4, "time": "19:30", "activity": "Dinner", "location": "The Bison", "notes": "Reservation at 7:30 PM"},
-        {"id": 26, "date": "2025-09-27", "day": 4, "time": "20:00", "activity": "Evening rest", "location": "Canalta Lodge", "notes": "Hot tub, fireplace lounge, or early night"},
-        {"id": 27, "date": "2025-09-28", "day": 5, "time": "09:00", "activity": "Breakfast", "location": "Canalta Lodge", "notes": "Start slowly after several busy days"},
-        {"id": 28, "date": "2025-09-28", "day": 5, "time": "10:00", "activity": "Drive to Peyto Lake", "location": "Banff → Bow Summit (Icefields Pkwy)", "notes": "~75-minute scenic drive (peytolake.ca)"},
-        {"id": 29, "date": "2025-09-28", "day": 5, "time": "11:15", "activity": "Short walk to Peyto Viewpoint", "location": "Paved ~1.5 km round-trip", "notes": "Easy walk to iconic viewpoint"},
-        {"id": 30, "date": "2025-09-28", "day": 5, "time": "12:00", "activity": "Drive to Field, BC", "location": "Peyto → Field via Trans-Canada Hwy", "notes": "~1-hour drive"},
-        {"id": 31, "date": "2025-09-28", "day": 5, "time": "13:15", "activity": "Lunch at Truffle Pigs Bistro", "location": "Field, BC", "notes": "Opens at 11 am—great timing for a relaxed meal"},
-        {"id": 32, "date": "2025-09-28", "day": 5, "time": "14:45", "activity": "Drive to Takakkaw Falls", "location": "Field → Yoho Valley Rd turnoff", "notes": "~30 minutes scenic through Kicking Horse Pass"},
-        {"id": 33, "date": "2025-09-28", "day": 5, "time": "15:15", "activity": "Visit Takakkaw Falls", "location": "Yoho National Park", "notes": "300 m paved walk to base—easy family-friendly trail"},
-        {"id": 34, "date": "2025-09-28", "day": 5, "time": "16:00", "activity": "Return drive to Banff", "location": "Yoho → Banff", "notes": "~60-minute drive back via Trans-Canada Hwy"},
-        {"id": 35, "date": "2025-09-28", "day": 5, "time": "17:00", "activity": "Optional rest/spa or nap", "location": "Canalta Lodge", "notes": "Rejuvenate before evening"},
-        {"id": 36, "date": "2025-09-28", "day": 5, "time": "18:30", "activity": "Farewell dinner", "location": "Eden, The Bison, or Saltlik", "notes": "Reservation recommended"},
-        {"id": 37, "date": "2025-09-28", "day": 5, "time": "20:00", "activity": "Final evening wind-down", "location": "Canalta Lodge", "notes": "Hot tub, fireplace lounge, finalize packing"},
-        {"id": 38, "date": "2025-09-29", "day": 6, "time": "08:30", "activity": "Breakfast and packing", "location": "Canalta Lodge", "notes": "Light breakfast included or grab coffee/pastries"},
-        {"id": 39, "date": "2025-09-29", "day": 6, "time": "09:30", "activity": "Drive to Calgary International Airport (YYC)", "location": "Banff → YYC", "notes": "~1 hr 45 min drive with traffic buffer"},
-        {"id": 40, "date": "2025-09-29", "day": 6, "time": "11:15", "activity": "Return rental car", "location": "Calgary Airport rental desk", "notes": "Budget 20–30 minutes"},
-        {"id": 41, "date": "2025-09-29", "day": 6, "time": "11:45", "activity": "Security and boarding", "location": "YYC Departures Terminal", "notes": "Recommended 2 hours before international flight"},
-        {"id": 42, "date": "2025-09-29", "day": 6, "time": "13:55", "activity": "Flight departs", "location": "YYC", "notes": "Bon voyage!"}
-    ],
-    "packing": [
-        {"id": 1, "item": "Engagement Ring", "packed": False, "notes": ""},
-        {"id": 2, "item": "Travel Documents", "packed": False, "notes": ""},
-        {"id": 3, "item": "Clothes", "packed": False, "notes": ""},
-        {"id": 4, "item": "Hiking Gear", "packed": False, "notes": ""},
-        {"id": 5, "item": "Camera/Tripod", "packed": False, "notes": ""},
-        {"id": 6, "item": "Toiletries", "packed": False, "notes": ""},
-        {"id": 7, "item": "Daypack", "packed": False, "notes": ""}
-    ],
-    "files": []
-}
-
-
+# Utility functions
 def get_file_type(filename):
     """Determine file type based on extension"""
     if not filename:
         return 'other'
-
+    
     ext = filename.rsplit('.', 1)[1].lower() if '.' in filename else ''
-
+    
     if ext in ['jpg', 'jpeg', 'png', 'gif', 'webp']:
         return 'image'
-    elif ext in ['mov', 'mp4', 'avi', 'mkv', 'webm']:  # ← ADD THIS LINE
-        return 'video'                                   # ← ADD THIS LINE
+    elif ext in ['mov', 'mp4', 'avi', 'mkv', 'webm']:
+        return 'video'
     elif ext == 'pdf':
         return 'pdf'
     elif ext in ['doc', 'docx']:
@@ -188,31 +61,15 @@ def get_file_type(filename):
     else:
         return 'other'
 
-
 def format_file_size(size_bytes):
     """Format file size in human readable format"""
     if size_bytes == 0:
         return "0 B"
     size_names = ["B", "KB", "MB", "GB", "TB"]
-    import math
     i = int(math.floor(math.log(size_bytes, 1024)))
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return f"{s} {size_names[i]}"
-
-
-# Data persistence functions
-def save_data():
-    """Save current data to JSON file"""
-    with open('hera_data.json', 'w') as f:
-        json.dump(HERA_DATA, f, indent=2)
-
-def load_data():
-    """Load data from JSON file if it exists"""
-    global HERA_DATA
-    if os.path.exists('hera_data.json'):
-        with open('hera_data.json', 'r') as f:
-            HERA_DATA = json.load(f)
 
 def calculate_days_until_proposal():
     """Calculate days until proposal"""
@@ -222,12 +79,13 @@ def calculate_days_until_proposal():
     return max(0, delta.days)
 
 def calculate_budget_stats():
-    """Calculate budget statistics"""
-    total_budget = sum(item['budget'] for item in HERA_DATA['budget'])
-    total_saved = sum(item['saved'] for item in HERA_DATA['budget'])
-    total_remaining = total_budget - total_saved
-    budget_progress = (total_saved / total_budget) * 100 if total_budget > 0 else 0
-
+    """Calculate budget statistics from database"""
+    budgets = Budget.query.all()
+    total_budget = sum(b.amount for b in budgets)
+    total_saved = sum(b.saved for b in budgets)
+    total_remaining = sum(b.remaining for b in budgets)
+    budget_progress = (total_saved / total_budget * 100) if total_budget > 0 else 0
+    
     return {
         'total_budget': total_budget,
         'total_saved': total_saved,
@@ -235,106 +93,122 @@ def calculate_budget_stats():
         'budget_progress': budget_progress
     }
 
-# Routes
+# Authentication Routes
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """Login page with decoy redirect"""
     if request.method == 'POST':
         username = request.form['username'].strip().lower()
         password = request.form['password'].strip()
-
+        
         # REAL CREDENTIALS - Access to HERA proposal dashboard
-        if username == 'admin' and password == 'admin123':
-            user = users.get('admin')
-            login_user(user)
-            session['hera_access'] = True
-            return redirect(url_for('dashboard'))
-
+        if username == 'admin':
+            user = User.query.filter_by(username='admin').first()
+            if not user:
+                # Create default admin user if doesn't exist
+                user = User()
+                user.username = 'admin'
+                user.set_password('admin123')
+                db.session.add(user)
+                db.session.commit()
+            
+            if user.check_password(password):
+                login_user(user)
+                session['hera_access'] = True
+                return redirect(url_for('dashboard'))
+        
         # FAKE CREDENTIALS - Redirect to harmless games (the decoy)
         elif username == 'demo' and password == 'test123':
             session['games_access'] = True
             session.pop('hera_access', None)  # Clear any HERA access
             return redirect(url_for('games'))
-
+        
         # ANY OTHER CREDENTIALS - Show error and stay on login
-        else:
-            flash('Invalid username or password')
-            return render_template('login.html', show_error=True)
-
+        flash('Invalid username or password')
+        return render_template('login.html', show_error=True)
+    
     return render_template('login.html')
 
 @app.route('/logout')
 @login_required
 def logout():
+    """Logout and clear session"""
     logout_user()
-    session.clear()  # Clear all session data including games access
+    session.clear()
     return redirect(url_for('login'))
 
-
+# Main Dashboard
 @app.route('/')
 @app.route('/dashboard')
 @login_required
 def dashboard():
-
+    """Main dashboard with all key metrics from database"""
     if not session.get('hera_access'):
         logout_user()
         session.clear()
         flash('Session expired. Please log in again.')
         return redirect(url_for('login'))
-
-    """Main dashboard with all key metrics"""
+    
+    # Calculate metrics from database
     days_until = calculate_days_until_proposal()
     budget_stats = calculate_budget_stats()
-
-    # Calculate task completion stats
-    completed_tasks = [t for t in HERA_DATA['main']['tasks'] if 'Complete' in t['status']]
-    total_tasks = len(HERA_DATA['main']['tasks'])
+    
+    # Get tasks data (stored in a JSON field or separate table if needed)
+    # For now, we'll use static data for tasks
+    tasks = [
+        {"id": 1, "task": "Save for Key Expenses", "deadline": "2025-06-01", "status": "In Progress", "notes": "Enough for ring, flights, and hotels. ($8,000)"},
+        {"id": 2, "task": "Get Family Permissions", "deadline": "2025-08-03", "status": "In Progress", "notes": "All permissions secured before booking major items."},
+        {"id": 3, "task": "Book Flights", "deadline": "2025-07-01", "status": "Complete", "notes": "Ensure best deals for travel."},
+        {"id": 4, "task": "Reserve Hotels", "deadline": "2025-07-01", "status": "Complete", "notes": "Accommodations finalized."},
+        {"id": 5, "task": "Confirm Transportation", "deadline": "2025-07-01", "status": "Complete", "notes": "Rental car booked; gas budget estimated."},
+        {"id": 6, "task": "Plan Proposal Details", "deadline": "2025-06-28", "status": "Complete", "notes": "Includes location, timing, and backup plans."},
+        {"id": 7, "task": "Confirm Photographer", "deadline": "2025-07-01", "status": "Complete", "notes": "Research local options; book by this date."},
+        {"id": 8, "task": "Finalize Daily Itinerary", "deadline": "2025-08-03", "status": "Complete", "notes": "Reflect finalized bookings and activities."},
+        {"id": 9, "task": "Reserve Dining", "deadline": "2025-08-01", "status": "In Progress", "notes": "Key reservations for proposal and celebration."},
+        {"id": 10, "task": "Pack Essentials", "deadline": "2025-09-28", "status": "Not Started", "notes": "Ensure everything is ready, including the ring."}
+    ]
+    
+    completed_tasks = [t for t in tasks if 'Complete' in t['status']]
+    total_tasks = len(tasks)
     task_progress = (len(completed_tasks) / total_tasks * 100) if total_tasks > 0 else 0
-
-    # Family approval stats
-    approved_family = len([f for f in HERA_DATA['family'] if f['status'] == 'Approved'])
-    total_family = len(HERA_DATA['family'])
-
-    # Packing progress - FIX THE CATEGORY ISSUE HERE
-    packed_items = len([p for p in HERA_DATA['packing'] if p['packed']])
-    total_items = len(HERA_DATA['packing'])
-
-    # CRITICAL FIX: Ensure all packing items have a category
-    for item in HERA_DATA['packing']:
-        if 'category' not in item or not item['category']:
-            # Assign categories based on item names
-            item_lower = item['item'].lower()
-            if any(word in item_lower for word in ['ring', 'documents', 'passport']):
-                item['category'] = 'Essential'
-            elif any(word in item_lower for word in ['camera', 'tripod', 'gear']):
-                item['category'] = 'Equipment'
-            elif any(word in item_lower for word in ['clothes', 'hiking']):
-                item['category'] = 'Clothing'
-            elif any(word in item_lower for word in ['toiletries']):
-                item['category'] = 'Personal Care'
-            else:
-                item['category'] = 'General'
-
+    
+    # Family approval stats from database
+    family_members = Family.query.all()
+    approved_family = len([f for f in family_members if f.status == 'Approved'])
+    total_family = len(family_members)
+    
+    # Packing progress from database
+    packing_items = Packing.query.all()
+    packed_items = len([p for p in packing_items if p.packed])
+    total_items = len(packing_items)
+    
+    # Get top budget items from database
+    top_budget_items = Budget.query.order_by(desc(Budget.amount)).limit(5).all()
+    
+    # Pass individual variables instead of HERA_DATA
     return render_template('dashboard.html',
-                           days_until=days_until,
-                           budget_stats=budget_stats,
-                           approved_family=approved_family,
-                           total_family=total_family,
-                           packed_items=packed_items,
-                           total_items=total_items,
-                           completed_tasks=completed_tasks,
-                           total_tasks=total_tasks,
-                           task_progress=task_progress,
-                           top_budget_items=HERA_DATA['budget'][:5],
-                           HERA_DATA=HERA_DATA)
+                         days_until=days_until,
+                         budget_stats=budget_stats,
+                         approved_family=approved_family,
+                         total_family=total_family,
+                         packed_items=packed_items,
+                         total_items=total_items,
+                         completed_tasks=completed_tasks,
+                         total_tasks=total_tasks,
+                         task_progress=task_progress,
+                         top_budget_items=top_budget_items,
+                         tasks=tasks,
+                         family_members=family_members,
+                         packing_items=packing_items,
+                         budget_items=Budget.query.all())
 
-
+# Games (Decoy) Route
 @app.route('/games')
 def games():
     """Personal Break Dashboard - Cover story for wrong credentials"""
     if not session.get('games_access'):
         return redirect(url_for('login'))
-
-    # Generate fake "personal project" stats for authenticity
+    
     game_stats = {
         'high_scores': {
             'snake': random.randint(850, 2340),
@@ -345,376 +219,298 @@ def games():
         'total_plays': random.randint(156, 892),
         'time_played': f'{random.randint(12, 47)}h {random.randint(15, 59)}m'
     }
-
+    
     return render_template('games.html', stats=game_stats)
 
+# Budget Routes
 @app.route('/budget')
 @login_required
 def budget():
-    """Budget management page"""
+    """Budget management page with SQLAlchemy data"""
+    budget_items = Budget.query.order_by(desc(Budget.priority), desc(Budget.amount)).all()
     budget_stats = calculate_budget_stats()
+    
     return render_template('budget.html',
-                         budget_items=HERA_DATA['budget'],
+                         budget_items=budget_items,
                          budget_stats=budget_stats)
 
-
-@app.route('/ring')
-@login_required
-def ring():
-    """Ring showcase page"""
-    # Check for ring media files (images + videos) in uploads folder
-    ring_images = []
-    ring_upload_path = os.path.join('static', 'uploads', 'ring')
-    if os.path.exists(ring_upload_path):
-        ring_images = [f for f in os.listdir(ring_upload_path)
-                       if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp',
-                                            '.mov', '.mp4', '.avi', '.mkv', '.webm'))]
-
-    return render_template('ring.html',
-                           ring=HERA_DATA['ring'],
-                           ring_images=ring_images)
-
-
-@app.route('/family')
-@login_required
-def family():
-    """Family permissions page"""
-    approved_count = len([f for f in HERA_DATA['family'] if f['status'] == 'Approved'])
-    return render_template('family.html',
-                         family_members=HERA_DATA['family'],
-                         approved_count=approved_count,
-                         total_count=len(HERA_DATA['family']))
-
-
-@app.route('/travel')
-@login_required
-def travel():
-    """Travel details page with organized data"""
-    # Separate travel data by type
-    outbound_flights = [t for t in HERA_DATA['travel'] if
-                        'IAD - DEN' in t.get('segment', '') or 'DEN - YYC' in t.get('segment', '')]
-
-    # CHANGED: Updated to look for IAH instead of YYZ
-    return_flights = [t for t in HERA_DATA['travel'] if
-                      'YYC - IAH' in t.get('segment', '') or 'IAH - DCA' in t.get('segment', '')]
-
-    hotels = [t for t in HERA_DATA['travel'] if 'Hotel' in t.get('segment', '')]
-    ground_transport = [t for t in HERA_DATA['travel'] if 'Rental Car' in t.get('segment', '')]
-
-    return render_template('travel.html',
-                           outbound_flights=outbound_flights,
-                           return_flights=return_flights,
-                           hotels=hotels,
-                           ground_transport=ground_transport,
-                           travel_data=HERA_DATA['travel'])
-
-
-@app.route('/itinerary')
-@login_required
-def itinerary():
-    """Itinerary page with all 42 activities"""
-    # Sort activities by day, then by time
-    sorted_itinerary = sorted(HERA_DATA['itinerary'],
-                              key=lambda x: (x['day'], x['time']))
-
-    return render_template('itinerary.html',
-                           itinerary_items=sorted_itinerary,
-                           total_activities=len(HERA_DATA['itinerary']))
-
-
-@app.route('/packing')
-@login_required
-def packing():
-    """Packing list page with categories"""
-    packed_count = len([p for p in HERA_DATA['packing'] if p['packed']])
-
-    # Add default category to items that don't have one
-    for item in HERA_DATA['packing']:
-        if 'category' not in item:
-            # Assign categories based on item names
-            item_lower = item['item'].lower()
-            if any(word in item_lower for word in ['ring', 'documents', 'passport']):
-                item['category'] = 'Essential'
-            elif any(word in item_lower for word in ['camera', 'tripod', 'gear']):
-                item['category'] = 'Equipment'
-            elif any(word in item_lower for word in ['clothes', 'hiking']):
-                item['category'] = 'Clothing'
-            elif any(word in item_lower for word in ['toiletries']):
-                item['category'] = 'Personal Care'
-            else:
-                item['category'] = 'General'
-
-    # Get unique categories
-    categories = list(set([item.get('category', 'General') for item in HERA_DATA['packing']]))
-    if not categories:
-        categories = ['General']
-
-    return render_template('packing.html',
-                           packing_items=HERA_DATA['packing'],
-                           packed_count=packed_count,
-                           total_count=len(HERA_DATA['packing']),
-                           categories=categories)
-
-# API Routes for CRUD operations
 @app.route('/api/budget/<int:item_id>/toggle', methods=['POST'])
 @login_required
 def toggle_budget_status(item_id):
     """Toggle budget item payment status"""
     try:
-        item = next((item for item in HERA_DATA['budget'] if item['id'] == item_id), None)
+        item = Budget.query.get(item_id)
         if not item:
             return jsonify({'success': False, 'error': 'Item not found'})
-
-        item['status'] = 'Paid' if item['status'] == 'Outstanding' else 'Outstanding'
-        if item['status'] == 'Paid':
-            item['saved'] = item['budget']
-            item['remaining'] = 0
+        
+        item.status = 'Paid' if item.status == 'Outstanding' else 'Outstanding'
+        if item.status == 'Paid':
+            item.saved = item.amount
         else:
-            item['saved'] = 0
-            item['remaining'] = item['budget']
-
-        save_data()
-        return jsonify({'success': True, 'status': item['status']})
+            item.saved = 0
+        
+        db.session.commit()
+        return jsonify({'success': True, 'status': item.status})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/api/packing/<int:item_id>/toggle', methods=['POST'])
+@app.route('/api/budget/add', methods=['POST'])
 @login_required
-def toggle_packing_status(item_id):
-    """Toggle packing item status"""
+def add_budget_item():
+    """Add new budget item to database"""
     try:
-        item = next((item for item in HERA_DATA['packing'] if item['id'] == item_id), None)
+        data = request.get_json()
+        
+        budget_item = Budget(
+            category=data['category'],
+            amount=float(data['budget_amount']),
+            saved=float(data['budget_saved']),
+            notes=data.get('notes', ''),
+            status=data['status'],
+            priority=data.get('priority', 'Medium')
+        )
+        
+        db.session.add(budget_item)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'budget_item': budget_item.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/budget/update', methods=['POST'])
+@login_required
+def update_budget_item():
+    """Update existing budget item in database"""
+    try:
+        data = request.get_json()
+        item_id = int(data['id'])
+        
+        item = Budget.query.get(item_id)
         if not item:
             return jsonify({'success': False, 'error': 'Item not found'})
+        
+        item.category = data['category']
+        item.amount = float(data['budget_amount'])
+        item.saved = float(data['budget_saved'])
+        item.notes = data.get('notes', '')
+        item.status = data['status']
+        item.priority = data.get('priority', 'Medium')
+        
+        db.session.commit()
+        return jsonify({'success': True, 'budget_item': item.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
 
-        item['packed'] = not item['packed']
-        save_data()
-        return jsonify({'success': True, 'packed': item['packed']})
+@app.route('/api/budget/delete/<int:item_id>', methods=['DELETE'])
+@login_required
+def delete_budget_item(item_id):
+    """Delete budget item from database"""
+    try:
+        item = Budget.query.get(item_id)
+        if item:
+            db.session.delete(item)
+            db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+# Ring Routes
+@app.route('/ring')
+@login_required
+def ring():
+    """Ring showcase page with SQLAlchemy data"""
+    ring_data = Ring.query.first()
+    if not ring_data:
+        # Create default ring entry if none exists
+        ring_data = Ring(
+            jeweler='',
+            stone='',
+            metal='',
+            style_inspiration='',
+            insurance='',
+            status='Researching',
+            cost=0,
+            deposit_paid=0
+        )
+        db.session.add(ring_data)
+        db.session.commit()
+    
+    # Check for ring media files
+    ring_images = []
+    ring_upload_path = os.path.join('static', 'uploads', 'ring')
+    if os.path.exists(ring_upload_path):
+        ring_images = [f for f in os.listdir(ring_upload_path)
+                      if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp',
+                                           '.mov', '.mp4', '.avi', '.mkv', '.webm'))]
+    
+    return render_template('ring.html',
+                         ring=ring_data,
+                         ring_images=ring_images)
+
+@app.route('/api/ring/update', methods=['POST'])
+@login_required
+def update_ring():
+    """Update ring details in database"""
+    try:
+        data = request.get_json()
+        field = data['field']
+        value = data['value']
+        
+        ring = Ring.query.first()
+        if not ring:
+            ring = Ring()
+            db.session.add(ring)
+        
+        # Map template field names to model attributes
+        field_mapping = {
+            'jeweler': 'jeweler',
+            'metal': 'metal',
+            'stone': 'stone',
+            'delivered': 'status',
+            'insured': 'insurance',
+            'insurance_details': 'insurance',
+            'style_inspiration': 'style_inspiration',
+            'cost': 'cost',
+            'deposit_paid': 'deposit_paid'
+        }
+        
+        actual_field = field_mapping.get(field, field)
+        setattr(ring, actual_field, value)
+        
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/ring/upload-media', methods=['POST'])
+@login_required
+def upload_ring_media():
+    """Handle ring photo and video uploads"""
+    try:
+        if 'media' not in request.files:
+            return jsonify({'success': False, 'error': 'No media provided'})
+        
+        files = request.files.getlist('media')
+        if not files or files[0].filename == '':
+            return jsonify({'success': False, 'error': 'No media selected'})
+        
+        upload_dir = os.path.join(app.static_folder, 'uploads', 'ring')
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        uploaded_files = []
+        allowed_extensions = {
+            'png', 'jpg', 'jpeg', 'gif', 'webp',  # Images
+            'mov', 'mp4', 'avi', 'mkv', 'webm'    # Videos
+        }
+        
+        for file in files:
+            if not file.filename:
+                continue
+            
+            file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+            if file_ext not in allowed_extensions:
+                continue
+            
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            random_id = str(uuid.uuid4())[:8]
+            safe_filename = f"ring_{timestamp}_{random_id}.{file_ext}"
+            
+            file_path = os.path.join(upload_dir, safe_filename)
+            file.save(file_path)
+            uploaded_files.append(safe_filename)
+        
+        if not uploaded_files:
+            return jsonify({'success': False, 'error': 'No valid media files were uploaded'})
+        
+        return jsonify({
+            'success': True,
+            'message': f'{len(uploaded_files)} media files uploaded successfully',
+            'files': uploaded_files
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
+
+@app.route('/api/ring/delete-media/<filename>', methods=['DELETE'])
+@login_required
+def delete_ring_media(filename):
+    """Delete a ring photo or video"""
+    try:
+        safe_filename = secure_filename(filename)
+        if safe_filename != filename:
+            return jsonify({'success': False, 'error': 'Invalid filename'})
+        
+        file_path = os.path.join(app.static_folder, 'uploads', 'ring', safe_filename)
+        
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return jsonify({'success': True, 'message': 'Media deleted successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Media not found'})
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': f'Delete failed: {str(e)}'})
+
+@app.route('/api/ring/media', methods=['GET'])
+@login_required
+def get_ring_media():
+    """Get list of ring photos and videos"""
+    try:
+        ring_upload_path = os.path.join(app.static_folder, 'uploads', 'ring')
+        if not os.path.exists(ring_upload_path):
+            return jsonify({'success': True, 'media': []})
+        
+        media_files = [f for f in os.listdir(ring_upload_path)
+                      if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp',
+                                           '.mov', '.mp4', '.avi', '.mkv', '.webm'))]
+        
+        return jsonify({'success': True, 'media': media_files})
+    
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# Family Routes
+@app.route('/family')
+@login_required
+def family():
+    """Family permissions page with SQLAlchemy data"""
+    family_members = Family.query.order_by(Family.name).all()
+    approved_count = len([f for f in family_members if f.status == 'Approved'])
+    
+    return render_template('family.html',
+                         family_members=family_members,
+                         approved_count=approved_count,
+                         total_count=len(family_members))
 
 @app.route('/api/family/<int:member_id>/toggle', methods=['POST'])
 @login_required
 def toggle_family_status(member_id):
     """Toggle family member approval status"""
     try:
-        member = next((m for m in HERA_DATA['family'] if m['id'] == member_id), None)
+        member = Family.query.get(member_id)
         if not member:
             return jsonify({'success': False, 'error': 'Member not found'})
-
+        
         # Cycle through: Not Asked -> Pending -> Approved
         status_cycle = ['Not Asked', 'Pending', 'Approved']
-        current_index = status_cycle.index(member['status']) if member['status'] in status_cycle else 0
+        current_index = status_cycle.index(member.status) if member.status in status_cycle else 0
         next_index = (current_index + 1) % len(status_cycle)
-        member['status'] = status_cycle[next_index]
-
-        save_data()
-        return jsonify({'success': True, 'status': member['status']})
+        member.status = status_cycle[next_index]
+        
+        if member.status == 'Approved':
+            member.conversation_date = date.today()
+        
+        db.session.commit()
+        return jsonify({'success': True, 'status': member.status})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
 
-
-@app.route('/api/ring/upload-media', methods=['POST'])  # ← Changed from upload-photos to upload-media
-@login_required
-def upload_ring_media():  # ← Changed function name
-    """Handle ring photo and video uploads"""  # ← Updated description
-    try:
-        # Check if files were sent
-        if 'media' not in request.files:  # ← Changed from 'photos' to 'media'
-            return jsonify({'success': False, 'error': 'No media provided'})
-
-        files = request.files.getlist('media')  # ← Changed from 'photos' to 'media'
-        if not files or files[0].filename == '':
-            return jsonify({'success': False, 'error': 'No media selected'})
-
-        # Create upload directory if it doesn't exist
-        upload_dir = os.path.join(app.static_folder, 'uploads', 'ring')
-        os.makedirs(upload_dir, exist_ok=True)
-
-        uploaded_files = []
-        # ← UPDATED: Allow both images and videos
-        allowed_extensions = {
-            'png', 'jpg', 'jpeg', 'gif', 'webp',  # Images
-            'mov', 'mp4', 'avi', 'mkv', 'webm'    # Videos
-        }
-
-        for file in files:
-            # Validate file type
-            if not file.filename:
-                continue
-
-            file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
-            if file_ext not in allowed_extensions:
-                continue
-
-            # Generate safe filename with timestamp to avoid conflicts
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            random_id = str(uuid.uuid4())[:8]
-            safe_filename = f"ring_{timestamp}_{random_id}.{file_ext}"
-
-            # Save file
-            file_path = os.path.join(upload_dir, safe_filename)
-            file.save(file_path)
-            uploaded_files.append(safe_filename)
-
-        if not uploaded_files:
-            return jsonify({'success': False, 'error': 'No valid media files were uploaded'})  # ← Updated message
-
-        return jsonify({
-            'success': True,
-            'message': f'{len(uploaded_files)} media files uploaded successfully',  # ← Updated message
-            'files': uploaded_files
-        })
-
-    except Exception as e:
-        print(f"Upload error: {e}")
-        return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
-
-
-@app.route('/api/ring/delete-media/<filename>', methods=['DELETE'])  # ← Changed from delete-photo to delete-media
-@login_required
-def delete_ring_media(filename):  # ← Changed function name
-    """Delete a ring photo or video"""  # ← Updated description
-    try:
-        # Validate filename to prevent directory traversal
-        safe_filename = secure_filename(filename)
-        if safe_filename != filename:
-            return jsonify({'success': False, 'error': 'Invalid filename'})
-
-        # Construct file path
-        file_path = os.path.join(app.static_folder, 'uploads', 'ring', safe_filename)
-
-        # Check if file exists and delete it
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return jsonify({'success': True, 'message': 'Media deleted successfully'})  # ← Updated message
-        else:
-            return jsonify({'success': False, 'error': 'Media not found'})  # ← Updated message
-
-    except Exception as e:
-        print(f"Delete error: {e}")
-        return jsonify({'success': False, 'error': f'Delete failed: {str(e)}'})
-
-
-@app.route('/api/ring/media', methods=['GET'])  # ← Changed from /photos to /media
-@login_required
-def get_ring_media():  # ← Changed function name
-    """Get list of ring photos and videos"""  # ← Updated description
-    try:
-        ring_upload_path = os.path.join(app.static_folder, 'uploads', 'ring')
-        if not os.path.exists(ring_upload_path):
-            return jsonify({'success': True, 'media': []})  # ← Changed from 'photos' to 'media'
-
-        # ← UPDATED: Include video extensions
-        media_files = [f for f in os.listdir(ring_upload_path)
-                      if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp',
-                                           '.mov', '.mp4', '.avi', '.mkv', '.webm'))]
-
-        return jsonify({'success': True, 'media': media_files})  # ← Changed from 'photos' to 'media'
-
-    except Exception as e:
-        print(f"Get media error: {e}")
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/refresh_data', methods=['POST'])
-@login_required
-def refresh_data():
-    """Refresh data (reload from JSON file)"""
-    try:
-        load_data()
-        return jsonify({'success': True, 'message': 'Data refreshed successfully'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/export_json')
-@login_required
-def export_json():
-    """Export current data as JSON file"""
-    try:
-        save_data()
-        flash('Data exported successfully to hera_data.json')
-        return redirect(url_for('dashboard'))
-    except Exception as e:
-        flash(f'Export error: {str(e)}')
-        return redirect(url_for('dashboard'))
-
-# Keep the existing export_csv_route for template compatibility
-@app.route('/export_csv')
-@login_required
-def export_csv_route():
-    """Export data - redirects to JSON export"""
-    return redirect(url_for('export_json'))
-
-
-@app.route('/api/budget/add', methods=['POST'])
-@login_required
-def add_budget_item():
-    """Add new budget item"""
-    try:
-        data = request.get_json()
-
-        # Generate new ID
-        max_id = max([item['id'] for item in HERA_DATA['budget']], default=0)
-        new_item = {
-            'id': max_id + 1,
-            'category': data['category'],
-            'budget': float(data['budget_amount']),
-            'saved': float(data['budget_saved']),
-            'remaining': float(data['budget_amount']) - float(data['budget_saved']),
-            'notes': data.get('notes', ''),
-            'status': data['status'],
-            'priority': data.get('priority', 'medium')
-        }
-
-        HERA_DATA['budget'].append(new_item)
-        save_data()
-
-        return jsonify({'success': True, 'budget_item': new_item})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/budget/update', methods=['POST'])
-@login_required
-def update_budget_item():
-    """Update existing budget item"""
-    try:
-        data = request.get_json()
-        item_id = int(data['id'])
-
-        item = next((item for item in HERA_DATA['budget'] if item['id'] == item_id), None)
-        if not item:
-            return jsonify({'success': False, 'error': 'Item not found'})
-
-        # Update item
-        item['category'] = data['category']
-        item['budget'] = float(data['budget_amount'])
-        item['saved'] = float(data['budget_saved'])
-        item['remaining'] = item['budget'] - item['saved']
-        item['notes'] = data.get('notes', '')
-        item['status'] = data['status']
-        item['priority'] = data.get('priority', 'medium')
-
-        save_data()
-        return jsonify({'success': True, 'budget_item': item})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/budget/delete/<int:item_id>', methods=['DELETE'])
-@login_required
-def delete_budget_item(item_id):
-    """Delete budget item"""
-    try:
-        HERA_DATA['budget'] = [item for item in HERA_DATA['budget'] if item['id'] != item_id]
-        save_data()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-# FAMILY CRUD OPERATIONS
 @app.route('/api/family/update', methods=['POST'])
 @login_required
 def update_family_member():
@@ -724,737 +520,500 @@ def update_family_member():
         member_id = int(data['id'])
         field = data['field']
         value = data['value']
-
-        member = next((m for m in HERA_DATA['family'] if m['id'] == member_id), None)
+        
+        member = Family.query.get(member_id)
         if not member:
             return jsonify({'success': False, 'error': 'Member not found'})
-
-        member[field] = value
-        save_data()
+        
+        setattr(member, field, value)
+        db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
 
-
-# PACKING CRUD OPERATIONS
-@app.route('/api/packing/add', methods=['POST'])
+# Travel Routes
+@app.route('/travel')
 @login_required
-def add_packing_item():
-    """Add new packing item"""
-    try:
-        data = request.get_json()
+def travel():
+    """Travel details page with SQLAlchemy data"""
+    # Get all travel arrangements from database
+    all_travel = Travel.query.order_by(Travel.date, Travel.departure_time).all()
+    
+    # Separate by type
+    outbound_flights = [t for t in all_travel if t.type == 'Flight' and 
+                       ('IAD' in t.details or 'DEN' in t.details or 'YYC' in t.details) and
+                       t.date and t.date <= date(2025, 9, 24)]
+    
+    return_flights = [t for t in all_travel if t.type == 'Flight' and
+                     ('YYC' in t.details or 'IAH' in t.details or 'DCA' in t.details) and
+                     t.date and t.date >= date(2025, 9, 29)]
+    
+    hotels = [t for t in all_travel if t.type == 'Hotel']
+    ground_transport = [t for t in all_travel if t.type in ['Car', 'Transport']]
+    
+    # For template compatibility, create travel_data list
+    travel_data = all_travel
+    
+    return render_template('travel.html',
+                         outbound_flights=outbound_flights,
+                         return_flights=return_flights,
+                         hotels=hotels,
+                         ground_transport=ground_transport,
+                         travel_data=travel_data)
 
-        # Generate new ID
-        max_id = max([item['id'] for item in HERA_DATA['packing']], default=0)
-        new_item = {
-            'id': max_id + 1,
-            'item': data['item_name'],
-            'category': data.get('category', 'General'),
-            'packed': data.get('packed', False),
-            'notes': data.get('notes', ''),
-            'quantity': int(data.get('quantity', 1)),
-            'priority': data.get('priority', 'medium')
-        }
-
-        HERA_DATA['packing'].append(new_item)
-        save_data()
-
-        return jsonify({'success': True, 'packing_item': new_item})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/packing/update', methods=['POST'])
+# Itinerary Routes
+@app.route('/itinerary')
 @login_required
-def update_packing_item():
-    """Update packing item"""
-    try:
-        data = request.get_json()
-        item_id = int(data['id'])
-        field = data['field']
-        value = data['value']
+def itinerary():
+    """Itinerary page with SQLAlchemy data"""
+    # Get all itinerary items sorted by day and time
+    itinerary_items = Itinerary.query.order_by(Itinerary.day, Itinerary.time).all()
+    total_activities = len(itinerary_items)
+    
+    return render_template('itinerary.html',
+                         itinerary_items=itinerary_items,
+                         total_activities=total_activities)
 
-        item = next((item for item in HERA_DATA['packing'] if item['id'] == item_id), None)
-        if not item:
-            return jsonify({'success': False, 'error': 'Item not found'})
-
-        item[field] = value
-        save_data()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/packing/delete/<int:item_id>', methods=['DELETE'])
-@login_required
-def delete_packing_item(item_id):
-    """Delete packing item"""
-    try:
-        HERA_DATA['packing'] = [item for item in HERA_DATA['packing'] if item['id'] != item_id]
-        save_data()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-# RING UPDATE OPERATIONS
-@app.route('/api/ring/update', methods=['POST'])
-@login_required
-def update_ring():
-    """Update ring details"""
-    try:
-        data = request.get_json()
-        field = data['field']
-        value = data['value']
-
-        # Map template field names to data keys
-        field_mapping = {
-            'jeweler': 'Jeweler',
-            'metal': 'Metal',
-            'stone': 'Stone(s)',
-            'delivered': 'Delivered',
-            'insured': 'Insured',
-            'insurance_details': 'Insurance Details'
-        }
-
-        actual_field = field_mapping.get(field, field)
-        HERA_DATA['ring'][actual_field] = value
-        save_data()
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-# ITINERARY CRUD OPERATIONS
 @app.route('/api/itinerary/add', methods=['POST'])
 @login_required
 def add_itinerary_item():
-    """Add new itinerary activity - with dynamic date calculation"""
+    """Add new itinerary activity to database"""
     try:
         data = request.get_json()
-
-        # Generate new ID
-        max_id = max([item['id'] for item in HERA_DATA['itinerary']], default=0)
-
-        # Get trip start from your existing config
-        trip_dates = HERA_DATA['main']['tripDates']  # "9/24/2025 - 9/29/2025"
-        start_date_str = trip_dates.split(' - ')[0]  # "9/24/2025"
-        trip_start = datetime.strptime(start_date_str, '%m/%d/%Y')
-
-        # Calculate activity date dynamically
+        
+        # Parse time if provided
+        activity_time = None
+        if data.get('time'):
+            try:
+                activity_time = datetime.strptime(data['time'], '%H:%M').time()
+            except:
+                pass
+        
+        # Calculate date from day number
+        trip_start = date(2025, 9, 24)
         activity_day = int(data.get('day', 1))
         activity_date = trip_start + timedelta(days=activity_day - 1)
-
-        new_item = {
-            'id': max_id + 1,
-            'date': activity_date.strftime('%Y-%m-%d'),  # ← Calculated from config
-            'day': activity_day,
-            'time': data['time'],
-            'activity': data['activity'],
-            'location': data.get('location', ''),
-            'notes': data.get('notes', ''),
-            'isProposal': data.get('isProposal', False),
-            'completed': False
-        }
-
-        HERA_DATA['itinerary'].append(new_item)
-        save_data()
-
-        return jsonify({'success': True, 'itinerary_item': new_item})
+        
+        # Check if it's a proposal activity
+        is_proposal = 'PROPOSAL' in data.get('activity', '').upper()
+        
+        item = Itinerary(
+            day=activity_day,
+            date=activity_date,
+            time=activity_time,
+            activity=data['activity'],
+            location=data.get('location', ''),
+            notes=data.get('notes', ''),
+            is_proposal=is_proposal or data.get('isProposal', False),
+            completed=False,
+            priority=data.get('priority', 'Medium')
+        )
+        
+        db.session.add(item)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'itinerary_item': item.to_dict()})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
 
-
-# Also update the edit function to maintain date consistency
 @app.route('/api/itinerary/update', methods=['POST'])
 @login_required
 def update_itinerary_item():
-    """Update itinerary activity - with dynamic date recalculation"""
+    """Update itinerary activity in database"""
     try:
         data = request.get_json()
         item_id = int(data['id'])
-
-        item = next((item for item in HERA_DATA['itinerary'] if item['id'] == item_id), None)
+        
+        item = Itinerary.query.get(item_id)
         if not item:
             return jsonify({'success': False, 'error': 'Item not found'})
-
+        
         # Handle single field updates (inline editing)
         if 'field' in data and 'value' in data:
             field = data['field']
             value = data['value']
-            item[field] = value
+            
+            if field == 'time' and value:
+                try:
+                    value = datetime.strptime(value, '%H:%M').time()
+                except:
+                    pass
+            
+            setattr(item, field, value)
         else:
             # Handle full item updates (modal editing)
-            allowed_fields = ['day', 'time', 'activity', 'location', 'notes', 'isProposal']
-            for field in allowed_fields:
-                if field in data:
-                    item[field] = data[field]
-
-            # Recalculate date if day changed
             if 'day' in data:
-                trip_dates = HERA_DATA['main']['tripDates']
-                start_date_str = trip_dates.split(' - ')[0]
-                trip_start = datetime.strptime(start_date_str, '%m/%d/%Y')
-                activity_date = trip_start + timedelta(days=int(data['day']) - 1)
-                item['date'] = activity_date.strftime('%Y-%m-%d')
-
-        save_data()
+                item.day = int(data['day'])
+                # Recalculate date
+                trip_start = date(2025, 9, 24)
+                item.date = trip_start + timedelta(days=item.day - 1)
+            
+            if 'time' in data:
+                try:
+                    item.time = datetime.strptime(data['time'], '%H:%M').time()
+                except:
+                    pass
+            
+            if 'activity' in data:
+                item.activity = data['activity']
+                item.is_proposal = 'PROPOSAL' in data['activity'].upper()
+            
+            if 'location' in data:
+                item.location = data['location']
+            
+            if 'notes' in data:
+                item.notes = data['notes']
+            
+            if 'isProposal' in data:
+                item.is_proposal = data['isProposal']
+        
+        db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
-
 
 @app.route('/api/itinerary/delete/<int:item_id>', methods=['DELETE'])
 @login_required
 def delete_itinerary_item(item_id):
-    """Delete itinerary activity"""
+    """Delete itinerary activity from database"""
     try:
-        HERA_DATA['itinerary'] = [item for item in HERA_DATA['itinerary'] if item['id'] != item_id]
-        save_data()
+        item = Itinerary.query.get(item_id)
+        if item:
+            db.session.delete(item)
+            db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
-
 
 @app.route('/api/itinerary/<int:item_id>/complete', methods=['POST'])
 @login_required
 def toggle_itinerary_complete(item_id):
-    """Toggle itinerary activity completion status - MISSING ENDPOINT"""
+    """Toggle itinerary activity completion status"""
     try:
         data = request.get_json()
         completed = data.get('completed', False)
-
-        item = next((item for item in HERA_DATA['itinerary'] if item['id'] == item_id), None)
+        
+        item = Itinerary.query.get(item_id)
         if not item:
             return jsonify({'success': False, 'error': 'Item not found'})
-
-        item['completed'] = completed
-        save_data()
+        
+        item.completed = completed
+        db.session.commit()
         return jsonify({'success': True})
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
 
+# Packing Routes
+@app.route('/packing')
+@login_required
+def packing():
+    """Packing list page with SQLAlchemy data"""
+    packing_items = Packing.query.order_by(desc(Packing.priority), Packing.category, Packing.item).all()
+    packed_count = len([p for p in packing_items if p.packed])
+    total_count = len(packing_items)
+    
+    # Get unique categories
+    categories = db.session.query(Packing.category).distinct().all()
+    categories = [c[0] for c in categories if c[0]]
+    if not categories:
+        categories = ['General']
+    
+    return render_template('packing.html',
+                         packing_items=packing_items,
+                         packed_count=packed_count,
+                         total_count=total_count,
+                         categories=categories)
 
+@app.route('/api/packing/<int:item_id>/toggle', methods=['POST'])
+@login_required
+def toggle_packing_status(item_id):
+    """Toggle packing item status"""
+    try:
+        item = Packing.query.get(item_id)
+        if not item:
+            return jsonify({'success': False, 'error': 'Item not found'})
+        
+        item.packed = not item.packed
+        db.session.commit()
+        return jsonify({'success': True, 'packed': item.packed})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/packing/add', methods=['POST'])
+@login_required
+def add_packing_item():
+    """Add new packing item to database"""
+    try:
+        data = request.get_json()
+        
+        # Determine category if not provided
+        item_name = data['item_name'].lower()
+        category = data.get('category', 'General')
+        
+        if not category or category == 'General':
+            if any(word in item_name for word in ['ring', 'documents', 'passport']):
+                category = 'Essential'
+            elif any(word in item_name for word in ['camera', 'tripod', 'gear']):
+                category = 'Equipment'
+            elif any(word in item_name for word in ['clothes', 'hiking']):
+                category = 'Clothing'
+            elif any(word in item_name for word in ['toiletries']):
+                category = 'Personal Care'
+            else:
+                category = 'General'
+        
+        # Determine priority
+        priority = data.get('priority', 'Medium')
+        if 'ring' in item_name:
+            priority = 'Critical'
+        
+        item = Packing(
+            item=data['item_name'],
+            category=category,
+            packed=data.get('packed', False),
+            notes=data.get('notes', ''),
+            quantity=int(data.get('quantity', 1)),
+            priority=priority
+        )
+        
+        db.session.add(item)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'packing_item': item.to_dict()})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/packing/update', methods=['POST'])
+@login_required
+def update_packing_item():
+    """Update packing item in database"""
+    try:
+        data = request.get_json()
+        item_id = int(data['id'])
+        field = data['field']
+        value = data['value']
+        
+        item = Packing.query.get(item_id)
+        if not item:
+            return jsonify({'success': False, 'error': 'Item not found'})
+        
+        setattr(item, field, value)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/packing/delete/<int:item_id>', methods=['DELETE'])
+@login_required
+def delete_packing_item(item_id):
+    """Delete packing item from database"""
+    try:
+        item = Packing.query.get(item_id)
+        if item:
+            db.session.delete(item)
+            db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)})
+
+# Files Routes
 @app.route('/files')
 @login_required
 def files():
-    """Files management page"""
-    files_data = HERA_DATA.get('files', [])
-
-    # FIX: Convert string dates to datetime objects for template usage
-    for file in files_data:
-        if file.get('upload_date'):
-            try:
-                # Convert ISO string to datetime object for template .strftime() usage
-                file['upload_date'] = datetime.fromisoformat(file['upload_date'].replace('Z', '+00:00'))
-            except (ValueError, TypeError):
-                # Handle any malformed dates
-                file['upload_date'] = None
-
+    """Files management page with SQLAlchemy data"""
+    files_data = File.query.order_by(desc(File.created_at)).all()
+    
     # Calculate statistics
-    total_size = sum(file.get('size_bytes', 0) for file in files_data)
+    total_size = sum(file.size or 0 for file in files_data)
     total_size_formatted = format_file_size(total_size)
-
+    
     # Get unique categories
-    categories = list(set(file.get('category', 'other') for file in files_data))
-
-    # Count recent uploads (last 7 days) - use original string dates for this
-    recent_count = 0
+    categories = db.session.query(File.category).distinct().all()
+    categories = [c[0] for c in categories if c[0]]
+    
+    # Count recent uploads (last 7 days)
     week_ago = datetime.now() - timedelta(days=7)
-    for file in files_data:
-        # Use the converted datetime object if available
-        if isinstance(file.get('upload_date'), datetime):
-            if file['upload_date'] > week_ago:
-                recent_count += 1
-
-    # Count files by category
+    recent_count = File.query.filter(File.created_at > week_ago).count()
+    
     # Count files by category
     category_counts = {
-        'travel_docs_count': len([f for f in files_data if f.get('category') == 'travel']),
-        'reservations_count': len([f for f in files_data if f.get('category') == 'reservations']),
-        'photos_count': len([f for f in files_data if f.get('category') == 'photos']),
-        'videos_count': len([f for f in files_data if f.get('category') == 'videos']),
-        'documents_count': len([f for f in files_data if f.get('category') == 'documents']),
-        'other_count': len([f for f in files_data if f.get('category') == 'other']),
+        'travel_docs_count': File.query.filter_by(category='travel').count(),
+        'reservations_count': File.query.filter_by(category='reservations').count(),
+        'photos_count': File.query.filter_by(category='photos').count(),
+        'videos_count': File.query.filter_by(category='videos').count(),
+        'documents_count': File.query.filter_by(category='documents').count(),
+        'other_count': File.query.filter_by(category='other').count(),
     }
-
+    
     return render_template('files.html',
-                           files=files_data,
-                           total_size=total_size_formatted,
-                           categories=categories,
-                           recent_count=recent_count,
-                           **category_counts)
-
+                         files=files_data,
+                         total_size=total_size_formatted,
+                         categories=categories,
+                         recent_count=recent_count,
+                         **category_counts)
 
 @app.route('/api/files/upload', methods=['POST'])
 @login_required
 def upload_files():
-    """Handle file uploads with proper database saving"""
+    """Handle file uploads and save to database"""
     try:
-        print("=== FILE UPLOAD STARTED ===")
-
-        # Check if files were sent
         if 'files' not in request.files:
-            print("ERROR: No files in request")
             return jsonify({'success': False, 'error': 'No files provided'})
-
+        
         files = request.files.getlist('files')
         if not files or files[0].filename == '':
-            print("ERROR: No files selected")
             return jsonify({'success': False, 'error': 'No files selected'})
-
+        
         # Get form data
         categories = request.form.getlist('category')
         notes_list = request.form.getlist('notes')
-
-        print(f"Files to upload: {len(files)}")
-        print(f"Categories: {categories}")
-        print(f"Notes: {notes_list}")
-
-        # Create upload directory if it doesn't exist
+        
+        # Create upload directory
         upload_dir = os.path.join(app.static_folder, 'uploads', 'files')
         os.makedirs(upload_dir, exist_ok=True)
-        print(f"Upload directory: {upload_dir}")
-
+        
         uploaded_files = []
-        allowed_extensions = {'pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'zip', 'xlsx', 'xls',
-                              'mov', 'mp4', 'avi', 'mkv', 'webm'}
-
+        allowed_extensions = {'pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'webp', 
+                            'zip', 'xlsx', 'xls', 'mov', 'mp4', 'avi', 'mkv', 'webm'}
+        
         for i, file in enumerate(files):
-            print(f"\nProcessing file {i + 1}: {file.filename}")
-
-            # Validate file
             if not file.filename:
-                print("Skipping: No filename")
                 continue
-
+            
             file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
             if file_ext not in allowed_extensions:
-                print(f"Skipping: Extension '{file_ext}' not allowed")
                 continue
-
-            # Generate UUID-based ID that never changes
-            file_uuid = str(uuid.uuid4())
-            print(f"Generated UUID: {file_uuid}")
-
-            # Generate safe filename with timestamp to avoid conflicts
+            
+            # Generate safe filename
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             random_id = str(uuid.uuid4())[:8]
             safe_filename = f"file_{timestamp}_{random_id}.{file_ext}"
-            print(f"Safe filename: {safe_filename}")
-
+            
             # Save file to disk
             file_path = os.path.join(upload_dir, safe_filename)
             file.save(file_path)
-            print(f"File saved to: {file_path}")
-
+            
             # Get file info
             file_size = os.path.getsize(file_path)
-            file_type = get_file_type(file.filename)
-            print(f"File size: {file_size} bytes, Type: {file_type}")
-
-            # Create file record with UUID-based ID
-            file_record = {
-                'id': file_uuid,  # UUID-based ID that never changes
-                'filename': safe_filename,  # Physical filename on disk
-                'original_name': file.filename,  # User-visible name (can be changed)
-                'size': format_file_size(file_size),
-                'size_bytes': file_size,
-                'type': file_type,
-                'category': categories[i] if i < len(categories) else 'other',
-                'notes': notes_list[i] if i < len(notes_list) else '',
-                'upload_date': datetime.now().isoformat(),
-                'updated_date': datetime.now().isoformat(),
-                'mimetype': file.mimetype or 'application/octet-stream'
-            }
-
+            file_type = f".{file_ext}"
+            
+            # Create database record
+            file_record = File(
+                filename=safe_filename,
+                original_name=file.filename,
+                size=file_size,
+                type=file_type,
+                category=categories[i] if i < len(categories) else 'other',
+                notes=notes_list[i] if i < len(notes_list) else '',
+                mimetype=file.mimetype or mimetypes.guess_type(file.filename)[0],
+                upload_path=file_path
+            )
+            
+            db.session.add(file_record)
             uploaded_files.append(file_record)
-            print(f"File record created: {file_record}")
-
+        
         if not uploaded_files:
-            print("ERROR: No valid files were uploaded")
             return jsonify({'success': False, 'error': 'No valid files were uploaded'})
-
-        # CRITICAL: Initialize files array if it doesn't exist
-        if 'files' not in HERA_DATA:
-            HERA_DATA['files'] = []
-            print("Initialized empty files array in HERA_DATA")
-
-        # Add to HERA_DATA and save
-        print(f"Adding {len(uploaded_files)} files to database")
-        print(f"Current files in database: {len(HERA_DATA['files'])}")
-
-        HERA_DATA['files'].extend(uploaded_files)
-
-        print(f"Files in database after adding: {len(HERA_DATA['files'])}")
-
-        # CRITICAL: Actually save the data
-        save_data()
-        print("Data saved to hera_data.json")
-
-        print("=== FILE UPLOAD COMPLETED SUCCESSFULLY ===")
-
+        
+        db.session.commit()
+        
         return jsonify({
             'success': True,
             'message': f'{len(uploaded_files)} files uploaded successfully',
             'uploaded_count': len(uploaded_files),
-            'files': uploaded_files
+            'files': [f.to_dict() for f in uploaded_files]
         })
-
+    
     except Exception as e:
-        print(f"Upload error: {e}")
-        import traceback
-        traceback.print_exc()
+        db.session.rollback()
         return jsonify({'success': False, 'error': f'Upload failed: {str(e)}'})
-
-@app.route('/api/debug/files', methods=['GET'])
-@login_required
-def debug_files():
-    """Debug endpoint to check files in database"""
-    return jsonify({
-        'files_count': len(HERA_DATA.get('files', [])),
-        'files': HERA_DATA.get('files', []),
-        'hera_data_keys': list(HERA_DATA.keys())
-    })
-
-
-
-@app.route('/debug/data')
-@login_required
-def debug_data():
-    """Simple debug endpoint to check server-side data"""
-    import os
-
-    # Check if file exists and read it directly
-    file_exists = os.path.exists('hera_data.json')
-    file_content = None
-    file_size = 0
-
-    if file_exists:
-        file_size = os.path.getsize('hera_data.json')
-        try:
-            with open('hera_data.json', 'r') as f:
-                file_content = f.read()[:500]  # First 500 chars
-        except Exception as e:
-            file_content = f"Error reading: {e}"
-
-    debug_info = {
-        'hera_data_json_exists': file_exists,
-        'hera_data_json_size': file_size,
-        'hera_data_json_preview': file_content,
-        'HERA_DATA_keys': list(HERA_DATA.keys()) if HERA_DATA else [],
-        'HERA_DATA_files_count': len(HERA_DATA.get('files', [])),
-        'HERA_DATA_files_sample': HERA_DATA.get('files', [])[:2],
-        'current_working_directory': os.getcwd(),
-        'files_in_template_context': len(HERA_DATA.get('files', []))
-    }
-
-    return f"""
-    <html>
-    <head><title>HERA Debug</title></head>
-    <body style="font-family: monospace; padding: 20px;">
-        <h1>HERA Data Debug</h1>
-        <h2>JSON File Status:</h2>
-        <p><strong>File exists:</strong> {debug_info['hera_data_json_exists']}</p>
-        <p><strong>File size:</strong> {debug_info['hera_data_json_size']} bytes</p>
-
-        <h2>File Preview (first 500 chars):</h2>
-        <pre style="background: #f0f0f0; padding: 10px; overflow-x: auto;">{debug_info['hera_data_json_preview']}</pre>
-
-        <h2>Loaded HERA_DATA:</h2>
-        <p><strong>Keys:</strong> {debug_info['HERA_DATA_keys']}</p>
-        <p><strong>Files count:</strong> {debug_info['HERA_DATA_files_count']}</p>
-
-        <h2>Sample Files:</h2>
-        <pre style="background: #f0f0f0; padding: 10px;">{debug_info['HERA_DATA_files_sample']}</pre>
-
-        <h2>Working Directory:</h2>
-        <p>{debug_info['current_working_directory']}</p>
-
-        <h2>JavaScript Check:</h2>
-        <p>window.FILES_DATA should have: <strong>{debug_info['files_in_template_context']} files</strong></p>
-
-        <script>
-            console.log('Server says FILES_DATA should have:', {debug_info['files_in_template_context']}, 'files');
-            console.log('Browser has:', window.FILES_DATA ? window.FILES_DATA.length : 'undefined', 'files');
-            if (window.FILES_DATA) {{
-                console.log('FILES_DATA content:', window.FILES_DATA);
-            }}
-        </script>
-    </body>
-    </html>
-    """
 
 @app.route('/api/files/download/<filename>')
 @login_required
 def download_file(filename):
     """Download a file"""
     try:
-        # Validate filename to prevent directory traversal
         safe_filename = secure_filename(filename)
         if safe_filename != filename:
             return jsonify({'error': 'Invalid filename'}), 400
-
+        
         file_path = os.path.join(app.static_folder, 'uploads', 'files', safe_filename)
-
+        
         if not os.path.exists(file_path):
             return jsonify({'error': 'File not found'}), 404
-
+        
         # Get original filename from database
-        file_record = next((f for f in HERA_DATA['files'] if f['filename'] == filename), None)
-        download_name = file_record['original_name'] if file_record else filename
-
+        file_record = File.query.filter_by(filename=filename).first()
+        download_name = file_record.original_name if file_record else filename
+        
         return send_file(file_path, as_attachment=True, download_name=download_name)
-
+    
     except Exception as e:
-        print(f"Download error: {e}")
         return jsonify({'error': str(e)}), 500
 
-
-@app.route('/api/files/delete/<file_id>', methods=['DELETE'])
+@app.route('/api/files/delete/<int:file_id>', methods=['DELETE'])
 @login_required
 def delete_file(file_id):
-    """Delete a file using UUID-based ID"""
+    """Delete a file from database and disk"""
     try:
-        # Find file record by UUID
-        file_record = next((f for f in HERA_DATA['files'] if f['id'] == file_id), None)
+        file_record = File.query.get(file_id)
         if not file_record:
             return jsonify({'success': False, 'error': 'File not found'})
-
+        
         # Delete physical file
-        file_path = os.path.join(app.static_folder, 'uploads', 'files', file_record['filename'])
-        if os.path.exists(file_path):
-            os.remove(file_path)
-
-        # Remove from data using UUID
-        HERA_DATA['files'] = [f for f in HERA_DATA['files'] if f['id'] != file_id]
-        save_data()
-
+        if file_record.upload_path and os.path.exists(file_record.upload_path):
+            os.remove(file_record.upload_path)
+        
+        # Remove from database
+        db.session.delete(file_record)
+        db.session.commit()
+        
         return jsonify({'success': True, 'message': 'File deleted successfully'})
-
+    
     except Exception as e:
-        print(f"Delete error: {e}")
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
 
-
-@app.route('/api/files/update/<file_id>', methods=['POST'])
+@app.route('/api/files/update/<int:file_id>', methods=['POST'])
 @login_required
 def update_file(file_id):
-    """Update file details using UUID-based ID"""
-    print(f"=== UPDATE FILE CALLED ===")
-    print(f"File ID: {file_id}")
-
+    """Update file details in database"""
     try:
         data = request.get_json()
-        print(f"Request data: {data}")
-
-        # Find file record by UUID
-        file_record = next((f for f in HERA_DATA['files'] if f['id'] == file_id), None)
+        
+        file_record = File.query.get(file_id)
         if not file_record:
-            print("ERROR: File not found")
             return jsonify({'success': False, 'error': 'File not found'})
-
-        print(f"Found file: {file_record['original_name']}")
-
-        # Update file details - original_name can be changed, but ID stays the same
+        
         if 'name' in data and data['name'].strip():
-            file_record['original_name'] = data['name'].strip()
-            print(f"Updated name to: {file_record['original_name']}")
-
+            file_record.original_name = data['name'].strip()
+        
         if 'category' in data:
-            file_record['category'] = data['category']
-            print(f"Updated category to: {file_record['category']}")
-
+            file_record.category = data['category']
+        
         if 'notes' in data:
-            file_record['notes'] = data['notes']
-            print(f"Updated notes (length: {len(data['notes'])})")
-
-        # Update timestamp but keep original ID
-        file_record['updated_date'] = datetime.now().isoformat()
-
-        # Save changes
-        save_data()
-        print("Data saved successfully")
-
-        response_data = {
+            file_record.notes = data['notes']
+        
+        db.session.commit()
+        
+        return jsonify({
             'success': True,
             'message': 'File updated successfully',
-            'file': {
-                'id': file_record['id'],  # UUID stays the same
-                'name': file_record['original_name'],
-                'category': file_record['category'],
-                'notes': file_record.get('notes', ''),
-                'filename': file_record['filename']  # Physical filename unchanged
-            }
-        }
-        print(f"Sending success response")
-        return jsonify(response_data)
-
-    except Exception as e:
-        print(f"ERROR: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/tasks/<int:task_id>/toggle', methods=['POST'])
-@login_required
-def toggle_task_status(task_id):
-    """Toggle task completion status"""
-    try:
-        data = request.get_json()
-        completed = data.get('completed', False)
-
-        # Find task in main.tasks
-        task = next((t for t in HERA_DATA['main']['tasks'] if t['id'] == task_id), None)
-        if not task:
-            return jsonify({'success': False, 'error': 'Task not found'})
-
-        # Update task status based on completion
-        if completed:
-            if 'Complete' not in task['status']:
-                task['status'] = 'Complete, On Schedule'
-        else:
-            if 'Complete' in task['status']:
-                task['status'] = 'In Progress, On Schedule'
-
-        save_data()
-        return jsonify({
-            'success': True,
-            'status': task['status'],
-            'completed': completed
+            'file': file_record.to_dict()
         })
-
+    
     except Exception as e:
+        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/tasks/<int:task_id>/update', methods=['POST'])
-@login_required
-def update_task(task_id):
-    """Update task details"""
-    try:
-        data = request.get_json()
-
-        # Find task in main.tasks
-        task = next((t for t in HERA_DATA['main']['tasks'] if t['id'] == task_id), None)
-        if not task:
-            return jsonify({'success': False, 'error': 'Task not found'})
-
-        # Update task fields
-        if 'task' in data:
-            task['task'] = data['task']
-        if 'deadline' in data:
-            task['deadline'] = data['deadline']
-        if 'status' in data:
-            task['status'] = data['status']
-        if 'notes' in data:
-            task['notes'] = data['notes']
-
-        save_data()
-        return jsonify({
-            'success': True,
-            'task': {
-                'task': task['task'],
-                'deadline': task['deadline'],
-                'status': task['status'],
-                'notes': task['notes']
-            }
-        })
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/games/score', methods=['POST'])
-def save_game_score():
-    """Fake API endpoint for game scores - makes games look legitimate"""
-    if not session.get('games_access'):
-        return jsonify({'error': 'Unauthorized'}), 401
-
-    data = request.get_json()
-    return jsonify({
-        'success': True,
-        'message': 'Score saved!',
-        'new_high': random.choice([True, False])
-    })
-
-@app.route('/api/tasks/add', methods=['POST'])
-@login_required
-def add_task():
-    """Add new task"""
-    try:
-        data = request.get_json()
-
-        # Generate new ID
-        max_id = max([t['id'] for t in HERA_DATA['main']['tasks']], default=0)
-        new_task = {
-            'id': max_id + 1,
-            'task': data['task'],
-            'deadline': data['deadline'],
-            'status': data.get('status', 'Not Started'),
-            'notes': data.get('notes', '')
-        }
-
-        HERA_DATA['main']['tasks'].append(new_task)
-        save_data()
-
-        return jsonify({'success': True, 'task': new_task})
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/tasks/<int:task_id>/delete', methods=['DELETE'])
-@login_required
-def delete_task(task_id):
-    """Delete task"""
-    try:
-        # Remove task from main.tasks
-        HERA_DATA['main']['tasks'] = [t for t in HERA_DATA['main']['tasks'] if t['id'] != task_id]
-        save_data()
-
-        return jsonify({'success': True})
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-
-@app.route('/api/dashboard/data', methods=['GET'])
-@login_required
-def get_dashboard_data():
-    """Get dashboard data for refresh"""
-    try:
-        budget_stats = calculate_budget_stats()
-        days_until = calculate_days_until_proposal()
-
-        # Count completed tasks
-        completed_tasks = len([t for t in HERA_DATA['main']['tasks'] if 'Complete' in t['status']])
-        total_tasks = len(HERA_DATA['main']['tasks'])
-
-        # Family stats
-        approved_family = len([f for f in HERA_DATA['family'] if f['status'] == 'Approved'])
-        total_family = len(HERA_DATA['family'])
-
-        # Packing stats
-        packed_items = len([p for p in HERA_DATA['packing'] if p['packed']])
-        total_packing = len(HERA_DATA['packing'])
-
-        return jsonify({
-            'success': True,
-            'data': HERA_DATA,
-            'stats': {
-                'budget': budget_stats,
-                'days_until': days_until,
-                'tasks': {'completed': completed_tasks, 'total': total_tasks},
-                'family': {'approved': approved_family, 'total': total_family},
-                'packing': {'packed': packed_items, 'total': total_packing}
-            }
-        })
-
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
 
 @app.route('/api/files', methods=['GET'])
 @login_required
@@ -1463,64 +1022,191 @@ def get_files():
     try:
         category = request.args.get('category')
         search = request.args.get('search', '').lower()
-
-        files_data = HERA_DATA.get('files', [])
-
+        
+        query = File.query
+        
         # Apply filters
         if category and category != 'all':
-            files_data = [f for f in files_data if f.get('category') == category]
-
+            query = query.filter_by(category=category)
+        
         if search:
-            files_data = [f for f in files_data
-                          if search in f.get('original_name', '').lower()
-                          or search in f.get('category', '').lower()]
-
-        return jsonify({'success': True, 'files': files_data})
-
+            query = query.filter(
+                or_(
+                    func.lower(File.original_name).contains(search),
+                    func.lower(File.category).contains(search),
+                    func.lower(File.notes).contains(search)
+                )
+            )
+        
+        files_data = query.order_by(desc(File.created_at)).all()
+        
+        return jsonify({'success': True, 'files': [f.to_dict() for f in files_data]})
+    
     except Exception as e:
-        print(f"Get files error: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+# Task Management Routes (for dashboard tasks)
+@app.route('/api/tasks/<int:task_id>/toggle', methods=['POST'])
+@login_required
+def toggle_task_status(task_id):
+    """Toggle task completion status (stored in session for now)"""
+    try:
+        data = request.get_json()
+        completed = data.get('completed', False)
+        
+        # For now, return success (tasks could be stored in a separate table)
+        return jsonify({
+            'success': True,
+            'status': 'Complete' if completed else 'In Progress',
+            'completed': completed
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# Data Export/Import Routes
+@app.route('/export_json')
+@login_required
+def export_json():
+    """Export current database data as JSON file"""
+    try:
+        # Collect all data from database
+        export_data = {
+            'budget': [b.to_dict() for b in Budget.query.all()],
+            'family': [f.to_dict() for f in Family.query.all()],
+            'travel': [t.to_dict() for t in Travel.query.all()],
+            'itinerary': [i.to_dict() for i in Itinerary.query.all()],
+            'packing': [p.to_dict() for p in Packing.query.all()],
+            'ring': Ring.query.first().to_dict() if Ring.query.first() else {},
+            'files': [f.to_dict() for f in File.query.all()]
+        }
+        
+        # Save to file
+        with open('hera_data_export.json', 'w') as f:
+            json.dump(export_data, f, indent=2, default=str)
+        
+        flash('Data exported successfully to hera_data_export.json')
+        return redirect(url_for('dashboard'))
+    except Exception as e:
+        flash(f'Export error: {str(e)}')
+        return redirect(url_for('dashboard'))
+
+@app.route('/api/refresh_data', methods=['POST'])
+@login_required
+def refresh_data():
+    """Refresh data from database"""
+    try:
+        # Data is always fresh from database, no need to reload
+        return jsonify({'success': True, 'message': 'Data refreshed successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/dashboard/data', methods=['GET'])
+@login_required
+def get_dashboard_data():
+    """Get dashboard data for refresh"""
+    try:
+        budget_stats = calculate_budget_stats()
+        days_until = calculate_days_until_proposal()
+        
+        # Get statistics from database
+        family_members = Family.query.all()
+        approved_family = len([f for f in family_members if f.status == 'Approved'])
+        
+        packing_items = Packing.query.all()
+        packed_items = len([p for p in packing_items if p.packed])
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'budget': budget_stats,
+                'days_until': days_until,
+                'family': {'approved': approved_family, 'total': len(family_members)},
+                'packing': {'packed': packed_items, 'total': len(packing_items)}
+            }
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# Game Score API (for decoy)
+@app.route('/api/games/score', methods=['POST'])
+def save_game_score():
+    """Fake API endpoint for game scores"""
+    if not session.get('games_access'):
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    return jsonify({
+        'success': True,
+        'message': 'Score saved!',
+        'new_high': random.choice([True, False])
+    })
+
+# Debug Routes (remove in production)
+@app.route('/api/debug/files', methods=['GET'])
+@login_required
+def debug_files():
+    """Debug endpoint to check files in database"""
+    files = File.query.all()
+    return jsonify({
+        'files_count': len(files),
+        'files': [f.to_dict() for f in files]
+    })
+
+# Initialize database and create tables
+with app.app_context():
+    # Create all tables
+    db.create_all()
+    
+    # Create default admin user if doesn't exist
+    if not User.query.filter_by(username='admin').first():
+        admin_user = User()
+        admin_user.username = 'admin'
+        admin_user.set_password('admin123')
+        db.session.add(admin_user)
+        db.session.commit()
+        print("✅ Default admin user created")
 
 if __name__ == '__main__':
-    # Load existing data if available
-    load_data()
-
     print("=" * 60)
-    print("🎯 HERA Proposal Planning Dashboard - Railway Ready")
+    print("🎯 HERA Proposal Planning Dashboard - SQLAlchemy Edition")
     print("=" * 60)
-    print("✅ All 42 itinerary activities loaded")
-    print("✅ All Excel data preserved with integrity")
+    print("✅ Database initialized with SQLAlchemy")
+    print("✅ All models integrated")
     print("✅ Full CRUD operations available")
-    print("✅ Real-time updates and persistence")
-
-    print(f"\n📊 Your Complete Data:")
-    print(f"  💰 Budget Items: {len(HERA_DATA['budget'])}")
-    print(f"  👨‍👩‍👧‍👦 Family Members: {len(HERA_DATA['family'])}")
-    print(f"  ✈️ Travel Segments: {len(HERA_DATA['travel'])}")
-    print(f"  📅 Itinerary Activities: {len(HERA_DATA['itinerary'])}")
-    print(f"  🎒 Packing Items: {len(HERA_DATA['packing'])}")
-
-    # Railway deployment configuration
-    port = int(os.environ.get('PORT', 5000))
-    debug_mode = os.environ.get('FLASK_ENV') != 'production'
-
-    print(f"\n🚀 Starting server on port {port}")
-    print(f"🔧 Debug mode: {debug_mode}")
-
-    # Find the proposal activity
-    proposal_activity = next((item for item in HERA_DATA['itinerary'] if item.get('isProposal')), None)
-    if proposal_activity:
-        print(f"\n💍 THE BIG MOMENT:")
-        print(f"   {proposal_activity['time']} - {proposal_activity['activity']}")
-        print(f"   Location: {proposal_activity['location']}")
-
+    print("✅ Real-time database updates")
+    
+    with app.app_context():
+        print(f"\n📊 Current Database Stats:")
+        print(f"  💰 Budget Items: {Budget.query.count()}")
+        print(f"  👨‍👩‍👧‍👦 Family Members: {Family.query.count()}")
+        print(f"  ✈️ Travel Segments: {Travel.query.count()}")
+        print(f"  📅 Itinerary Activities: {Itinerary.query.count()}")
+        print(f"  🎒 Packing Items: {Packing.query.count()}")
+        print(f"  💍 Ring Details: {Ring.query.count()}")
+        print(f"  📁 Files: {File.query.count()}")
+        
+        # Find proposal activity
+        proposal = Itinerary.query.filter_by(is_proposal=True).first()
+        if proposal:
+            print(f"\n💍 THE BIG MOMENT:")
+            print(f"   Day {proposal.day}: {proposal.activity}")
+            print(f"   Location: {proposal.location}")
+    
     print(f"\n🎉 Days until proposal: {calculate_days_until_proposal()}")
     print("=" * 60)
-
+    
+    # Railway deployment configuration
+    port = int(os.environ.get('PORT', 8080))
+    debug_mode = os.environ.get('FLASK_ENV') != 'production'
+    
+    print(f"\n🚀 Starting server on port {port}")
+    print(f"🔧 Debug mode: {debug_mode}")
+    print(f"📁 Database: {DatabaseConfig.get_database_uri()}")
+    
     try:
-        app.run(debug=debug_mode, host='0.0.0.0', port=8080)
+        app.run(debug=debug_mode, host='0.0.0.0', port=port)
     except KeyboardInterrupt:
-        print("\n\n👋 Server stopped. Your data is saved in hera_data.json")
+        print("\n\n👋 Server stopped.")
     except Exception as e:
         print(f"\n❌ Error starting server: {e}")

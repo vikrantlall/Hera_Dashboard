@@ -72,52 +72,52 @@
         </div>
 
         <div class="ring-details">
-            <h1 class="ring-title">{{ ring['Stone(s)'] or 'Diamond' }} Ring</h1>
-            <p class="ring-subtitle">{{ ring.Metal or '18k Gold' }} | {{ ring.Jeweler or 'Custom Jeweler' }}</p>
+            <h1 class="ring-title">{{ ring.stone or 'Diamond' }} Ring</h1>
+            <p class="ring-subtitle">{{ ring.metal or '18k Gold' }} | {{ ring.jeweler or 'Custom Jeweler' }}</p>
 
             <div class="ring-specs">
                 <div class="spec-item">
                     <span class="spec-label">Jeweler</span>
-                    <span class="spec-value editable-text" data-field="Jeweler">{{ ring.Jeweler or 'GWFJ' }}</span>
+                    <span class="spec-value editable-text" data-field="jeweler">{{ ring.jeweler or 'GWFJ' }}</span>
                 </div>
                 <div class="spec-item">
                     <span class="spec-label">Metal</span>
-                    <span class="spec-value editable-text" data-field="Metal">{{ ring.Metal or '18k Yellow Gold' }}</span>
+                    <span class="spec-value editable-text" data-field="metal">{{ ring.metal or '18k Yellow Gold' }}</span>
                 </div>
                 <div class="spec-item">
                     <span class="spec-label">Stone(s)</span>
-                    <span class="spec-value editable-text" data-field="Stone(s)">{{ ring['Stone(s)'] or '2.98ct Lab Grown Diamond' }}</span>
+                    <span class="spec-value editable-text" data-field="stone">{{ ring.stone or '2.98ct Lab Grown Diamond' }}</span>
                 </div>
                 <div class="spec-item">
                     <span class="spec-label">Ring Style</span>
-                    <span class="spec-value editable-text" data-field="Ring Style (Inspiration)">{{ ring['Ring Style (Inspiration)'] or 'Custom Design' }}</span>
+                    <span class="spec-value editable-text" data-field="style_inspiration">{{ ring.style_inspiration or 'Custom Design' }}</span>
                 </div>
                 <div class="spec-item">
-                    <span class="spec-label">Design Approved</span>
-                    <span class="spec-value editable-text" data-field="Design Approved">{{ ring['Design Approved'] or 'Pending' }}</span>
+                    <span class="spec-label">Status</span>
+                    <span class="spec-value editable-text" data-field="status">{{ ring.status or 'Researching' }}</span>
                 </div>
                 <div class="spec-item">
-                    <span class="spec-label">Order Placed</span>
-                    <span class="spec-value editable-text" data-field="Order Placed">{{ ring['Order Placed'] or 'Pending' }}</span>
+                    <span class="spec-label">Cost</span>
+                    <span class="spec-value editable-text" data-field="cost">${{ "{:,.0f}".format(ring.cost or 0) }}</span>
                 </div>
                 <div class="spec-item">
-                    <span class="spec-label">Delivered</span>
-                    <span class="spec-value editable-text" data-field="Delivered">{{ ring.Delivered or 'In Progress' }}</span>
+                    <span class="spec-label">Deposit Paid</span>
+                    <span class="spec-value editable-text" data-field="deposit_paid">${{ "{:,.0f}".format(ring.deposit_paid or 0) }}</span>
                 </div>
                 <div class="spec-item">
-                    <span class="spec-label">Insured</span>
-                    <span class="spec-value editable-text" data-field="Insured">{{ ring.Insured or 'Pending' }}</span>
+                    <span class="spec-label">Balance Due</span>
+                    <span class="spec-value">${{ "{:,.0f}".format(ring.balance_due or 0) }}</span>
                 </div>
-                {% if ring['Insurance Details'] %}
+                {% if ring.insurance %}
                 <div class="spec-item">
-                    <span class="spec-label">Insurance Details</span>
-                    <span class="spec-value editable-text" data-field="Insurance Details">{{ ring['Insurance Details'] }}</span>
+                    <span class="spec-label">Insurance</span>
+                    <span class="spec-value editable-text" data-field="insurance">{{ ring.insurance }}</span>
                 </div>
                 {% endif %}
-                {% if ring.Engraving %}
+                {% if ring.notes %}
                 <div class="spec-item">
-                    <span class="spec-label">Engraving</span>
-                    <span class="spec-value editable-text" data-field="Engraving">{{ ring.Engraving }}</span>
+                    <span class="spec-label">Notes</span>
+                    <span class="spec-value editable-text" data-field="notes">{{ ring.notes }}</span>
                 </div>
                 {% endif %}
             </div>
@@ -147,7 +147,7 @@
         </div>
 
         <div class="timeline">
-            <div class="timeline-item {{ 'completed' if 'YES' in (ring['Design Approved'] or '') else 'pending' }}">
+            <div class="timeline-item {{ 'completed' if ring.status in ['Designing', 'Ordered', 'Complete'] else 'pending' }}">
                 <div class="timeline-icon">
                     <i class="fas fa-drafting-compass"></i>
                 </div>
@@ -155,12 +155,12 @@
                     <h4>Design Approved</h4>
                     <p>Ring design approved and finalized</p>
                     <span class="timeline-status">
-                        {{ ring['Design Approved'] or 'Pending' }}
+                        {{ 'Complete' if ring.status in ['Designing', 'Ordered', 'Complete'] else 'Pending' }}
                     </span>
                 </div>
             </div>
 
-            <div class="timeline-item {{ 'completed' if 'Yes' in (ring['Order Placed'] or '') else 'pending' }}">
+            <div class="timeline-item {{ 'completed' if ring.status in ['Ordered', 'Complete'] else 'pending' }}">
                 <div class="timeline-icon">
                     <i class="fas fa-shopping-cart"></i>
                 </div>
@@ -168,12 +168,12 @@
                     <h4>Order Placed</h4>
                     <p>Ring order placed with deposit</p>
                     <span class="timeline-status">
-                        {{ ring['Order Placed'] or 'Pending' }}
+                        {{ 'Complete' if ring.status in ['Ordered', 'Complete'] else 'Pending' }}
                     </span>
                 </div>
             </div>
 
-            {% if ring['Estimated Delivery'] %}
+            {% if ring.status == 'Ordered' %}
             <div class="timeline-item pending">
                 <div class="timeline-icon">
                     <i class="fas fa-calendar-alt"></i>
@@ -182,13 +182,13 @@
                     <h4>Estimated Delivery</h4>
                     <p>Expected completion date</p>
                     <span class="timeline-status">
-                        {{ ring['Estimated Delivery'] }}
+                        In Production
                     </span>
                 </div>
             </div>
             {% endif %}
 
-            <div class="timeline-item {{ 'completed' if 'YES' in (ring.Delivered or '') else 'pending' }}">
+            <div class="timeline-item {{ 'completed' if ring.status == 'Complete' else 'pending' }}">
                 <div class="timeline-icon">
                     <i class="fas fa-truck"></i>
                 </div>
@@ -196,12 +196,12 @@
                     <h4>Ring Delivered</h4>
                     <p>Ring completed and delivered</p>
                     <span class="timeline-status">
-                        {{ ring.Delivered or 'In Progress' }}
+                        {{ 'Complete' if ring.status == 'Complete' else 'In Progress' }}
                     </span>
                 </div>
             </div>
 
-            <div class="timeline-item {{ 'completed' if ring.Insured == 'Yes' else 'pending' }}">
+            <div class="timeline-item {{ 'completed' if ring.insurance else 'pending' }}">
                 <div class="timeline-icon">
                     <i class="fas fa-shield-alt"></i>
                 </div>
@@ -209,7 +209,7 @@
                     <h4>Insurance</h4>
                     <p>Ring insured and protected</p>
                     <span class="timeline-status">
-                        {{ ring.Insured or 'Pending' }}
+                        {{ ring.insurance if ring.insurance else 'Pending' }}
                     </span>
                 </div>
             </div>
@@ -270,77 +270,60 @@
         <form id="ring-edit-form" class="modal-body" onsubmit="updateRingDetails(event)">
             <div class="form-group">
                 <label class="form-label">Jeweler</label>
-                <input type="text" class="form-input" id="edit-jeweler" value="{{ ring.Jeweler or 'GWFJ' }}">
+                <input type="text" class="form-input" id="edit-jeweler" value="{{ ring.jeweler or 'GWFJ' }}">
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">Metal</label>
-                    <input type="text" class="form-input" id="edit-metal" value="{{ ring.Metal or '18k Yellow Gold' }}">
+                    <input type="text" class="form-input" id="edit-metal" value="{{ ring.metal or '18k Yellow Gold' }}">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Stone(s)</label>
-                    <input type="text" class="form-input" id="edit-stones" value="{{ ring['Stone(s)'] or '2.98ct Lab Grown Diamond' }}">
+                    <input type="text" class="form-input" id="edit-stones" value="{{ ring.stone or '2.98ct Lab Grown Diamond' }}">
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Ring Style (Inspiration)</label>
-                <input type="url" class="form-input" id="edit-style" value="{{ ring['Ring Style (Inspiration)'] or '' }}" placeholder="https://...">
+                <input type="url" class="form-input" id="edit-style" value="{{ ring.style_inspiration or '' }}" placeholder="https://...">
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Design Approved</label>
-                    <select class="form-select" id="edit-design-approved">
-                        <option value="YES, 50% deposit placed" {{ 'selected' if 'YES' in (ring['Design Approved'] or '') else '' }}>YES, 50% deposit placed</option>
-                        <option value="NO" {{ 'selected' if ring['Design Approved'] == 'NO' else '' }}>NO</option>
-                        <option value="Pending" {{ 'selected' if ring['Design Approved'] == 'Pending' else '' }}>Pending</option>
+                    <label class="form-label">Status</label>
+                    <select class="form-select" id="edit-status">
+                        <option value="Researching" {{ 'selected' if ring.status == 'Researching' else '' }}>Researching</option>
+                        <option value="Designing" {{ 'selected' if ring.status == 'Designing' else '' }}>Designing</option>
+                        <option value="Ordered" {{ 'selected' if ring.status == 'Ordered' else '' }}>Ordered</option>
+                        <option value="Complete" {{ 'selected' if ring.status == 'Complete' else '' }}>Complete</option>
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Order Placed</label>
-                    <select class="form-select" id="edit-order-placed">
-                        <option value="Yes, 50% deposit placed" {{ 'selected' if 'Yes' in (ring['Order Placed'] or '') else '' }}>Yes, 50% deposit placed</option>
-                        <option value="No" {{ 'selected' if ring['Order Placed'] == 'No' else '' }}>No</option>
-                        <option value="Pending" {{ 'selected' if ring['Order Placed'] == 'Pending' else '' }}>Pending</option>
-                    </select>
+                    <label class="form-label">Cost</label>
+                    <input type="number" class="form-input" id="edit-cost" value="{{ ring.cost or 0 }}" placeholder="Total cost">
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Delivered</label>
-                    <select class="form-select" id="edit-delivered">
-                        <option value="YES, delivered" {{ 'selected' if 'YES' in (ring.Delivered or '') else '' }}>YES, delivered</option>
-                        <option value="In Progress" {{ 'selected' if ring.Delivered == 'In Progress' else '' }}>In Progress</option>
-                        <option value="Ordered" {{ 'selected' if ring.Delivered == 'Ordered' else '' }}>Ordered</option>
-                        <option value="Not Started" {{ 'selected' if ring.Delivered == 'Not Started' else '' }}>Not Started</option>
-                    </select>
+                    <label class="form-label">Deposit Paid</label>
+                    <input type="number" class="form-input" id="edit-deposit" value="{{ ring.deposit_paid or 0 }}" placeholder="Deposit amount">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Insured</label>
-                    <select class="form-select" id="edit-insured">
-                        <option value="Yes" {{ 'selected' if ring.Insured == 'Yes' else '' }}>Yes</option>
-                        <option value="No" {{ 'selected' if ring.Insured == 'No' else '' }}>No</option>
-                        <option value="Pending" {{ 'selected' if ring.Insured == 'Pending' else '' }}>Pending</option>
-                    </select>
+                    <label class="form-label">Balance Due</label>
+                    <input type="text" class="form-input" value="${{ '{:,.0f}'.format(ring.balance_due or 0) }}" readonly disabled>
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label">Insurance Details</label>
-                <input type="text" class="form-input" id="edit-insurance-details" value="{{ ring['Insurance Details'] or '' }}" placeholder="Insurance provider and policy details">
+                <input type="text" class="form-input" id="edit-insurance-details" value="{{ ring.insurance or '' }}" placeholder="Insurance provider and policy details">
             </div>
 
             <div class="form-group">
-                <label class="form-label">Engraving</label>
-                <input type="text" class="form-input" id="edit-engraving" value="{{ ring.Engraving or '' }}" placeholder="Ring engraving text">
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Estimated Delivery</label>
-                <input type="text" class="form-input" id="edit-estimated-delivery" value="{{ ring['Estimated Delivery'] or '' }}" placeholder="Estimated delivery date">
+                <label class="form-label">Notes</label>
+                <textarea class="form-input" id="edit-notes" rows="3" placeholder="Additional notes">{{ ring.notes or '' }}</textarea>
             </div>
         </form>
         <div class="modal-footer">

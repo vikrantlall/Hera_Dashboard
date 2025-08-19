@@ -99,20 +99,20 @@
                         <div class="budget-progress">
                             <div class="progress-container">
                                 <div class="progress-bar">
-                                    <div class="progress-fill" style="width: {{ ((item.saved / item.budget) * 100) if item.budget > 0 else 0 }}%"></div>
+                                    <div class="progress-fill" style="width: {{ ((item.saved / item.amount) * 100) if item.amount > 0 else 0 }}%"></div>
                                 </div>
-                                <div class="progress-text">{{ "{:.0f}".format(((item.saved / item.budget) * 100) if item.budget > 0 else 0) }}%</div>
+                                <div class="progress-text">{{ "{:.0f}".format(((item.saved / item.amount) * 100) if item.amount > 0 else 0) }}%</div>
                             </div>
                         </div>
 
                         <!-- Budget Status -->
                         <div class="budget-status">
-                            <div class="budget-amount">${{ "{:,.0f}".format(item.budget) }}</div>
+                            <div class="budget-amount">${{ "{:,.0f}".format(item.amount) }}</div>
                             {% if item.saved > 0 %}
                             <div class="saved-amount">${{ "{:,.0f}".format(item.saved) }} saved</div>
                             {% endif %}
-                            {% if item.budget - item.saved > 0 %}
-                            <div class="remaining-amount">${{ "{:,.0f}".format(item.budget - item.saved) }} left</div>
+                            {% if item.amount - item.saved > 0 %}
+                            <div class="remaining-amount">${{ "{:,.0f}".format(item.amount - item.saved) }} left</div>
                             {% endif %}
                         </div>
 

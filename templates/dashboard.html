@@ -82,7 +82,7 @@
             </div>
 
             <div class="task-items">
-                {% for task in HERA_DATA.main.tasks %}
+                {% for task in tasks %}
                 <div class="task-item {% if 'Complete' in task.status %}completed{% endif %}" data-task-id="{{ task.id }}">
                     <div class="task-checkbox">
                         <input type="checkbox"
@@ -158,7 +158,7 @@
                             {{ item.status }}
                         </span>
                     </div>
-                    <div class="budget-amount">${{ "{:,.0f}".format(item.budget) }}</div>
+                    <div class="budget-amount">${{ "{:,.0f}".format(item.amount) }}</div>
                 </div>
                 {% endfor %}
             </div>
@@ -193,7 +193,7 @@
             </div>
 
             <div class="family-grid">
-                {% for member in HERA_DATA.family[:4] %}
+                {% for member in family_members[:4] %}
                 <div class="family-member">
                     <div class="member-avatar">
                         {{ member.name[0] }}
@@ -239,7 +239,7 @@
             </div>
 
             <div class="packing-categories">
-                {% set categories = HERA_DATA.packing | groupby('category') %}
+                {% set categories = packing_items | groupby('category') %}
                 {% for category, items in categories %}
                 <div class="category-summary">
                     <span class="category-name">{{ category }}</span>

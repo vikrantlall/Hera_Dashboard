@@ -152,7 +152,7 @@
                                     <div class="file-name" title="{{ file.original_name }}">{{ file.original_name }}</div>
                                     <div class="file-meta">
                                         <span class="file-size">{{ file.size or 'Unknown' }}</span>
-                                        <span class="file-date">{{ file.upload_date.strftime('%b %d') if file.upload_date else 'Unknown' }}</span>
+                                        <span class="file-date">{{ file.created_at.strftime('%b %d') if file.created_at else 'Unknown' }}</span>
                                     </div>
                                     <div class="file-category">
                                         <span class="status-badge status-{{ file.category or 'other' }}">
@@ -209,7 +209,7 @@
                                             {{ (file.category or 'other').title() }}
                                         </span>
                                         <span class="row-size">{{ file.size or 'Unknown' }}</span>
-                                        <span class="row-date">{{ file.upload_date.strftime('%b %d, %Y') if file.upload_date else 'Unknown' }}</span>
+                                        <span class="row-date">{{ file.created_at.strftime('%b %d, %Y') if file.created_at else 'Unknown' }}</span>
                                     </div>
                                 </div>
 
