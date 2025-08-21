@@ -244,8 +244,8 @@
     {
       "id": 7,
       "name": "Graden",
-      "status": "Not Asked",
-      "notes": "Need to text"
+      "status": "Approved",
+      "notes": "Seems excited and supportive"
     }
   ],
   "travel": [
@@ -320,7 +320,7 @@
       "location": "YYC",
       "pickupDate": "2025-09-24",
       "confirmationNumber": "#1785932383",
-      "carType": "Intermediate SUV\\nToyota RAV4 or similar",
+      "carType": "Intermediate SUV (Toyota RAV4 or similar)",
       "status": "Confirmed"
     }
   ],

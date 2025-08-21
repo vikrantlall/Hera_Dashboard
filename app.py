@@ -29,7 +29,7 @@ class User(UserMixin):
         self.display_name = display_name or username
 
 users = {
-    'admin': User('admin', 'admin', generate_password_hash('admin123'), 'Vikrant')
+    'vikrant.lall': User('vikrant.lall', 'vikrant.lall', generate_password_hash('Graciegray411'), 'Vikrant')
 }
 
 
@@ -243,8 +243,8 @@ def login():
         password = request.form['password'].strip()
 
         # REAL CREDENTIALS - Access to HERA proposal dashboard
-        if username == 'admin' and password == 'admin123':
-            user = users.get('admin')
+        if username == 'vikrant.lall' and password == 'Graciegray411':
+            user = users.get('vikrant.lall')
             login_user(user)
             session['hera_access'] = True
             return redirect(url_for('dashboard'))
@@ -262,12 +262,49 @@ def login():
 
     return render_template('login.html')
 
+
 @app.route('/logout')
-@login_required
 def logout():
-    logout_user()
-    session.clear()  # Clear all session data including games access
+    """Enhanced logout with session cleanup"""
+    # Store whether this was an auto-logout
+    was_auto_logout = request.args.get('auto', False)
+
+    # Clear user session
+    if current_user.is_authenticated:
+        logout_user()
+
+    # Clear all session data
+    session.clear()
+
+    # Add appropriate flash message
+    if was_auto_logout:
+        flash('You were automatically logged out due to inactivity.')
+    else:
+        flash('You have been logged out successfully.')
+
     return redirect(url_for('login'))
+
+
+@app.route('/api/check-session', methods=['GET'])
+def check_session():
+    """Check if user has HERA access (for auto-logout system)"""
+    try:
+        has_hera_access = session.get('hera_access', False)
+        is_authenticated = current_user.is_authenticated
+
+        return jsonify({
+            'success': True,
+            'authenticated': is_authenticated,
+            'hera_access': has_hera_access,
+            'user_id': current_user.id if is_authenticated else None
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'authenticated': False,
+            'hera_access': False,
+            'error': str(e)
+        })
 
 
 @app.route('/')

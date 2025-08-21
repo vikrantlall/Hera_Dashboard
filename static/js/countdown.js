@@ -99,10 +99,10 @@ function updateCountdownDisplay({ title, subtitle, days, hours, minutes, phase }
     if (minutesElement) minutesElement.textContent = minutes;
 
     // Update mini countdown displays
-    const miniCountdown = document.getElementById('countdown-text');
-    if (miniCountdown) {
-        miniCountdown.textContent = `${days}d ${hours}h ${minutes}m`;
-    }
+    //const miniCountdown = document.getElementById('countdown-text');
+    //if (miniCountdown) {
+    //    miniCountdown.textContent = `${days}d ${hours}h ${minutes}m`;
+    //}
     
     // Add phase-specific styling
     const countdownDisplay = document.querySelector('.countdown-display');

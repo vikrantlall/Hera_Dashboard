@@ -73,20 +73,48 @@ function updateMemberStatus(selectElement) {
     const originalStatus = card.dataset.status;
     card.dataset.originalStatus = originalStatus;
 
-    // Simulate API call delay
-    setTimeout(() => {
-        // Update card status
-        updateCardStatus(card, newStatus);
+    // FIXED: Make actual API call instead of setTimeout simulation
+    fetch(`/api/family/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            id: parseInt(memberId),
+            field: 'status',
+            value: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update card status
+            updateCardStatus(card, newStatus);
 
-        // Update progress bar
-        updateProgressBar();
+            // Update progress bar
+            updateProgressBar();
 
-        // Show success notification
-        showNotification(`${card.querySelector('.member-name').textContent}'s status updated to ${newStatus}`, 'success');
+            // Show success notification
+            showNotification(`${card.querySelector('.member-name').textContent}'s status updated to ${newStatus}`, 'success');
+        } else {
+            // Revert the select dropdown on error
+            selectElement.value = originalStatus.replace('-', ' ');
+            showNotification('Failed to update family member status', 'error');
+        }
 
         // Remove loading state
         card.classList.remove('loading');
-    }, 500);
+    })
+    .catch(error => {
+        console.error('Error updating family status:', error);
+
+        // Revert the select dropdown on error
+        selectElement.value = originalStatus.replace('-', ' ');
+        showNotification('Error updating family member', 'error');
+
+        // Remove loading state
+        card.classList.remove('loading');
+    });
 }
 
 function updateCardStatus(card, status) {
@@ -174,36 +202,83 @@ function saveMemberChanges() {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     submitBtn.disabled = true;
 
-    const data = {
-        id: memberId,
-        name: name,
-        status: status,
-        notes: notes
-    };
+    // REAL API CALL - Update all fields at once
+    const updates = [
+        { field: 'name', value: name },
+        { field: 'status', value: status },
+        { field: 'notes', value: notes }
+    ];
 
-    // Simulate API call
-    setTimeout(() => {
-        try {
-            // Update the card with new data
-            updateMemberCard(memberId, data);
+    // Chain multiple update calls or use batch update
+    Promise.all(updates.map(update =>
+        fetch('/api/family/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: parseInt(memberId),
+                field: update.field,
+                value: update.value
+            })
+        }).then(response => response.json())
+    ))
+    .then(results => {
+        const allSuccessful = results.every(result => result.success);
 
-            // Update progress bar
+        if (allSuccessful) {
+            // Update the UI
+            const card = document.querySelector(`[data-member-id="${memberId}"]`);
+            if (card) {
+                // Update name
+                const nameElement = card.querySelector('.member-name');
+                if (nameElement) nameElement.textContent = name;
+
+                // Update status
+                updateCardStatus(card, status);
+                const statusSelect = card.querySelector('.status-select');
+                if (statusSelect) statusSelect.value = status;
+
+                // Update notes
+                let notesElement = card.querySelector('.notes-text');
+                if (notes) {
+                    if (!notesElement) {
+                        // Create notes section if it doesn't exist
+                        const notesContainer = document.createElement('div');
+                        notesContainer.className = 'member-notes';
+                        notesContainer.innerHTML = `
+                            <div class="notes-content">
+                                <i class="fas fa-quote-left"></i>
+                                <p class="notes-text">${notes}</p>
+                            </div>
+                        `;
+                        card.querySelector('.card-content').appendChild(notesContainer);
+                    } else {
+                        notesElement.textContent = notes;
+                    }
+                } else if (notesElement) {
+                    // Remove notes section if empty
+                    const notesContainer = notesElement.closest('.member-notes');
+                    if (notesContainer) notesContainer.remove();
+                }
+            }
+
             updateProgressBar();
-
-            // Show success message
-            showNotification('Member details updated successfully', 'success');
-
-            // Close modal
+            showNotification('Family member updated successfully', 'success');
             closeModal();
-        } catch (error) {
-            console.error('Error updating member:', error);
-            showNotification('Failed to update member details', 'error');
-        } finally {
-            // Reset button state
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+        } else {
+            showNotification('Failed to update family member', 'error');
         }
-    }, 800);
+    })
+    .catch(error => {
+        console.error('Error updating family member:', error);
+        showNotification('Error updating family member', 'error');
+    })
+    .finally(() => {
+        // Restore button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
 }
 
 function updateMemberCard(memberId, data) {

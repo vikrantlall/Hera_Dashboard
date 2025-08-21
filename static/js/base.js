@@ -5,31 +5,40 @@
 let currentDeleteCallback = null;
 let currentImageUploadType = null;
 
-// Initialize on DOM load
+// Single initialization point
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
-    setupEventListeners();
-    setupInlineEditing();
-    updateCountdown();
-    setupNavigation();
-    setupFlashMessages();
-
-    // Update countdown every minute
-    setInterval(updateCountdown, 60000);
 });
 
 function initializeApp() {
     console.log('HERA Dashboard initialized');
 
-    // Setup drag and drop for file uploads
+    // Core setup
+    setupEventListeners();
+    setupInlineEditing();
+    setupNavigation();
+    setupFlashMessages();
+
+    // File and upload management
     setupFileUpload();
-
-    // Setup tooltips
     setupTooltips();
-
-    // Setup keyboard shortcuts
     setupKeyboardShortcuts();
+
+    // Add styles for animations and auto-logout
+    addMiniCountdownStyles();
+    addAutoLogoutStyles();
+
+    // Initialize countdown and auto-logout
+    updateCountdown();
+    window.autoLogout = new AutoLogout(1); // 1 minute timeout
+
+    // Update countdown every minute
+    setInterval(updateCountdown, 60000);
 }
+
+// =============================================================================
+// EVENT LISTENERS & SETUP
+// =============================================================================
 
 function setupEventListeners() {
     // Close modals when clicking outside
@@ -49,38 +58,21 @@ function setupEventListeners() {
             }
         }
     });
-}
 
-// Countdown functionality
-function updateCountdown() {
-    const countdownElement = document.getElementById('countdown-text');
-    if (!countdownElement) return;
-
-    // Calculate days until September 26, 2025
-    const proposalDate = new Date('2025-09-26');
-    const today = new Date();
-    const diffTime = proposalDate - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays > 0) {
-        countdownElement.textContent = `${diffDays} days until proposal`;
-    } else if (diffDays === 0) {
-        countdownElement.textContent = 'Proposal Day! 💍';
-        const countdownContainer = countdownElement.closest('.countdown-mini');
-        if (countdownContainer) {
-            countdownContainer.style.background = 'linear-gradient(135deg, #dc2626, #991b1b)';
-        }
-    } else {
-        countdownElement.textContent = 'Proposal Complete! 🎉';
-        const countdownContainer = countdownElement.closest('.countdown-mini');
-        if (countdownContainer) {
-            countdownContainer.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        }
+    // Setup delete confirmation button
+    const confirmBtn = document.getElementById('confirm-delete-btn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (currentDeleteCallback) {
+                currentDeleteCallback();
+                closeDeleteModal();
+            }
+        });
     }
 }
 
 function setupNavigation() {
-    // Add active state management if needed
+    // Add active state management
     const navItems = document.querySelectorAll('.nav-item');
     const currentPath = window.location.pathname;
 
@@ -109,7 +101,161 @@ function setupFlashMessages() {
     });
 }
 
-// Modal Management
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + S to save (prevent default and trigger save)
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            const openForm = document.querySelector('.modal.show form');
+            if (openForm) {
+                openForm.dispatchEvent(new Event('submit'));
+            }
+        }
+
+        // Ctrl/Cmd + N to add new item
+        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+            e.preventDefault();
+            const addBtn = document.querySelector('.add-btn');
+            if (addBtn) {
+                addBtn.click();
+            }
+        }
+    });
+}
+
+function setupTooltips() {
+    const tooltipElements = document.querySelectorAll('[data-tooltip]');
+
+    tooltipElements.forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            showTooltip(this, this.dataset.tooltip);
+        });
+
+        element.addEventListener('mouseleave', function() {
+            hideTooltip();
+        });
+    });
+}
+
+// =============================================================================
+// DUAL-PHASE COUNTDOWN SYSTEM
+// =============================================================================
+
+function updateCountdown() {
+    const countdownElement = document.getElementById('countdown-text');
+    const countdownContainer = document.getElementById('countdown-mini');
+    if (!countdownElement) return;
+
+    // Trip and proposal dates
+    const tripDate = new Date('2025-09-24T08:00:00-06:00');
+    const proposalDate = new Date('2025-09-26T08:00:00-06:00');
+    const tripEndDate = new Date('2025-09-29T23:59:59-06:00');
+    const today = new Date();
+
+    if (today < tripDate) {
+        // Phase 1: Until trip departure
+        const diffTime = tripDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        countdownElement.textContent = `${diffDays} days until trip`;
+
+        // Style for trip phase
+        if (countdownContainer) {
+            countdownContainer.style.background = 'linear-gradient(135deg, var(--accent-gold), var(--secondary-gold))';
+            countdownContainer.style.animation = 'none';
+        }
+
+    } else if (today >= tripDate && today < proposalDate) {
+        // Phase 2: Until proposal moment
+        const diffTime = proposalDate - today;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
+
+        // Format display based on time remaining
+        if (diffDays > 0) {
+            countdownElement.textContent = `${diffDays}d until proposal 💍`;
+        } else if (diffHours > 0) {
+            countdownElement.textContent = `${diffHours}h until proposal 💍`;
+        } else if (diffMinutes > 0) {
+            countdownElement.textContent = `${diffMinutes}m until proposal 💍`;
+        } else {
+            countdownElement.textContent = `Proposal time! 💍`;
+        }
+
+        // Style for proposal phase - red/pink with pulse animation
+        if (countdownContainer) {
+            countdownContainer.style.background = 'linear-gradient(135deg, #dc2626, #991b1b)';
+            countdownContainer.style.animation = 'proposal-pulse 2s ease-in-out infinite';
+        }
+
+    } else if (today >= proposalDate && today < tripEndDate) {
+        // Phase 3: Trip in progress, proposal happened
+        countdownElement.textContent = 'Engaged! 💍🎉';
+
+        // Style for engaged phase - green with celebration colors
+        if (countdownContainer) {
+            countdownContainer.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+            countdownContainer.style.animation = 'celebration-glow 3s ease-in-out infinite';
+        }
+
+    } else {
+        // Phase 4: Trip complete
+        countdownElement.textContent = 'Mission Complete! ✅';
+
+        // Style for completion phase
+        if (countdownContainer) {
+            countdownContainer.style.background = 'linear-gradient(135deg, #6366f1, #4f46e5)';
+            countdownContainer.style.animation = 'none';
+        }
+    }
+}
+
+function addMiniCountdownStyles() {
+    if (document.getElementById('mini-countdown-animations')) return;
+
+    const style = document.createElement('style');
+    style.id = 'mini-countdown-animations';
+    style.textContent = `
+        @keyframes proposal-pulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 4px 16px rgba(220, 38, 38, 0.5);
+            }
+        }
+
+        @keyframes celebration-glow {
+            0%, 100% {
+                box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+            }
+            50% {
+                box-shadow: 0 4px 20px rgba(16, 185, 129, 0.6);
+            }
+        }
+
+        .countdown-mini.proposal-phase i {
+            animation: proposal-heartbeat 1.5s ease-in-out infinite;
+        }
+
+        @keyframes proposal-heartbeat {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.3); }
+            50% { transform: scale(1.1); }
+            75% { transform: scale(1.4); }
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
+// =============================================================================
+// MODAL MANAGEMENT
+// =============================================================================
+
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
@@ -138,7 +284,6 @@ function closeModal(modalId) {
     }
 }
 
-// Delete Confirmation
 function confirmDelete(message, callback) {
     currentDeleteCallback = callback;
 
@@ -157,20 +302,10 @@ function closeDeleteModal() {
     currentDeleteCallback = null;
 }
 
-// Execute confirmed delete
-document.addEventListener('DOMContentLoaded', function() {
-    const confirmBtn = document.getElementById('confirm-delete-btn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', function() {
-            if (currentDeleteCallback) {
-                currentDeleteCallback();
-                closeDeleteModal();
-            }
-        });
-    }
-});
+// =============================================================================
+// INLINE EDITING SYSTEM
+// =============================================================================
 
-// Inline Editing System
 function setupInlineEditing() {
     const editableElements = document.querySelectorAll('.editable-text, .editable-select');
 
@@ -310,7 +445,10 @@ function saveInlineEdit(itemId, field, value, element) {
     });
 }
 
-// File Upload Management
+// =============================================================================
+// FILE UPLOAD MANAGEMENT
+// =============================================================================
+
 function setupFileUpload() {
     const uploadAreas = document.querySelectorAll('.image-upload-area, .file-upload-area');
 
@@ -403,7 +541,6 @@ function showFilePreview(files, uploadArea) {
     });
 }
 
-// Image Management
 function openImageUpload(type) {
     currentImageUploadType = type;
     openModal('image-modal');
@@ -420,9 +557,309 @@ function closeImageModal() {
     }
 }
 
-// Notifications - Enhanced version that works with flash messages
+// =============================================================================
+// AUTO-LOGOUT SYSTEM
+// =============================================================================
+
+class AutoLogout {
+    constructor(timeoutMinutes = 1) {
+        this.timeoutDuration = timeoutMinutes * 60 * 1000;
+        this.warningTime = 10 * 1000;
+        this.timer = null;
+        this.warningTimer = null;
+        this.warningShown = false;
+        this.events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+        this.init();
+    }
+
+    init() {
+        // Only run if NOT on login page or games page
+        if (window.location.pathname === '/login' || window.location.pathname === '/games') {
+            return;
+        }
+
+        // Check if user has HERA access
+        this.checkHERAAccess().then(hasAccess => {
+            if (hasAccess) {
+                this.startTimer();
+                this.bindEvents();
+                this.createWarningModal();
+                this.startSessionCheck();
+            }
+        });
+    }
+
+    async checkHERAAccess() {
+        try {
+            const response = await fetch('/api/check-session');
+            const data = await response.json();
+            return data.hera_access || false;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    startTimer() {
+        this.clearTimer();
+        this.warningTimer = setTimeout(() => this.showWarning(), this.timeoutDuration - this.warningTime);
+        this.timer = setTimeout(() => this.logout(), this.timeoutDuration);
+    }
+
+    clearTimer() {
+        if (this.timer) clearTimeout(this.timer);
+        if (this.warningTimer) clearTimeout(this.warningTimer);
+        this.timer = null;
+        this.warningTimer = null;
+        this.hideWarning();
+    }
+
+    resetTimer() {
+        this.startTimer();
+    }
+
+    bindEvents() {
+        this.events.forEach(event => {
+            document.addEventListener(event, () => this.resetTimer(), true);
+        });
+    }
+
+    createWarningModal() {
+        if (document.getElementById('auto-logout-warning')) return;
+
+        const modal = document.createElement('div');
+        modal.id = 'auto-logout-warning';
+        modal.innerHTML = `
+            <div class="auto-logout-overlay">
+                <div class="auto-logout-modal">
+                    <div class="auto-logout-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <h3>Session Timeout Warning</h3>
+                    <p>You will be automatically logged out in <span id="countdown">10</span> seconds due to inactivity.</p>
+                    <div class="auto-logout-buttons">
+                        <button id="stay-logged-in" class="btn-primary">
+                            <i class="fas fa-hand-paper"></i>
+                            Stay Logged In
+                        </button>
+                        <button id="logout-now" class="btn-secondary">
+                            <i class="fas fa-sign-out-alt"></i>
+                            Logout Now
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        modal.style.display = 'none';
+        document.body.appendChild(modal);
+
+        document.getElementById('stay-logged-in').addEventListener('click', () => this.resetTimer());
+        document.getElementById('logout-now').addEventListener('click', () => this.logout());
+    }
+
+    showWarning() {
+        if (this.warningShown) return;
+
+        this.warningShown = true;
+        const modal = document.getElementById('auto-logout-warning');
+        modal.style.display = 'block';
+
+        let countdown = 10;
+        const countdownEl = document.getElementById('countdown');
+
+        const countdownTimer = setInterval(() => {
+            countdown--;
+            countdownEl.textContent = countdown;
+            if (countdown <= 0) clearInterval(countdownTimer);
+        }, 1000);
+    }
+
+    hideWarning() {
+        this.warningShown = false;
+        const modal = document.getElementById('auto-logout-warning');
+        if (modal) modal.style.display = 'none';
+    }
+
+    async logout() {
+        try {
+            this.clearTimer();
+            this.showLogoutMessage();
+            setTimeout(() => {
+                window.location.href = '/logout?auto=true';
+            }, 1500);
+        } catch (error) {
+            window.location.href = '/logout?auto=true';
+        }
+    }
+
+    showLogoutMessage() {
+        const message = document.createElement('div');
+        message.innerHTML = `
+            <div class="auto-logout-overlay">
+                <div class="auto-logout-modal logout-message">
+                    <div class="auto-logout-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h3>Session Expired</h3>
+                    <p>You have been automatically logged out due to inactivity.</p>
+                    <div class="spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        Redirecting...
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(message);
+    }
+
+    startSessionCheck() {
+        setInterval(async () => {
+            try {
+                const response = await fetch('/api/check-session');
+                const data = await response.json();
+
+                if (!data.authenticated || !data.hera_access) {
+                    window.location.href = '/logout?auto=true';
+                }
+                window.sessionCheckFailures = 0;
+
+            } catch (error) {
+                if (!window.sessionCheckFailures) window.sessionCheckFailures = 0;
+                window.sessionCheckFailures++;
+
+                if (window.sessionCheckFailures >= 5) {
+                    window.location.href = '/logout?auto=true';
+                }
+            }
+        }, 30000);
+    }
+}
+
+function addAutoLogoutStyles() {
+    if (document.getElementById('auto-logout-styles')) return;
+
+    const style = document.createElement('style');
+    style.id = 'auto-logout-styles';
+    style.textContent = `
+        .auto-logout-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        }
+
+        .auto-logout-modal {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            margin: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auto-logout-icon {
+            font-size: 48px;
+            color: #ff6b35;
+            margin-bottom: 20px;
+        }
+
+        .auto-logout-modal h3 {
+            margin: 0 0 15px 0;
+            color: #2c3e50;
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .auto-logout-modal p {
+            margin: 0 0 25px 0;
+            color: #666;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .auto-logout-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .auto-logout-buttons button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+            transform: translateY(-2px);
+        }
+
+        .logout-message {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+        }
+
+        .logout-message .auto-logout-icon {
+            color: #28a745;
+        }
+
+        .spinner {
+            margin-top: 20px;
+            color: #007bff;
+            font-size: 14px;
+        }
+
+        #countdown {
+            font-weight: bold;
+            color: #dc3545;
+            font-size: 18px;
+        }
+    `;
+
+    document.head.appendChild(style);
+}
+
+// =============================================================================
+// UTILITY FUNCTIONS
+// =============================================================================
+
 function showNotification(message, type = 'info', duration = 3000) {
-    // Try to use flash message container first
     const flashContainer = document.querySelector('.flash-messages') || createFlashContainer();
 
     const notification = document.createElement('div');
@@ -436,14 +873,12 @@ function showNotification(message, type = 'info', duration = 3000) {
 
     flashContainer.appendChild(notification);
 
-    // Auto-remove after specified duration
     if (duration > 0) {
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.style.transition = 'all 0.5s ease';
                 notification.style.opacity = '0';
                 notification.style.transform = 'translateX(100%)';
-
                 setTimeout(() => {
                     if (notification.parentNode) {
                         notification.remove();
@@ -471,21 +906,6 @@ function createFlashContainer() {
     return container;
 }
 
-// Tooltips
-function setupTooltips() {
-    const tooltipElements = document.querySelectorAll('[data-tooltip]');
-
-    tooltipElements.forEach(element => {
-        element.addEventListener('mouseenter', function() {
-            showTooltip(this, this.dataset.tooltip);
-        });
-
-        element.addEventListener('mouseleave', function() {
-            hideTooltip();
-        });
-    });
-}
-
 function showTooltip(element, text) {
     const tooltip = document.createElement('div');
     tooltip.className = 'tooltip-popup';
@@ -505,57 +925,6 @@ function hideTooltip() {
     }
 }
 
-// Keyboard Shortcuts
-function setupKeyboardShortcuts() {
-    document.addEventListener('keydown', function(e) {
-        // Ctrl/Cmd + S to save (prevent default and trigger save)
-        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-            e.preventDefault();
-            const openForm = document.querySelector('.modal.show form');
-            if (openForm) {
-                openForm.dispatchEvent(new Event('submit'));
-            }
-        }
-
-        // Ctrl/Cmd + N to add new item
-        if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
-            e.preventDefault();
-            const addBtn = document.querySelector('.add-btn');
-            if (addBtn) {
-                addBtn.click();
-            }
-        }
-    });
-}
-
-// Smooth page transitions
-function smoothPageTransition() {
-    document.body.style.opacity = '0';
-    setTimeout(() => {
-        document.body.style.opacity = '1';
-    }, 100);
-}
-
-// Mobile navigation toggle (if needed)
-function toggleMobileNav() {
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar) {
-        sidebar.classList.toggle('show');
-    }
-}
-
-// Handle logo fallback
-function handleLogoError(img) {
-    if (img) {
-        img.style.display = 'none';
-        const fallbackText = img.nextElementSibling;
-        if (fallbackText) {
-            fallbackText.style.display = 'block';
-        }
-    }
-}
-
-// Utility Functions
 function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
         style: 'currency',
@@ -586,7 +955,6 @@ function formatTime(timeString) {
     });
 }
 
-// Loading States
 function setLoadingState(element, loading = true) {
     if (loading) {
         element.classList.add('loading');
@@ -597,7 +965,6 @@ function setLoadingState(element, loading = true) {
     }
 }
 
-// AJAX Helper
 function makeRequest(url, options = {}) {
     const defaultOptions = {
         method: 'GET',
@@ -622,7 +989,6 @@ function makeRequest(url, options = {}) {
         });
 }
 
-// Form Validation
 function validateForm(form) {
     const requiredFields = form.querySelectorAll('[required]');
     let isValid = true;
@@ -639,7 +1005,6 @@ function validateForm(form) {
     return isValid;
 }
 
-// Animation Helpers
 function animateElement(element, animation, duration = 300) {
     element.style.animation = `${animation} ${duration}ms ease`;
 
@@ -651,44 +1016,52 @@ function animateElement(element, animation, duration = 300) {
     });
 }
 
-// Local Storage Helpers
-function saveToLocalStorage(key, data) {
-    try {
-        if (typeof Storage !== 'undefined') {
-            localStorage.setItem(key, JSON.stringify(data));
-        }
-    } catch (error) {
-        console.warn('Could not save to localStorage:', error);
+// Mobile navigation toggle
+function toggleMobileNav() {
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) {
+        sidebar.classList.toggle('show');
     }
 }
 
-function loadFromLocalStorage(key, defaultValue = null) {
-    try {
-        if (typeof Storage !== 'undefined') {
-            const item = localStorage.getItem(key);
-            return item ? JSON.parse(item) : defaultValue;
+// Handle logo fallback
+function handleLogoError(img) {
+    if (img) {
+        img.style.display = 'none';
+        const fallbackText = img.nextElementSibling;
+        if (fallbackText) {
+            fallbackText.style.display = 'block';
         }
-    } catch (error) {
-        console.warn('Could not load from localStorage:', error);
     }
-    return defaultValue;
 }
 
-// Export Functions to global HERA object
+// =============================================================================
+// GLOBAL HERA OBJECT - Export functions for other modules
+// =============================================================================
+
 window.HERA = {
+    // Core functions
     openModal,
     closeModal,
     confirmDelete,
     showNotification,
+
+    // Formatting utilities
     formatCurrency,
     formatDate,
     formatTime,
+
+    // UI helpers
     setLoadingState,
-    makeRequest,
-    validateForm,
     animateElement,
+    toggleMobileNav,
+    handleLogoError,
+
+    // System functions
     updateCountdown,
     setupNavigation,
-    toggleMobileNav,
-    handleLogoError
+
+    // Network utilities
+    makeRequest,
+    validateForm
 };

@@ -88,7 +88,7 @@
                         <input type="checkbox"
                                id="task-{{ task.id }}"
                                data-task-id="{{ task.id }}"
-                               {% if 'Complete' in task.status %}checked{% endif %}
+                               {% if 'Complete' in task.status %} checked{% endif %}
                                onchange="toggleTaskStatus({{ task.id }})">
                         <label for="task-{{ task.id }}"></label>
                     </div>
@@ -342,8 +342,8 @@
     // Initialize dashboard without progress bar animations
     document.addEventListener('DOMContentLoaded', function() {
         // Start countdown timer
-        updateCountdown();
-        setInterval(updateCountdown, 60000); // Update every minute
+        // updateCountdown();
+        // setInterval(updateCountdown, 60000); // Update every minute
 
         // Setup keyboard shortcuts
         setupKeyboardShortcuts();
@@ -397,5 +397,38 @@
             element.textContent = Math.floor(current);
         }, 16);
     }
+
+    // DEBUG: Add this to dashboard.html temporarily
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== COUNTDOWN DEBUG ===');
+
+    // Check what's in the countdown element
+    const countdownElement = document.getElementById('countdown-text');
+    console.log('Countdown element:', countdownElement);
+    console.log('Initial countdown text:', countdownElement ? countdownElement.textContent : 'NOT FOUND');
+
+    // Check if base.js updateCountdown is working
+    if (window.HERA && window.HERA.updateCountdown) {
+        console.log('Base.js updateCountdown found');
+        window.HERA.updateCountdown();
+        console.log('After base updateCountdown:', countdownElement ? countdownElement.textContent : 'NOT FOUND');
+    } else {
+        console.log('Base.js updateCountdown NOT FOUND');
+    }
+
+    // Check for countdown.js interference
+    setTimeout(() => {
+        console.log('Countdown text after 2 seconds:', countdownElement ? countdownElement.textContent : 'NOT FOUND');
+    }, 2000);
+
+    // Check which scripts are loaded
+    const scripts = Array.from(document.getElementsByTagName('script'));
+    console.log('Loaded scripts:', scripts.map(s => s.src || 'inline'));
+
+    // Check for multiple countdown functions
+    console.log('Global updateCountdown function:', typeof window.updateCountdown);
+    console.log('HERA updateCountdown function:', typeof window.HERA?.updateCountdown);
+});
+
 </script>
 {% endblock %}
