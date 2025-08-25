@@ -47,7 +47,7 @@
         "id": 2,
         "task": "Get Family Permissions",
         "deadline": "2025-08-03",
-        "status": "In Progress, On Schedule",
+        "status": "Ahead Schedule, Complete",
         "notes": "All permissions secured before booking major items."
       },
       {
@@ -96,7 +96,7 @@
         "id": 9,
         "task": "Reserve Dining",
         "deadline": "2025-08-01",
-        "status": "On Schedule, In Progress",
+        "status": "Complete, On Schedule",
         "notes": "Key reservations for proposal and celebration."
       },
       {
@@ -705,46 +705,182 @@
       "category": "Essential"
     },
     {
-      "id": 2,
-      "item": "Travel Documents",
-      "packed": false,
-      "notes": "",
-      "category": "Essential"
-    },
-    {
-      "id": 3,
-      "item": "Clothes",
-      "packed": false,
-      "notes": "",
-      "category": "Clothing"
-    },
-    {
-      "id": 4,
-      "item": "Hiking Gear",
-      "packed": false,
-      "notes": "",
-      "category": "Equipment"
-    },
-    {
-      "id": 5,
-      "item": "Camera/Tripod",
-      "packed": false,
-      "notes": "",
-      "category": "Equipment"
-    },
-    {
-      "id": 6,
-      "item": "Toiletries",
-      "packed": false,
-      "notes": "",
-      "category": "Personal Care"
-    },
-    {
       "id": 7,
       "item": "Daypack",
       "packed": false,
       "notes": "",
       "category": "General"
+    },
+    {
+      "id": 9,
+      "item": "Underwear - 10",
+      "category": "Clothing",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 10,
+      "item": "Shirts - 2",
+      "category": "Clothing",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 11,
+      "item": "Blazer",
+      "category": "Clothing",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 12,
+      "item": "Socks - 4",
+      "category": "Clothing",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 13,
+      "item": "Laptop",
+      "category": "Equipment",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 14,
+      "item": "Laptop Charger",
+      "category": "Equipment",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 15,
+      "item": "Phone Charger",
+      "category": "Equipment",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 16,
+      "item": "Portable Charger",
+      "category": "Equipment",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 17,
+      "item": "Passport",
+      "category": "Essential",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 18,
+      "item": "T-Shirts - 4",
+      "category": "Clothing",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 19,
+      "item": "Jacket",
+      "category": "Clothing",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 20,
+      "item": "Toothbrush",
+      "category": "Personal Care",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 21,
+      "item": "Shampoo",
+      "category": "Personal Care",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 22,
+      "item": "Conditioner",
+      "category": "Personal Care",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 23,
+      "item": "Soap",
+      "category": "Personal Care",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 24,
+      "item": "Shaver",
+      "category": "Personal Care",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 25,
+      "item": "ID",
+      "category": "Essential",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 26,
+      "item": "Park Pass",
+      "category": "Essential",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
+    },
+    {
+      "id": 27,
+      "item": "Water Bottle",
+      "category": "General",
+      "packed": false,
+      "notes": "",
+      "quantity": 1,
+      "priority": "medium"
     }
   ],
   "files": [

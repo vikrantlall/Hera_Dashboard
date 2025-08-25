@@ -105,7 +105,7 @@ function closeModal() {
 }
 
 // =============================================================================
-// FORM SUBMISSIONS - FIXED
+// FORM SUBMISSIONS - FIXED WITH REAL API CALLS
 // =============================================================================
 
 function setupFormSubmissions() {
@@ -154,26 +154,47 @@ function handleAddItem(event) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
     submitBtn.disabled = true;
 
-    // Simulate API call
-    setTimeout(() => {
-        try {
-            // Create new item element
-            const newItemId = Date.now(); // Simulate ID
-            createNewItemElement(newItemId, itemName, finalCategory, notes, packed);
+    // REAL API CALL - FIXED!
+    const payload = {
+        item_name: itemName,
+        category: finalCategory,
+        notes: notes,
+        packed: packed,
+        quantity: 1,
+        priority: 'medium'
+    };
+
+    fetch('/api/packing/add', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Create new item element with the real ID from backend
+            const newItem = data.packing_item;
+            createNewItemElement(newItem.id, newItem.item, newItem.category, newItem.notes, newItem.packed);
 
             // Close modal and reset
             closeModal();
             updateAllProgress();
             showNotification('Item added successfully!', 'success');
-
-        } catch (error) {
-            console.error('Error adding item:', error);
-            showNotification('Failed to add item', 'error');
-        } finally {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+        } else {
+            showNotification(data.error || 'Failed to add item', 'error');
         }
-    }, 800);
+    })
+    .catch(error => {
+        console.error('Error adding item:', error);
+        showNotification('Failed to add item', 'error');
+    })
+    .finally(() => {
+        // Reset button state
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
 }
 
 function handleEditItem(event) {
@@ -198,21 +219,40 @@ function handleEditItem(event) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
     submitBtn.disabled = true;
 
-    // Simulate API call
-    setTimeout(() => {
-        try {
+    // REAL API CALL FOR EDIT - FIXED!
+    const payload = {
+        id: parseInt(itemId),
+        item_name: name,
+        notes: notes,
+        packed: packed
+    };
+
+    fetch('/api/packing/update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
             updateItemElement(itemId, name, notes, packed);
             closeModal();
             updateAllProgress();
             showNotification('Item updated successfully', 'success');
-        } catch (error) {
-            console.error('Error updating item:', error);
-            showNotification('Failed to update item', 'error');
-        } finally {
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+        } else {
+            showNotification(data.error || 'Failed to update item', 'error');
         }
-    }, 600);
+    })
+    .catch(error => {
+        console.error('Error updating item:', error);
+        showNotification('Failed to update item', 'error');
+    })
+    .finally(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    });
 }
 
 // =============================================================================
@@ -225,26 +265,51 @@ function toggleItemPacked(itemId) {
 
     const checkbox = item.querySelector('.packing-checkbox');
     const isPacked = item.classList.contains('packed');
+    const newPackedState = !isPacked;
 
-    // Toggle packed state
-    item.classList.toggle('packed');
+    // Show loading state
+    checkbox.style.opacity = '0.6';
 
-    // Update checkbox visual
-    if (item.classList.contains('packed')) {
-        checkbox.innerHTML = '<i class="fas fa-check"></i>';
-        checkbox.classList.add('checked');
-    } else {
-        checkbox.innerHTML = '';
-        checkbox.classList.remove('checked');
-    }
+    // REAL API CALL FOR TOGGLE - FIXED!
+    fetch(`/api/packing/${itemId}/toggle`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Toggle packed state
+            item.classList.toggle('packed');
 
-    // Update progress
-    updateAllProgress();
+            // Update checkbox visual
+            if (item.classList.contains('packed')) {
+                checkbox.innerHTML = '<i class="fas fa-check"></i>';
+                checkbox.classList.add('checked');
+            } else {
+                checkbox.innerHTML = '';
+                checkbox.classList.remove('checked');
+            }
 
-    // Show notification
-    const itemName = item.querySelector('.packing-name').textContent;
-    const action = item.classList.contains('packed') ? 'packed' : 'unpacked';
-    showNotification(`${itemName} ${action}`, 'success');
+            // Update progress
+            updateAllProgress();
+
+            // Show notification
+            const itemName = item.querySelector('.packing-name').textContent;
+            const action = item.classList.contains('packed') ? 'packed' : 'unpacked';
+            showNotification(`${itemName} ${action}`, 'success');
+        } else {
+            showNotification('Failed to update item', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error toggling item:', error);
+        showNotification('Failed to update item', 'error');
+    })
+    .finally(() => {
+        checkbox.style.opacity = '1';
+    });
 }
 
 function deleteItem(itemId) {
@@ -258,22 +323,44 @@ function deleteItem(itemId) {
         item.style.opacity = '0.5';
         item.style.pointerEvents = 'none';
 
-        setTimeout(() => {
-            const category = item.closest('.packing-category');
-            item.remove();
-
-            // Check if category is now empty
-            const remainingItems = category.querySelectorAll('.packing-item');
-            if (remainingItems.length === 0) {
-                const itemsContainer = category.querySelector('.packing-items');
-                if (itemsContainer) {
-                    itemsContainer.innerHTML = '<div class="empty-category">No items yet</div>';
-                }
+        // REAL API CALL FOR DELETE - FIXED!
+        fetch(`/api/packing/delete/${itemId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
             }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const category = item.closest('.packing-category');
+                item.remove();
 
-            updateAllProgress();
-            showNotification(`${itemName} deleted`, 'success');
-        }, 300);
+                // Check if category is now empty
+                const remainingItems = category.querySelectorAll('.packing-item');
+                if (remainingItems.length === 0) {
+                    const itemsContainer = category.querySelector('.packing-items');
+                    if (itemsContainer) {
+                        itemsContainer.innerHTML = '<div class="empty-category">No items yet</div>';
+                    }
+                }
+
+                updateAllProgress();
+                showNotification(`${itemName} deleted`, 'success');
+            } else {
+                // Reset item appearance on error
+                item.style.opacity = '1';
+                item.style.pointerEvents = 'auto';
+                showNotification('Failed to delete item', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting item:', error);
+            // Reset item appearance on error
+            item.style.opacity = '1';
+            item.style.pointerEvents = 'auto';
+            showNotification('Failed to delete item', 'error');
+        });
     }
 }
 
