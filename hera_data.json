@@ -132,12 +132,12 @@
     {
       "id": 3,
       "category": "Hotels",
-      "budget": 2130,
-      "saved": 0,
-      "remaining": 2130,
-      "notes": "Canalta Lodge, includes breakfast (expedia)\\nconsidering reaching out to hotel for an upgrade",
+      "budget": 2130.0,
+      "saved": 0.0,
+      "remaining": 2130.0,
+      "notes": "Canalta Lodge, includes breakfast (expedia). Considering reaching out to hotel for an upgrade",
       "status": "Outstanding",
-      "priority": "high"
+      "priority": "medium"
     },
     {
       "id": 4,
@@ -172,12 +172,12 @@
     {
       "id": 7,
       "category": "Activities/Excursions",
-      "budget": 400,
-      "saved": 0,
-      "remaining": 400,
-      "notes": "Gondala,",
+      "budget": 400.0,
+      "saved": 0.0,
+      "remaining": 400.0,
+      "notes": "Gondola, Massages, Cruise",
       "status": "Outstanding",
-      "priority": "low"
+      "priority": "medium"
     },
     {
       "id": 8,

@@ -209,8 +209,8 @@ function updateBudgetItem(event) {
     const formData = {
         id: document.getElementById('budget-item-id').value,
         category: document.getElementById('budget-category').value,
-        budget_amount: parseFloat(document.getElementById('budget-amount').value), // Changed from 'budget'
-        budget_saved: parseFloat(document.getElementById('budget-saved').value) || 0, // Changed from 'saved'
+        budget_amount: parseFloat(document.getElementById('budget-amount').value),
+        budget_saved: parseFloat(document.getElementById('budget-saved').value) || 0,
         status: document.getElementById('budget-status').value,
         notes: document.getElementById('budget-notes').value,
         priority: 'medium' // Default priority
@@ -227,13 +227,22 @@ function updateBudgetItem(event) {
         return;
     }
 
+    // Find the submit button - it's in the modal footer, not inside the form
+    const modal = document.getElementById('budget-modal');
+    const submitBtn = modal ? modal.querySelector('button[type="submit"]') : null;
+
+    if (!submitBtn) {
+        console.error('Submit button not found');
+        showNotification('Error: Submit button not found', 'error');
+        return;
+    }
+
     // Show loading state
-    const submitBtn = event.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
     submitBtn.disabled = true;
 
-    // Make API call - using the budget update API structure
+    // Make API call
     fetch('/api/budget/update', {
         method: 'POST',
         headers: {
@@ -247,19 +256,12 @@ function updateBudgetItem(event) {
             showNotification('Budget item updated successfully', 'success');
             closeBudgetModal();
 
-            // Update local data
-            const itemIndex = window.BUDGET_DATA.items.findIndex(item => item.id === parseInt(formData.id));
-            if (itemIndex > -1) {
-                // Update with correct field names for local storage
-                window.BUDGET_DATA.items[itemIndex] = {
-                    ...window.BUDGET_DATA.items[itemIndex],
-                    category: formData.category,
-                    budget: formData.budget_amount,
-                    saved: formData.budget_saved,
-                    remaining: formData.budget_amount - formData.budget_saved,
-                    status: formData.status,
-                    notes: formData.notes
-                };
+            // Update local data if available
+            if (window.BUDGET_DATA && window.BUDGET_DATA.items) {
+                const itemIndex = window.BUDGET_DATA.items.findIndex(item => item.id == formData.id);
+                if (itemIndex !== -1 && data.budget_item) {
+                    window.BUDGET_DATA.items[itemIndex] = data.budget_item;
+                }
             }
 
             // Refresh the page to show updates
